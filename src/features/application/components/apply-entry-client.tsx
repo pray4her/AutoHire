@@ -30,16 +30,16 @@ type ApplyEntryClientProps = {
 };
 
 const PROCESS = [
-  "Project Introduction",
+  "About GESF",
   "CV Submission",
   "Additional Information",
   "Submission Complete",
 ] as const;
 
 const INTRO_DESCRIPTION =
-  "We accept applications year-round. However, the formal application window for the 2026 cycle closes in mid-June.";
+  "The 2026 application cycle is now closed. We are currently preparing for the 2027 application. Due to the large volume of required documents, please contact us early to begin your preparations.";
 
-const APPLICATION_DEADLINE_PILL = "Application Deadline: Mid-June 2026";
+const APPLICATION_DEADLINE_PILL = "Applications are accepted year-round.";
 
 const COMPETITIVE_PACKAGE_ITEMS = [
   "Annual Salary: ¥500K – ¥2M RMB (negotiable)",
@@ -49,43 +49,65 @@ const COMPETITIVE_PACKAGE_ITEMS = [
 ] as const;
 
 const ELIGIBILITY_INTRO =
-  "Candidates should meet one of the following conditions:";
+  "Applicants must meet at least one of the following three sets of criteria.";
 
-const ELIGIBILITY_CATEGORY_A = {
-  title: "Category A — Doctoral Talent",
-  items: [
-    "Hold a doctoral degree (Ph.D.).",
-    "Have more than 3 years of overseas work experience.",
-    "No professional title requirement for applicants aged 40 or under (inclusive).",
-  ],
-  over40Title:
-    "For applicants over 40 years of age, one of the following is required:",
-  over40Items: [
-    "Associate professor or above at a university.",
-    "Mid-level or senior technical position in an enterprise.",
-  ],
-} as const;
+const ELIGIBILITY_NOTE =
+  "Note: The three sets of criteria below are not mutually exclusive; a candidate can meet more than one category, and this does not affect their eligibility.";
 
-const ELIGIBILITY_CATEGORY_B = {
-  title: "Category B — Industry Leading Talent",
-  items: [
-    "Hold a bachelor's degree or above.",
-    "Have accumulated more than 10 years of work experience at Fortune Global 500 companies.",
-    "Currently hold a senior position in R&D or a technical field.",
-  ],
-} as const;
+const ELIGIBILITY_CATEGORIES = [
+  {
+    title: "Category I: Young Talents",
+    items: [
+      "Hold a doctoral degree;",
+      "Have at least 3 consecutive years of full-time work experience outside mainland China after obtaining the doctoral degree (short gaps are allowed), and currently hold a formal position outside mainland China;",
+      "Under the age of 40.",
+    ],
+  },
+  {
+    title: "Category II: Innovative Talents",
+    items: [
+      "Hold a doctoral degree;",
+      "Have at least 3 consecutive years of full-time work experience outside mainland China after obtaining the doctoral degree (short gaps are allowed), and currently hold a formal position outside mainland China;",
+      "Hold a position equivalent to associate professor in academic institutions, or a position equivalent to middle to senior positions or above in the industry. (Note: No age limit applies to this category.)",
+    ],
+  },
+  {
+    title: "Category III: Distinguished Engineers",
+    items: [
+      "Hold a bachelor's degree or above;",
+      "Have at least 10 consecutive years of full-time work experience in enterprises outside mainland China after obtaining the bachelor's degree (short gaps are allowed), and currently hold a formal position in an enterprise outside mainland China;",
+      "Currently hold a core technical role with a professional technical title equivalent to senior engineer or above.",
+    ],
+  },
+] as const;
 
-const TIMELINE_ITEMS = [
-  "Rolling Admissions: We accept applications year-round.",
-  "2026 Deadline: The application window for 2026 remains open until mid-June.",
-  "Notification: For applications submitted before mid-June 2026, results will be announced in December 2026.",
-  "Flexibility: Selected candidates for the 2026 cohort will have a two-year consideration period, with the option to arrive in China as late as early 2029.",
+const APPLICATION_PROCESS_INSTRUCTIONS = [
+  {
+    title: "Year-round Consultation and Preparation",
+    description:
+      "We accept inquiries throughout the year. You are advised to contact us as early as possible to initiate communication and organize application materials.",
+  },
+  {
+    title: "Official Submission Period",
+    description:
+      "The official submission period is from January to May each year. We will assist you in finalizing and submitting the application form during this period.",
+  },
+  {
+    title: "Result Announcement",
+    description:
+      "For applications submitted in the current year, the review results will be announced in December of the same year.",
+  },
+  {
+    title: "Onboarding Buffer Period and Contract Signing",
+    description:
+      "Selected candidates will be entitled to a two-year consideration period starting from the year following the announcement of results. During this period, they may flexibly arrange their trips to China and negotiate the employment mode (full-time or part-time).",
+  },
 ] as const;
 
 const SUB_PROGRAMS = [
-  "Qiming (QM)",
-  "Torch Plan (HJ)",
-  "Changjiang Scholar",
+  { label: "Qiming Plan (QM)", emphasis: true },
+  { label: "Torch Plan (HJ)", emphasis: false },
+  { label: "Changjiang Scholar", emphasis: false },
 ] as const;
 
 const INTRO_SECTION_ITEMS = [
@@ -103,7 +125,7 @@ const INTRO_SECTION_ITEMS = [
     id: "eligibility",
     title: "Eligibility",
     summary:
-      "Category A (doctoral talent) or Category B (industry leading talent).",
+      "Young Talents, Innovative Talents, or Distinguished Engineers.",
   },
   {
     id: "process",
@@ -113,9 +135,9 @@ const INTRO_SECTION_ITEMS = [
   },
   {
     id: "timeline",
-    title: "Timeline & Key Dates",
+    title: "Instructions for Application Process",
     summary:
-      "Rolling admissions, deadlines, results notification, and arrival flexibility.",
+      "Year-round consultation, official submission window, results, and onboarding flexibility.",
   },
   {
     id: "about",
@@ -277,18 +299,35 @@ export function ApplyEntryClient({ token }: ApplyEntryClientProps) {
         return (
           <div className="space-y-4 text-sm leading-7 text-[color:var(--foreground-soft)]">
             <p>
-              The Global Excellent Scientists Fund (GESF), also known as the
-              China Talent Program, is a prestigious national-level talent
-              program initiated by relevant Chinese government departments. Its
-              primary mission is to attract overseas scholars—including those
-              from Hong Kong, Macau, and Taiwan, regardless of nationality—to
-              conduct research and innovation in China, thereby contributing to
-              the nation&apos;s scientific and technological advancement.
+              The Global Excellent Scientists Fund (GESF), also known as the{" "}
+              <strong className="text-base font-semibold text-[color:var(--foreground)]">
+                China Talent Program
+              </strong>
+              , is a prestigious national-level talent program initiated by
+              relevant Chinese government departments. Its primary mission is to
+              attract overseas scholars—including those from Hong Kong, Macau,
+              and Taiwan, regardless of nationality—to conduct research and
+              innovation in China, thereby contributing to the nation&apos;s
+              scientific and technological advancement.
             </p>
-            <p>The program encompasses the following sub-projects:</p>
+            <p>
+              The program{" "}
+              <strong className="font-semibold text-[color:var(--foreground)]">
+                mainly
+              </strong>{" "}
+              encompasses the following sub-projects:
+            </p>
             <ul className="list-disc space-y-2 pl-5">
               {SUB_PROGRAMS.map((item) => (
-                <li key={item}>{item}</li>
+                <li key={item.label}>
+                  {item.emphasis ? (
+                    <strong className="font-semibold text-[color:var(--foreground)]">
+                      {item.label}
+                    </strong>
+                  ) : (
+                    item.label
+                  )}
+                </li>
               ))}
             </ul>
           </div>
@@ -307,40 +346,22 @@ export function ApplyEntryClient({ token }: ApplyEntryClientProps) {
         return (
           <div className="space-y-5 text-sm leading-7 text-[color:var(--foreground-soft)]">
             <p>{ELIGIBILITY_INTRO}</p>
+            <p>{ELIGIBILITY_NOTE}</p>
 
-            <div className="space-y-3">
-              <p className="font-semibold text-[color:var(--foreground)]">
-                {ELIGIBILITY_CATEGORY_A.title}
-              </p>
-              <ol className="list-decimal space-y-3 pl-5 marker:font-semibold">
-                {ELIGIBILITY_CATEGORY_A.items.map((item) => (
-                  <li key={item} className="pl-1">
-                    {item}
-                  </li>
-                ))}
-              </ol>
-              <p className="pl-5 font-medium text-[color:var(--foreground)]">
-                {ELIGIBILITY_CATEGORY_A.over40Title}
-              </p>
-              <ul className="list-disc space-y-2 pl-10">
-                {ELIGIBILITY_CATEGORY_A.over40Items.map((item) => (
-                  <li key={item}>{item}</li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="space-y-3">
-              <p className="font-semibold text-[color:var(--foreground)]">
-                {ELIGIBILITY_CATEGORY_B.title}
-              </p>
-              <ol className="list-decimal space-y-3 pl-5 marker:font-semibold">
-                {ELIGIBILITY_CATEGORY_B.items.map((item) => (
-                  <li key={item} className="pl-1">
-                    {item}
-                  </li>
-                ))}
-              </ol>
-            </div>
+            {ELIGIBILITY_CATEGORIES.map((category) => (
+              <div key={category.title} className="space-y-3">
+                <p className="font-semibold text-[color:var(--foreground)]">
+                  {category.title}
+                </p>
+                <ol className="list-decimal space-y-3 pl-5 marker:font-semibold">
+                  {category.items.map((item) => (
+                    <li key={item} className="pl-1">
+                      {item}
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ))}
           </div>
         );
       case "process":
@@ -375,16 +396,16 @@ export function ApplyEntryClient({ token }: ApplyEntryClientProps) {
         );
       case "timeline":
         return (
-          <ul className="space-y-2 text-sm leading-7 text-[color:var(--foreground-soft)]">
-            {TIMELINE_ITEMS.map((item) => (
-              <li
-                key={item}
-                className="rounded-xl border border-[color:var(--border)] bg-white px-4 py-3"
-              >
-                {item}
+          <ol className="list-decimal space-y-5 pl-5 text-sm leading-7 text-[color:var(--foreground-soft)] marker:font-semibold">
+            {APPLICATION_PROCESS_INSTRUCTIONS.map((step) => (
+              <li key={step.title} className="pl-1">
+                <p className="font-semibold text-[color:var(--foreground)]">
+                  {step.title}
+                </p>
+                <p className="mt-2">{step.description}</p>
               </li>
             ))}
-          </ul>
+          </ol>
         );
       case "about":
         return (

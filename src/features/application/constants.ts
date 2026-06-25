@@ -58,7 +58,7 @@ export const APPLICATION_FLOW_STEPS = [
 /** Full journey including Step 0 (program brief on `/apply`) before formal steps. */
 export const APPLICATION_FLOW_STEPS_WITH_INTRO = [
   {
-    label: "Project Introduction",
+    label: "About GESF",
     hint: "Review the GESF program scope, eligibility, and process.",
   },
   ...APPLICATION_FLOW_STEPS,

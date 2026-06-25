@@ -12,7 +12,7 @@ const sans = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "AutoHire | Global Expert Application",
+  title: "Apply/Global Excellent Scientists Fund",
   description:
     "Editorial-style expert application flow for GESF invitees, including CV review, supplemental information, and supporting materials.",
 };
