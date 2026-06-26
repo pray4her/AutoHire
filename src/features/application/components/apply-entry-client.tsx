@@ -48,9 +48,6 @@ const COMPETITIVE_PACKAGE_ITEMS = [
   'Title: the prestigious "National High-Level Talent" title.',
 ] as const;
 
-const ELIGIBILITY_INTRO =
-  "Applicants must meet at least one of the following three sets of criteria.";
-
 const ELIGIBILITY_NOTE =
   "Note: The three sets of criteria below are not mutually exclusive; a candidate can meet more than one category, and this does not affect their eligibility.";
 
@@ -83,31 +80,31 @@ const ELIGIBILITY_CATEGORIES = [
 
 const APPLICATION_PROCESS_INSTRUCTIONS = [
   {
-    title: "Year-round Consultation and Preparation",
+    title: "Year-round Application Acceptance",
     description:
-      "We accept inquiries throughout the year. You are advised to contact us as early as possible to initiate communication and organize application materials.",
+      "We accept applications throughout the year. We recommend submitting your materials as early as possible so we can fully prepare your application.",
   },
   {
-    title: "Official Submission Period",
+    title: "Official Submission Window",
     description:
-      "The official submission period is from January to May each year. We will assist you in finalizing and submitting the application form during this period.",
+      "The official submission window is tentatively scheduled from January to May each year, subject to annual adjustments. During this period, we will assist you in submitting the formal application to the official authorities.",
   },
   {
     title: "Result Announcement",
     description:
-      "For applications submitted in the current year, the review results will be announced in December of the same year.",
+      "The final selection results will be announced in December of the same year.",
   },
   {
-    title: "Onboarding Buffer Period and Contract Signing",
+    title: "Preparation Period and Contract Signing",
     description:
-      "Selected candidates will be entitled to a two-year consideration period starting from the year following the announcement of results. During this period, they may flexibly arrange their trips to China and negotiate the employment mode (full-time or part-time).",
+      "Selected candidates will be granted a two-year preparation period starting from the year following the announcement of results. During this period, you may flexibly plan your trips to China and determine the employment mode (full-time or part-time).",
   },
 ] as const;
 
 const SUB_PROGRAMS = [
-  { label: "Qiming Plan (QM)", emphasis: true },
-  { label: "Torch Plan (HJ)", emphasis: false },
-  { label: "Changjiang Scholar", emphasis: false },
+  "Qiming Plan (QM)",
+  "Torch Plan (HJ)",
+  "Changjiang Scholar",
 ] as const;
 
 const INTRO_SECTION_ITEMS = [
@@ -137,7 +134,7 @@ const INTRO_SECTION_ITEMS = [
     id: "timeline",
     title: "Instructions for Application Process",
     summary:
-      "Year-round consultation, official submission window, results, and onboarding flexibility.",
+      "Year-round acceptance, official submission window, results, and preparation period.",
   },
   {
     id: "about",
@@ -319,15 +316,7 @@ export function ApplyEntryClient({ token }: ApplyEntryClientProps) {
             </p>
             <ul className="list-disc space-y-2 pl-5">
               {SUB_PROGRAMS.map((item) => (
-                <li key={item.label}>
-                  {item.emphasis ? (
-                    <strong className="font-semibold text-[color:var(--foreground)]">
-                      {item.label}
-                    </strong>
-                  ) : (
-                    item.label
-                  )}
-                </li>
+                <li key={item}>{item}</li>
               ))}
             </ul>
           </div>
@@ -345,7 +334,13 @@ export function ApplyEntryClient({ token }: ApplyEntryClientProps) {
       case "eligibility":
         return (
           <div className="space-y-5 text-sm leading-7 text-[color:var(--foreground-soft)]">
-            <p>{ELIGIBILITY_INTRO}</p>
+            <p>
+              Applicants must{" "}
+              <strong className="font-semibold text-[color:var(--foreground)]">
+                meet at least one
+              </strong>{" "}
+              of the following three sets of criteria.
+            </p>
             <p>{ELIGIBILITY_NOTE}</p>
 
             {ELIGIBILITY_CATEGORIES.map((category) => (
