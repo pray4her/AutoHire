@@ -162,6 +162,12 @@ enum ApplicationFeedbackStatus {
   SUBMITTED
 }
 
+enum InitialMaterialReviewReportEmailStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
 enum AskAiFeedbackRating {
   UP
   DOWN
@@ -260,6 +266,7 @@ model Application {
   supplementUploadBatches      SupplementUploadBatch[]
   supplementFiles              SupplementFile[]
   feedback                     ApplicationFeedback?
+  initialMaterialReviewReportEmail InitialMaterialReviewReportEmail?
   events                       ApplicationEventLog[]
   accessLogs                   InviteAccessLog[]
   fileUploadAttempts           FileUploadAttempt[]
@@ -614,6 +621,30 @@ model ApplicationFeedback {
 
   @@index([status, updatedAt])
   @@index([submittedAt])
+}
+
+model InitialMaterialReviewReportEmail {
+  id                   String                                   @id @default(cuid())
+  applicationId        String                                   @unique
+  reviewRunId          String
+  recipientEmail       String
+  subject              String
+  reportPayload        Json
+  status               InitialMaterialReviewReportEmailStatus   @default(PENDING)
+  attemptCount         Int                                      @default(0)
+  lastAttemptAt        DateTime?
+  nextRetryAt          DateTime?
+  errorMessage         String?                                  @db.Text
+  providerMessageId    String?
+  sentAt               DateTime?
+  inviteTokenAvailable Boolean                                  @default(false)
+  createdAt            DateTime                                 @default(now())
+  updatedAt            DateTime                                 @updatedAt
+
+  application Application @relation(fields: [applicationId], references: [id])
+
+  @@index([status, nextRetryAt])
+  @@index([reviewRunId])
 }
 
 model ApplicationEventLog {

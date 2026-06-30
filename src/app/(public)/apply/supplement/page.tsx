@@ -5,6 +5,10 @@ import { usePathname, useRouter } from "next/navigation";
 
 import { PageFrame, PageShell, StatusBanner } from "@/components/ui/page-shell";
 import { fetchSession } from "@/features/application/client";
+import {
+  readInviteTokenFromSearchParams,
+  removeInviteTokenFromUrl,
+} from "@/features/application/invite-url-token";
 import { APPLICATION_FLOW_STEPS_WITH_INTRO } from "@/features/application/constants";
 import {
   buildApplyFlowStepLinks,
@@ -114,6 +118,20 @@ export default function SupplementPage() {
             resolveRouteFromStatus(nextSnapshot.applicationStatus),
           );
           return;
+        }
+
+        if (typeof window !== "undefined") {
+          const inviteToken = readInviteTokenFromSearchParams(
+            new URLSearchParams(window.location.search),
+          );
+
+          if (inviteToken) {
+            window.history.replaceState(
+              window.history.state,
+              "",
+              removeInviteTokenFromUrl(window.location.href),
+            );
+          }
         }
 
         setSnapshot(nextSnapshot);

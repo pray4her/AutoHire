@@ -62,6 +62,7 @@ import type {
   UploadKind as PrismaUploadKind,
 } from "@prisma/client";
 import { getMaterialSupplementSampleFixtures } from "@/lib/material-supplement/fixtures";
+import type { InitialMaterialReviewReportEmailRecord } from "@/lib/initial-material-review-report-email/types";
 
 export type AccessResult =
   | "VALID"
@@ -482,6 +483,7 @@ type PersistedStore = {
   supplementUploadBatches: SupplementUploadBatchRecord[];
   supplementFiles: SupplementFileRecord[];
   feedbacks: FeedbackRecord[];
+  initialMaterialReviewReportEmails: InitialMaterialReviewReportEmailRecord[];
   events: EventRecord[];
   accessLogs: InviteAccessLogRecord[];
   fileUploadAttempts: FileUploadAttemptRecord[];
@@ -899,6 +901,7 @@ function buildSampleStore(): PersistedStore {
     supplementUploadBatches: supplementFixtures.supplementUploadBatches,
     supplementFiles: supplementFixtures.supplementFiles,
     feedbacks: [],
+    initialMaterialReviewReportEmails: [],
     events: [],
     accessLogs: [],
     fileUploadAttempts: [],
@@ -5978,4 +5981,21 @@ export async function buildApplicationSnapshot(
     },
     submittedAt: application.submittedAt?.toISOString() ?? null,
   };
+}
+
+export async function findInvitationGenerationItemByInvitationId(
+  invitationId: string,
+) {
+  if (getRuntimeMode() === "memory") {
+    return (
+      getMemoryStore().invitationGenerationItems.find(
+        (item) => item.invitationId === invitationId,
+      ) ?? null
+    );
+  }
+
+  const prisma = await getPrisma();
+  return prisma.invitationGenerationItem.findUnique({
+    where: { invitationId },
+  });
 }

@@ -95,7 +95,7 @@ export const INITIAL_CV_REVIEW_FIELD_ROWS = [
   { key: "current_title_equivalence", label: "Current Title Equivalence" },
   {
     key: "current_country_of_employment",
-    label: "Current Country of Employment",
+    label: "Current Employment Country/Region",
   },
   {
     key: "work_experience_2020_present",
@@ -119,6 +119,28 @@ export const INITIAL_CV_REVIEW_EDITABLE_FIELD_KEYS = [
   "work_experience_2020_present",
   "research_area",
 ] as const satisfies readonly InitialCvReviewFieldKey[];
+
+/** Applicant-facing help for fields whose values combine multiple parts. */
+export const INITIAL_CV_REVIEW_FIELD_HELP = {
+  doctoral_graduation_time:
+    "The year you completed your first doctoral-equivalent degree. If graduation was after 2020, include the month when available (for example, 2021 or 2021-06).",
+  current_title_equivalence:
+    "A standardized role level mapped from your current job title(s), based on the position most relevant to eligibility review.",
+  current_country_of_employment:
+    "Your current formal employment location. Each entry uses Institution | Country/Region (for example, Example University | United States). Regions distinguish Mainland China, Hong Kong, Macau, Taiwan, and other countries.",
+  work_experience_2020_present:
+    "A structured timeline of your work and research roles. Each line follows Start–End: Country/Region | Institution | Department/Lab | Job title | Employment nature. “无” or “Not provided” means that part was not stated on your CV. The list may include roles before 2020 when they appear on your CV.",
+  research_area:
+    "Your own research focus areas extracted from your CV, usually shown as a bulleted list. This reflects your scholarly work, not your employer's general scope.",
+} satisfies Partial<Record<InitialCvReviewFieldKey, string>>;
+
+export function getInitialCvReviewFieldHelp(key: InitialCvReviewFieldKey) {
+  return key in INITIAL_CV_REVIEW_FIELD_HELP
+    ? INITIAL_CV_REVIEW_FIELD_HELP[
+        key as keyof typeof INITIAL_CV_REVIEW_FIELD_HELP
+      ]
+    : null;
+}
 
 export function hasInitialCvReviewExtract(
   extractedFields: Record<string, unknown> | null | undefined,
@@ -151,6 +173,28 @@ export function getInitialCvReviewFieldValue(
 
 export function formatInitialCvReviewDisplayValue(value: string) {
   return value.replace(/!!!\s*null\s*!!!/gi, "Not provided");
+}
+
+/** Flatten uneven bullet indentation so GFM does not render a false nested list. */
+export function flattenExtractionMarkdownBulletList(value: string) {
+  return value
+    .split(/\r?\n/)
+    .map((line) => {
+      const bulletMatch = line.match(/^\s*([-*•])\s+(.*)$/);
+
+      if (bulletMatch) {
+        return `- ${bulletMatch[2].trimEnd()}`;
+      }
+
+      return line;
+    })
+    .join("\n");
+}
+
+export function formatExtractionMarkdownFieldValue(value: string) {
+  return flattenExtractionMarkdownBulletList(
+    formatInitialCvReviewDisplayValue(value),
+  );
 }
 
 export function buildInitialCvReviewExtractionText(

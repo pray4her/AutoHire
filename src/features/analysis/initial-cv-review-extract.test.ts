@@ -3,7 +3,10 @@ import { describe, expect, it } from "vitest";
 import {
   ALL_CV_EXTRACTION_FIELD_ROWS,
   buildInitialCvReviewExtractionText,
+  flattenExtractionMarkdownBulletList,
+  formatExtractionMarkdownFieldValue,
   formatInitialCvReviewDisplayValue,
+  getInitialCvReviewFieldHelp,
   INITIAL_CV_REVIEW_FIELD_ROWS,
 } from "@/features/analysis/initial-cv-review-extract";
 
@@ -22,6 +25,48 @@ describe("formatInitialCvReviewDisplayValue", () => {
     expect(formatInitialCvReviewDisplayValue("Before !!! Null !!! after")).toBe(
       "Before Not provided after",
     );
+  });
+});
+
+describe("flattenExtractionMarkdownBulletList", () => {
+  it("flattens uneven bullet indentation to a single list level", () => {
+    expect(
+      flattenExtractionMarkdownBulletList(
+        "- Biofuel and biodiesel\n  - Biomass conversion\n  - Micro-algae cultivation",
+      ),
+    ).toBe(
+      "- Biofuel and biodiesel\n- Biomass conversion\n- Micro-algae cultivation",
+    );
+  });
+
+  it("normalizes leading spaces and alternate bullet markers", () => {
+    expect(
+      flattenExtractionMarkdownBulletList(
+        "  - High-dimensional statistics\n  * Random matrix theory",
+      ),
+    ).toBe("- High-dimensional statistics\n- Random matrix theory");
+  });
+});
+
+describe("formatExtractionMarkdownFieldValue", () => {
+  it("applies null placeholder replacement before flattening bullets", () => {
+    expect(
+      formatExtractionMarkdownFieldValue(
+        "- Topic A\n  - Topic B with !!!null!!! detail",
+      ),
+    ).toBe("- Topic A\n- Topic B with Not provided detail");
+  });
+});
+
+describe("getInitialCvReviewFieldHelp", () => {
+  it("returns help text for composite extraction fields", () => {
+    expect(getInitialCvReviewFieldHelp("work_experience_2020_present")).toContain(
+      "Start–End",
+    );
+    expect(getInitialCvReviewFieldHelp("current_country_of_employment")).toContain(
+      "Institution | Country/Region",
+    );
+    expect(getInitialCvReviewFieldHelp("name")).toBeNull();
   });
 });
 

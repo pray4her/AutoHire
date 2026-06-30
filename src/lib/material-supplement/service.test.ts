@@ -1,5 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+const trySendInitialMaterialReviewReportEmailMock = vi.hoisted(() =>
+  vi.fn().mockResolvedValue("sent"),
+);
+
+vi.mock("@/lib/initial-material-review-report-email/orchestrator", () => ({
+  trySendInitialMaterialReviewReportEmail:
+    trySendInitialMaterialReviewReportEmailMock,
+}));
+
 import {
   createMaterialReviewRun,
   createMaterialCategoryReview,
@@ -342,6 +351,8 @@ describe("material supplement review run sync", () => {
     process.env.MATERIAL_REVIEW_MODE = "mock";
     resetMemoryStore();
     vi.restoreAllMocks();
+    trySendInitialMaterialReviewReportEmailMock.mockClear();
+    trySendInitialMaterialReviewReportEmailMock.mockResolvedValue("sent");
   });
 
   it("returns a review run status with category states", async () => {
@@ -429,6 +440,31 @@ describe("material supplement review run sync", () => {
     await expect(listSupplementRequests("app_secondary")).resolves.toHaveLength(
       6,
     );
+
+    expect(trySendInitialMaterialReviewReportEmailMock).toHaveBeenCalledWith({
+      applicationId: "app_secondary",
+      reviewRunId: initial.reviewRunId,
+    });
+  });
+
+  it("does not invoke report email orchestrator for non-initial runs", async () => {
+    await updateApplication("app_supplement_required", {
+      applicationStatus: "SUBMITTED",
+      eligibilityResult: "ELIGIBLE",
+    });
+
+    const reviewRun = await createMaterialReviewRun({
+      applicationId: "app_supplement_required",
+      runNo: 2,
+      triggerType: "SUPPLEMENT_UPLOAD",
+      triggeredCategory: "IDENTITY",
+      status: "PROCESSING",
+      externalRunId: "mock-material-review:category:IDENTITY:complete",
+    });
+
+    await syncSupplementReviewRun("app_supplement_required", reviewRun.id);
+
+    expect(trySendInitialMaterialReviewReportEmailMock).not.toHaveBeenCalled();
   });
 
   it("syncs a mock category run and completes related upload batches", async () => {

@@ -84,3 +84,17 @@ In `mock` mode, the app uses an in-memory store (`src/lib/data/`) and returns fi
 - **File uploads**: Two-step presigned upload — client calls `/upload-intent` to get a presigned OSS URL, uploads directly from browser, then calls `/upload-confirm`.
 - **Path alias**: `@/*` maps to `src/*`.
 - **Testing**: Unit tests colocated with source (`.test.ts`). E2E tests in `tests/e2e/`.
+
+## Agent skills
+
+### Issue tracker
+
+GitHub Issues on `pray4her/AutoHire` via the `gh` CLI; external PRs are not a triage surface. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+Five canonical roles mapped to identical label strings (`needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`). See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context layout — `CONTEXT.md` at repo root and `docs/adr/` for ADRs. See `docs/agents/domain.md`.

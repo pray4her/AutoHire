@@ -39,6 +39,7 @@ import {
   adaptMaterialReviewCategoryResult,
   adaptSupplementReviewCallbackCategory,
 } from "@/lib/material-supplement/result-adapter";
+import { trySendInitialMaterialReviewReportEmail } from "@/lib/initial-material-review-report-email/orchestrator";
 import { getRemainingSupplementReviewRounds } from "@/lib/material-supplement/status";
 import type { supplementReviewCallbackBodySchema } from "@/lib/material-supplement/schemas";
 import type { z } from "zod";
@@ -377,6 +378,17 @@ export async function syncSupplementReviewRun(
         code: SUPPLEMENT_EXPERT_ERROR_CODES.SUPPLEMENT_REVIEW_RUN_NOT_FOUND,
         details: { reviewRunId },
       });
+    }
+
+    if (
+      reviewRun.runNo === 1 &&
+      reviewRun.triggerType === "INITIAL_SUBMISSION" &&
+      syncedResult.reviewRun.status === "COMPLETED"
+    ) {
+      void trySendInitialMaterialReviewReportEmail({
+        applicationId,
+        reviewRunId,
+      }).catch(() => null);
     }
 
     return {

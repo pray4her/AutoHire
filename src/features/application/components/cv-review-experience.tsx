@@ -15,12 +15,14 @@ import {
   type ReactNode,
 } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { CircleHelp } from "lucide-react";
 import { useForm } from "react-hook-form";
 
 import type { MissingField } from "@/features/analysis/types";
 import {
   buildInitialCvReviewExtractionText,
-  formatInitialCvReviewDisplayValue,
+  formatExtractionMarkdownFieldValue,
+  getInitialCvReviewFieldHelp,
   getInitialCvReviewFieldValue,
   hasInitialCvReviewExtract,
   INITIAL_CV_REVIEW_EDITABLE_FIELD_KEYS,
@@ -38,6 +40,11 @@ import {
   getInputClassName,
 } from "@/components/ui/page-shell";
 import { MarkdownProse } from "@/components/ui/markdown-prose";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import {
   confirmResumeUpload,
   confirmResumeExtraction,
@@ -262,7 +269,7 @@ function ExtractionFieldDisplayValue({
     );
   }
 
-  const displayValue = formatInitialCvReviewDisplayValue(value);
+  const displayValue = formatExtractionMarkdownFieldValue(value);
 
   if (EXTRACTION_MULTILINE_FIELD_KEYS.has(fieldKey)) {
     return (
@@ -277,6 +284,61 @@ function ExtractionFieldDisplayValue({
     <span className={cn("break-words whitespace-pre-wrap", className)}>
       {displayValue}
     </span>
+  );
+}
+
+function ExtractionFieldHelpHint({ helpText }: { helpText: string }) {
+  return (
+    <Tooltip>
+      <TooltipTrigger
+        render={
+          <button
+            type="button"
+            className={cn(
+              "absolute top-2 right-2 z-10 flex size-5 shrink-0 items-center justify-center rounded-full",
+              "border border-[color:var(--border)] bg-[color:var(--background)] text-[color:var(--muted-foreground)]",
+              "transition hover:border-[color:var(--ring)] hover:text-[color:var(--foreground-soft)]",
+              "focus-visible:ring-2 focus-visible:ring-[color:var(--ring)] focus-visible:outline-none",
+            )}
+            aria-label="What this field means"
+          >
+            <CircleHelp className="size-3" />
+          </button>
+        }
+      />
+      <TooltipContent
+        side="left"
+        align="end"
+        className="max-w-sm text-left leading-relaxed"
+      >
+        {helpText}
+      </TooltipContent>
+    </Tooltip>
+  );
+}
+
+function ExtractionFieldValueCell({
+  fieldKey,
+  children,
+  className,
+}: {
+  fieldKey: InitialCvReviewFieldKey;
+  children: ReactNode;
+  className?: string;
+}) {
+  const helpText = getInitialCvReviewFieldHelp(fieldKey);
+
+  return (
+    <td
+      className={cn(
+        "relative align-top px-4 py-3 text-sm",
+        helpText && "pr-10",
+        className,
+      )}
+    >
+      {helpText ? <ExtractionFieldHelpHint helpText={helpText} /> : null}
+      {children}
+    </td>
   );
 }
 
@@ -797,12 +859,15 @@ function InitialCvReviewExtractCard({
                   >
                     {row.label}
                   </th>
-                  <td className="px-4 py-3 text-sm break-words whitespace-normal text-[color:var(--foreground-soft)]">
+                  <ExtractionFieldValueCell
+                    fieldKey={row.key}
+                    className="break-words whitespace-normal text-[color:var(--foreground-soft)]"
+                  >
                     <ExtractionFieldDisplayValue
                       fieldKey={row.key}
                       value={value}
                     />
-                  </td>
+                  </ExtractionFieldValueCell>
                 </tr>
               );
             })}
@@ -948,7 +1013,7 @@ function EditableExtractionReviewCard({
   return (
     <SectionCard
       title="Key information review"
-      description="Please verify the extracted details below. Click any editable value to make a correction before starting eligibility judgment."
+      description="Please check the key information extracted from your CV. You can edit any missing or incorrect details directly below."
     >
       <div className="flex flex-col gap-4">
         <div className="overflow-x-auto rounded-xl border border-[color:var(--border)] bg-white">
@@ -985,7 +1050,7 @@ function EditableExtractionReviewCard({
                     >
                       {row.label}
                     </th>
-                    <td className="px-4 py-3 align-top text-sm">
+                    <ExtractionFieldValueCell fieldKey={row.key}>
                       {isEditing ? (
                         <div className="flex flex-col gap-2">
                           {renderEditor(row)}
@@ -1032,7 +1097,7 @@ function EditableExtractionReviewCard({
                           ) : null}
                         </button>
                       )}
-                    </td>
+                    </ExtractionFieldValueCell>
                   </tr>
                 );
               })}
@@ -1042,8 +1107,8 @@ function EditableExtractionReviewCard({
 
         <div className="flex flex-col items-center gap-3 text-center">
           <p className="max-w-2xl text-sm leading-6 text-[color:var(--foreground-soft)]">
-            Corrections are saved to the review service first; eligibility
-            judgment starts only after these fields pass validation.
+            Click &apos;Confirm&apos; to start your eligibility assessment based
+            on the final information.
           </p>
           <ActionButton
             type="button"
@@ -1192,6 +1257,50 @@ function InitialCvReviewDeterminationCard({
   }
 
   return null;
+}
+
+const CV_UPLOAD_GUIDELINES = [
+  {
+    title: "Upload & Confirm",
+    description:
+      'Upload your latest CV and click "Confirm Upload". Keep this page open for processing.',
+  },
+  {
+    title: "Finality",
+    description: "Re-uploads are permitted before confirmation only.",
+  },
+  {
+    title: "Accuracy",
+    description:
+      "Submit an up-to-date CV to ensure an accurate qualification review.",
+  },
+] as const;
+
+function CvUploadGuidelinesPanel() {
+  return (
+    <div className="rounded-xl border border-[color:var(--border)] bg-white px-4 py-4 sm:px-5 sm:py-5">
+      <ol className="flex flex-col gap-4">
+        {CV_UPLOAD_GUIDELINES.map((item, index) => (
+          <li key={item.title} className="flex gap-3">
+            <span
+              aria-hidden
+              className="flex size-6 shrink-0 items-center justify-center rounded-full bg-[color:var(--muted)] text-xs font-semibold text-[color:var(--primary)]"
+            >
+              {index + 1}
+            </span>
+            <div className="min-w-0 flex-1">
+              <p className="text-sm font-semibold text-[color:var(--foreground)]">
+                {item.title}
+              </p>
+              <p className="mt-1 text-sm leading-6 text-[color:var(--foreground-soft)]">
+                {item.description}
+              </p>
+            </div>
+          </li>
+        ))}
+      </ol>
+    </div>
+  );
 }
 
 export function CvReviewExperience({
@@ -2046,7 +2155,7 @@ export function CvReviewExperience({
       case "CV_EXTRACTING":
         return "";
       case "CV_EXTRACTION_REVIEW":
-        return "Review the information extracted from your CV. Eligibility judgment will start after you confirm it.";
+        return "";
       case "CV_ANALYZING":
       case "REANALYZING":
         return "Your confirmed CV information is being evaluated. This page will update automatically; please keep it open.";
@@ -2077,7 +2186,7 @@ export function CvReviewExperience({
       case "INELIGIBLE":
         return "This submission does not meet the published requirements. See the summary below for the reasons provided.";
       case "INTRO_VIEWED":
-        return 'Upload your latest CV and click "Confirm Upload". Keep this page open as we will extract key information for eligibility assessment. You may re-upload your CV before confirming, but it cannot be replaced once confirmed.';
+        return "Upload your CV to begin the preliminary eligibility assessment.";
       case "CV_UPLOADED":
         return "Your CV has been saved. Start CV analysis when you are ready.";
       default:
@@ -2147,6 +2256,8 @@ export function CvReviewExperience({
               {showUploadState ? (
                 <SectionCard title={undefined} description={undefined}>
                   <div className="flex flex-col gap-5">
+                    <CvUploadGuidelinesPanel />
+
                     <label className="block">
                       <input
                         ref={resumeFileInputRef}
@@ -2171,7 +2282,7 @@ export function CvReviewExperience({
                       />
                       <div
                         className={cn(
-                          "rounded-2xl border border-dashed border-[color:var(--border-strong)] bg-[color:var(--muted)]/70 px-5 py-8 text-center transition hover:border-[color:var(--primary)] hover:bg-white",
+                          "rounded-xl border border-dashed border-[color:var(--border-strong)] bg-white px-4 py-4 text-center transition hover:border-[color:var(--primary)] hover:bg-slate-50",
                           (isLoading ||
                             isUploadingResume ||
                             isStartingResumeAnalysis ||
@@ -2179,28 +2290,21 @@ export function CvReviewExperience({
                             "pointer-events-none opacity-60",
                         )}
                       >
-                        <p className="text-[0.68rem] font-semibold tracking-[0.16em] text-slate-500 uppercase">
-                          {isUploadingResume ? "Uploading" : "Select file"}
+                        <p className="text-sm font-medium text-[color:var(--primary)]">
+                          {isUploadingResume ? (
+                            "Saving your CV…"
+                          ) : (
+                            <>
+                              <span
+                                className="mr-1 font-semibold"
+                                aria-hidden
+                              >
+                                +
+                              </span>
+                              Click to upload file
+                            </>
+                          )}
                         </p>
-                        <p className="mt-2 text-xl font-semibold text-[color:var(--primary)]">
-                          {isUploadingResume
-                            ? "Saving your CV…"
-                            : "Upload your latest CV"}
-                        </p>
-                        <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-[color:var(--foreground-soft)]">
-                          PDF or Word is preferred. ZIP archives are accepted
-                          when the CV package needs to stay bundled. Maximum 20
-                          MB per file, or up to 100 MB for ZIP.
-                        </p>
-                        {!uploadedResumeFile && !isUploadingResume ? (
-                          <p className="mt-3 text-left text-sm leading-6 text-[color:var(--foreground-soft)]">
-                            Please submit your most up-to-date CV to ensure
-                            accurate and complete information for the
-                            qualification review, and to avoid any adverse
-                            impact on the evaluation result due to outdated or
-                            incomplete information.
-                          </p>
-                        ) : null}
                       </div>
                     </label>
 

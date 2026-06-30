@@ -68,6 +68,12 @@ const envSchema = z.object({
     .default(28800),
   SENTRY_DSN: z.string().optional().default(""),
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional().default(""),
+  SMTP_HOST: z.string().optional(),
+  SMTP_PORT: z.coerce.number().int().positive().optional(),
+  SMTP_SECURE: z.coerce.boolean().default(false),
+  SMTP_USER: z.string().optional(),
+  SMTP_PASS: z.string().optional(),
+  EMAIL_FROM: z.string().email().optional(),
 });
 
 let cachedEnv: z.infer<typeof envSchema> | undefined;

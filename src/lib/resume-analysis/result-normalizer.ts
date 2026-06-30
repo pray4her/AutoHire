@@ -47,6 +47,7 @@ const INITIAL_CV_REVIEW_FIELD_KEYS = ALL_CV_EXTRACTION_FIELD_ROWS.map(
 );
 
 const INITIAL_CV_REVIEW_FIELD_ALIASES: Record<string, string> = {
+  "Current Employment Country/Region": "current_country_of_employment",
   "Current Country of Employment": "current_country_of_employment",
   "Current Job Country": "current_country_of_employment",
   "Work Experience (2020-Present)": "work_experience_2020_present",
@@ -352,7 +353,7 @@ function criticalFieldLabelsForInference(): Record<string, string> {
     doctoral_degree_status: "Doctoral Degree Status",
     doctoral_graduation_time: "Doctoral Graduation Time",
     current_title_equivalence: "Current Title Equivalence",
-    current_country_of_employment: "Current Country of Employment",
+    current_country_of_employment: "Current Employment Country/Region",
     work_experience_2020_present: "Work Experience (2020-Present)",
     research_area: "Research Area",
   } satisfies Record<

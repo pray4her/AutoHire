@@ -135,6 +135,7 @@ const MISSING_FIELD_REGISTRY: Record<string, MissingFieldConfig> = {
       "来源地",
       "Country Where Current Full-Time Job Is Located",
       "Country of Current Full-Time Job",
+      "Current Employment Country/Region",
       "Current Country of Employment",
       "Current Job Country",
     ],

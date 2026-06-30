@@ -319,3 +319,26 @@ test("category history links from the supplement workspace", async ({ page }) =>
   await expect(page.getByText("Run 2 - Identity Documents")).toBeVisible();
   await expect(page.getByText("Upload a clearer passport scan")).toBeVisible();
 });
+
+test("supplement deep link bootstraps session and strips invite token", async ({
+  page,
+  context,
+}) => {
+  await context.clearCookies();
+  const sessionResponse = page.waitForResponse(
+    (response) =>
+      response.url().includes("/api/expert-session") &&
+      response.status() === 200,
+  );
+
+  await page.goto("/apply/supplement?t=sample-supplement-required-token");
+  await sessionResponse;
+
+  await expect(page).toHaveURL(/\/apply\/supplement$/);
+  await expect(
+    page.getByRole("heading", {
+      name: "Supplement Materials",
+      level: 1,
+    }),
+  ).toBeVisible();
+});
