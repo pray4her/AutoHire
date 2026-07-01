@@ -39,6 +39,7 @@ import {
   StatusBanner,
   getInputClassName,
 } from "@/components/ui/page-shell";
+import { EnglishDateInput } from "@/components/ui/english-date-input";
 import { MarkdownProse } from "@/components/ui/markdown-prose";
 import {
   Tooltip,
@@ -57,7 +58,19 @@ import {
   submitSupplementalFields,
   uploadBinary,
 } from "@/features/application/client";
-import { APPLICATION_FLOW_STEPS_WITH_INTRO } from "@/features/application/constants";
+import {
+  APPLICATION_FLOW_STEPS_WITH_INTRO,
+  CONTINUE_TO_UPLOAD_LABEL,
+  ELIGIBLE_ASSESSMENT_DOCUMENTS,
+  ELIGIBLE_ASSESSMENT_FOOTNOTE,
+  ELIGIBLE_ASSESSMENT_HEADING,
+  ELIGIBLE_ASSESSMENT_INTRO,
+  INELIGIBLE_CANNOT_PROCEED_MESSAGE,
+  INELIGIBLE_CLOSING_MESSAGE,
+  INELIGIBLE_FLOW_ENDED_TITLE,
+  INELIGIBLE_PAGE_CLOSED_HINT,
+  INELIGIBLE_PAGE_DESCRIPTION,
+} from "@/features/application/constants";
 import {
   clearDraft,
   readDraft,
@@ -525,6 +538,7 @@ function renderSupplementalField(
   register: ReturnType<typeof useForm<SupplementalFormValues>>["register"],
   watch: ReturnType<typeof useForm<SupplementalFormValues>>["watch"],
   getValues: ReturnType<typeof useForm<SupplementalFormValues>>["getValues"],
+  hideFieldHelp = false,
 ) {
   const currentValue = watch(field.fieldKey) ?? field.defaultValue ?? "";
   const isPrefilled = Boolean(field.defaultValue && currentValue);
@@ -634,14 +648,15 @@ function renderSupplementalField(
           </div>
         ) : field.type === "date" ? (
           (() => {
-            const { onChange, ...reg } = register(field.fieldKey, {
+            const { onChange, onBlur, ...reg } = register(field.fieldKey, {
               required: field.required,
             });
+            const dateValue = watch(field.fieldKey) ?? field.defaultValue ?? "";
 
             return (
-              <input
+              <EnglishDateInput
                 {...reg}
-                type="date"
+                isEmpty={!String(dateValue).trim()}
                 min="1900-01-01"
                 max="2100-12-31"
                 className={inputClassName}
@@ -649,6 +664,7 @@ function renderSupplementalField(
                   normalizeDateInputYearToFourDigits(e);
                   void onChange(e);
                 }}
+                onBlur={onBlur}
               />
             );
           })()
@@ -663,18 +679,20 @@ function renderSupplementalField(
           />
         )}
       </div>
-      <div className="mt-2.5 space-y-1">
-        {field.helpText ? (
-          <span className="block text-xs leading-6 text-slate-500">
-            {field.helpText}
-          </span>
-        ) : null}
-        {needsAttention ? (
-          <span className="block text-xs leading-6 text-slate-500">
-            Please provide this information to complete accelerated evaluation.
-          </span>
-        ) : null}
-      </div>
+      {!hideFieldHelp ? (
+        <div className="mt-2.5 space-y-1">
+          {field.helpText ? (
+            <span className="block text-xs leading-6 text-slate-500">
+              {field.helpText}
+            </span>
+          ) : null}
+          {needsAttention ? (
+            <span className="block text-xs leading-6 text-slate-500">
+              Please provide this information to complete accelerated evaluation.
+            </span>
+          ) : null}
+        </div>
+      ) : null}
     </label>
   );
 }
@@ -785,7 +803,13 @@ function getInitialBanner(
   }
 
   if (snapshot.applicationStatus === "INELIGIBLE") {
-    return null;
+    return (
+      <StatusBanner
+        tone="neutral"
+        title={INELIGIBLE_FLOW_ENDED_TITLE}
+        description={INELIGIBLE_CANNOT_PROCEED_MESSAGE}
+      />
+    );
   }
 
   if (snapshot.applicationStatus === "ELIGIBLE") {
@@ -807,7 +831,7 @@ function getInitialBanner(
       <StatusBanner
         tone="success"
         title="Additional review is ready"
-        description="Continue to Additional Information to upload supporting materials."
+        description="Continue to Upload to provide your supporting documents."
       />
     );
   }
@@ -1126,76 +1150,83 @@ function EditableExtractionReviewCard({
   );
 }
 
-function PreliminaryAssessmentResultBody({
-  statusBadge,
-  description,
-  extraNote,
-  appearance = "default",
-}: {
-  statusBadge: ReactNode;
-  description: string;
-  extraNote?: string | null;
-  /** `success` matches Submission Complete: emerald panel typography. */
-  appearance?: "default" | "success";
-}) {
-  const isSuccessPanel = appearance === "success";
+function formatIneligibleReasonDetails(
+  displaySummary: string | null,
+  reasonText: string | null,
+) {
+  const parts = [reasonText, displaySummary]
+    .map((part) => part?.trim())
+    .filter((value): value is string => Boolean(value));
 
+  return [...new Set(parts)].join("\n\n");
+}
+
+function IneligibleAssessmentResultBody({
+  reasonDetails,
+}: {
+  reasonDetails: string | null;
+}) {
   return (
     <div
-      className={cn(
-        "border-l-2 pl-4",
-        isSuccessPanel ? "border-emerald-300" : "border-[color:var(--border)]",
-      )}
+      className="flex flex-col gap-4 rounded-xl border border-rose-200/90 bg-white px-4 py-4 sm:px-5 sm:py-5"
+      role="status"
+      aria-live="polite"
     >
-      <div className="flex flex-col gap-3">
-        <h2
-          className={cn(
-            "text-base font-semibold tracking-[-0.02em]",
-            isSuccessPanel ? "text-emerald-950" : "text-[color:var(--primary)]",
-          )}
-        >
-          Preliminary Assessment Result
-        </h2>
-        <div
-          className="flex flex-wrap items-center gap-2"
-          role="status"
-          aria-live="polite"
-        >
-          <span
-            className={cn(
-              "text-sm",
-              isSuccessPanel
-                ? "text-emerald-800"
-                : "text-[color:var(--foreground-soft)]",
-            )}
-          >
-            Status:
-          </span>
-          {statusBadge}
-        </div>
-        <p
-          className={cn(
-            "text-sm leading-6",
-            isSuccessPanel
-              ? "text-emerald-950/90"
-              : "text-[color:var(--foreground-soft)]",
-          )}
-        >
-          {description}
-        </p>
-        {extraNote ? (
-          <p
-            className={cn(
-              "text-sm leading-6",
-              isSuccessPanel
-                ? "text-emerald-900/85"
-                : "text-[color:var(--muted-foreground)]",
-            )}
-          >
-            {extraNote}
-          </p>
-        ) : null}
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm text-[color:var(--foreground-soft)]">
+          Status:
+        </span>
+        <Badge variant="destructive">Not eligible</Badge>
       </div>
+
+      <p className="text-sm leading-6 text-[color:var(--foreground-soft)]">
+        {INELIGIBLE_CANNOT_PROCEED_MESSAGE}
+      </p>
+
+      {reasonDetails ? (
+        <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]/35 px-4 py-4">
+          <p className="text-[0.68rem] font-semibold tracking-[0.16em] text-[color:var(--primary)] uppercase">
+            Review details
+          </p>
+          <p className="mt-2 text-sm leading-6 whitespace-pre-wrap text-[color:var(--foreground-soft)]">
+            {reasonDetails}
+          </p>
+        </div>
+      ) : null}
+
+      <div className="border-t border-[color:var(--border)] pt-4">
+        <p className="text-sm font-medium leading-6 text-[color:var(--primary)]">
+          {INELIGIBLE_CLOSING_MESSAGE}
+        </p>
+        <p className="mt-2 text-xs leading-5 text-[color:var(--muted-foreground)]">
+          {INELIGIBLE_PAGE_CLOSED_HINT}
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function EligibleAssessmentResultBody() {
+  return (
+    <div
+      className="rounded-xl border border-emerald-200 bg-white px-4 py-4 sm:px-5 sm:py-5"
+      role="status"
+      aria-live="polite"
+    >
+      <p className="text-sm font-semibold leading-6 text-emerald-950">
+        {ELIGIBLE_ASSESSMENT_HEADING}
+      </p>
+      <p className="mt-3 text-sm leading-6 text-emerald-950/90">
+        {ELIGIBLE_ASSESSMENT_INTRO}
+      </p>
+      <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm leading-6 text-emerald-950/90">
+        {ELIGIBLE_ASSESSMENT_DOCUMENTS.map((document) => (
+          <li key={document}>{document}</li>
+        ))}
+      </ul>
+      <p className="mt-4 text-xs italic leading-5 text-emerald-900/75">
+        {ELIGIBLE_ASSESSMENT_FOOTNOTE}
+      </p>
     </div>
   );
 }
@@ -1211,16 +1242,14 @@ function InitialCvReviewDeterminationCard({
   const { eligibilityResult } = snapshot;
 
   if (eligibilityResult === "INELIGIBLE") {
-    const description =
-      displaySummary ??
-      "This submission does not meet the published requirements for the current review stage.";
+    const reasonDetails = formatIneligibleReasonDetails(
+      displaySummary,
+      reasonText,
+    );
+
     return (
-      <SectionCard>
-        <PreliminaryAssessmentResultBody
-          statusBadge={<Badge variant="destructive">Not eligible</Badge>}
-          description={description}
-          extraNote={reasonText}
-        />
+      <SectionCard title="Preliminary assessment result">
+        <IneligibleAssessmentResultBody reasonDetails={reasonDetails} />
       </SectionCard>
     );
   }
@@ -1233,25 +1262,9 @@ function InitialCvReviewDeterminationCard({
   }
 
   if (eligibilityResult === "ELIGIBLE") {
-    const primary =
-      reasonText ??
-      displaySummary ??
-      "Your profile meets the basic application requirements for this talent program. Please proceed to the next step to provide the required documents.";
-    const secondary =
-      reasonText &&
-      displaySummary &&
-      displaySummary.trim() !== reasonText.trim()
-        ? displaySummary
-        : null;
-
     return (
       <SectionCard className="border-emerald-200 bg-emerald-50">
-        <PreliminaryAssessmentResultBody
-          appearance="success"
-          statusBadge={<Badge variant="success">Eligible</Badge>}
-          description={primary}
-          extraNote={secondary}
-        />
+        <EligibleAssessmentResultBody />
       </SectionCard>
     );
   }
@@ -2173,18 +2186,18 @@ export function CvReviewExperience({
         }
 
         return currentResultStep === 2
-          ? "CV review needs a few more fields. Submit the items below and CV review will run again."
+          ? "Missing key information for eligibility assessment. Please complete the missing details at the bottom of this page."
           : "CV review needs a few more fields. Continue to Additional Information to complete them.";
       case "ELIGIBLE":
-        return "Initial CV review is complete. Continue to Additional Information to upload supporting materials.";
+        return "You are eligible to apply. Prepare the required documents below, then continue to upload.";
       case "SECONDARY_ANALYZING":
         return "An additional review is running. This page will refresh automatically until it is ready.";
       case "SECONDARY_REVIEW":
-        return "Continue to Additional Information to upload supporting materials.";
+        return "Continue to Upload to provide your supporting documents.";
       case "SECONDARY_FAILED":
         return "The additional review step did not finish successfully. Please contact the program team if you need help continuing.";
       case "INELIGIBLE":
-        return "This submission does not meet the published requirements. See the summary below for the reasons provided.";
+        return INELIGIBLE_PAGE_DESCRIPTION;
       case "INTRO_VIEWED":
         return "Upload your CV to begin the preliminary eligibility assessment.";
       case "CV_UPLOADED":
@@ -2212,13 +2225,15 @@ export function CvReviewExperience({
     <PageFrame>
       <PageShell
         title={
-          currentResultStep === 1
-            ? snapshot?.applicationStatus === "CV_EXTRACTION_REVIEW"
-              ? "Confirm CV Information"
-              : "CV Upload & Preliminary Assessment"
-            : isEligibleContactCompletion
-              ? "Complete your contact details to continue."
-              : "Provide the remaining information needed to finish CV review."
+          snapshot?.applicationStatus === "INELIGIBLE"
+            ? "Initial qualification review complete"
+            : currentResultStep === 1
+              ? snapshot?.applicationStatus === "CV_EXTRACTION_REVIEW"
+                ? "Confirm CV Information"
+                : "CV Upload & Preliminary Assessment"
+              : isEligibleContactCompletion
+                ? "Complete your contact details to continue."
+                : "CV Upload & Preliminary Assessment"
         }
         description={headerSummary}
         headerVariant="centered"
@@ -2441,7 +2456,7 @@ export function CvReviewExperience({
                     onClick={handleContinueToMaterials}
                     className="w-full sm:w-auto"
                   >
-                    Continue to Additional Information
+                    {CONTINUE_TO_UPLOAD_LABEL}
                   </ActionButton>
                 </div>
               ) : null}
@@ -2451,38 +2466,36 @@ export function CvReviewExperience({
                   title={
                     isEligibleContactCompletion
                       ? "Complete your contact details"
-                      : "Additional information requested"
+                      : "Please complete the following missing details. Click Submit to restart the eligibility assessment."
                   }
                   description={
                     isEligibleContactCompletion
                       ? "We already have enough information to pass the CV review. Please fill the missing contact fields below before continuing to supporting materials."
-                      : hasMixedContactAndCriticalGaps
-                        ? "Suggested-from-CV entries are shaded softly. Fill the missing eligibility and contact fields below before submitting again."
-                        : "Suggested-from-CV entries are shaded softly. Only blank fields need your input before you submit again."
+                      : undefined
                   }
                 >
                   <form
                     className="space-y-4"
                     onSubmit={handleSubmit(onSubmit, onSupplementalInvalid)}
                   >
-                    <MetaStrip
-                      items={[
-                        {
-                          label: "Scope",
-                          value: "Complete missing items only",
-                        },
-                        {
-                          label: "Draft",
-                          value: supplementalDraftLabel,
-                        },
-                        {
-                          label: "After submit",
-                          value: isEligibleContactCompletion
-                            ? "Continue straight to supporting materials"
-                            : "CV review runs again immediately",
-                        },
-                      ]}
-                    />
+                    {isEligibleContactCompletion ? (
+                      <MetaStrip
+                        items={[
+                          {
+                            label: "Scope",
+                            value: "Complete missing items only",
+                          },
+                          {
+                            label: "Draft",
+                            value: supplementalDraftLabel,
+                          },
+                          {
+                            label: "After submit",
+                            value: "Continue straight to supporting materials",
+                          },
+                        ]}
+                      />
+                    ) : null}
                     <div className="grid gap-4">
                       {missingFields.map((field) =>
                         renderSupplementalField(
@@ -2490,6 +2503,7 @@ export function CvReviewExperience({
                           register,
                           watch,
                           getValues,
+                          !isEligibleContactCompletion,
                         ),
                       )}
                     </div>

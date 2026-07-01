@@ -3,6 +3,7 @@ import {
   ALL_CV_EXTRACTION_FIELD_ROWS,
   INITIAL_CV_REVIEW_CRITICAL_FIELD_KEYS,
 } from "@/features/analysis/initial-cv-review-extract";
+import { ELIGIBLE_DISPLAY_SUMMARY } from "@/features/application/constants";
 import type { EligibilityResult } from "@/features/application/types";
 import {
   buildMissingFieldsFromItemNames,
@@ -32,8 +33,7 @@ const ELIGIBLE_SENTENCE_CN = "经过判断，您的资历符合本次人才项�
 const INELIGIBLE_SENTENCE_CN =
   "很遗憾，您的资历不符合本次人才项目的基本申请要求";
 
-const ELIGIBLE_SUMMARY_EN =
-  "Congratulations, you are eligible to apply. We have saved your current progress.\n\nNext, please upload the necessary certification documents. Please prepare these files in advance to ensure a smooth submission process.";
+const ELIGIBLE_SUMMARY_EN = ELIGIBLE_DISPLAY_SUMMARY;
 const INELIGIBLE_SUMMARY_EN =
   "Your profile does not currently meet the basic application requirements for this talent program.";
 const INSUFFICIENT_INFO_SUMMARY_EN =

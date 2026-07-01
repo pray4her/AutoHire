@@ -32,7 +32,7 @@ type ApplyEntryClientProps = {
 const PROCESS = [
   "About GESF",
   "CV Submission",
-  "Additional Information",
+  "Upload Required Documents",
   "Submission Complete",
 ] as const;
 

@@ -23,7 +23,7 @@ import {
   submitApplication,
   submitSupplementalFields,
 } from "@/lib/application/service";
-import { updateApplication, updateExtractionReview } from "@/lib/data/store";
+import { updateApplication, updateExtractionReview, createExtractionReview } from "@/lib/data/store";
 
 function resetMemoryStore() {
   (
@@ -213,6 +213,62 @@ describe("secondary analysis editable service flow", () => {
 
     const snapshot = await getSnapshot("app_progress");
     expect(snapshot?.applicationStatus).toBe("REANALYZING");
+  });
+
+  it("hides inferred birth years during extraction confirmation", async () => {
+    await updateExtractionReview("job_extraction_review", {
+      extractedFields: {
+        name: "Extraction Review Expert",
+        year_of_birth: "1986",
+        year_of_birth_source: "Inferred from bachelor's graduation year",
+        doctoral_degree_status: "Yes, obtained",
+        doctoral_graduation_time: "2014",
+        doctoral_degree_institution_country_region: "!!!null!!!",
+      },
+    });
+
+    const snapshot = await getSnapshot("app_extraction_review");
+
+    expect(snapshot?.latestExtractionReview?.extractedFields.year_of_birth).toBe(
+      "",
+    );
+    expect(
+      snapshot?.latestExtractionReview?.extractedFields.doctoral_degree_status,
+    ).toBe("");
+    expect(
+      snapshot?.latestExtractionReview?.extractedFields
+        .doctoral_graduation_time,
+    ).toBe("");
+  });
+
+  it("syncs supplemental birth_date onto displayed year_of_birth", async () => {
+    await createExtractionReview({
+      applicationId: "app_progress",
+      analysisJobId: "job_progress",
+      externalJobId: "mock:insufficient_info:progress",
+      status: "CONFIRMED",
+      extractedFields: {
+        name: "Progress Expert",
+        year_of_birth: "1986",
+        year_of_birth_source: "Inferred from bachelor's graduation year",
+      },
+    });
+
+    await submitSupplementalFields({
+      applicationId: "app_progress",
+      fields: {
+        highest_degree: "Doctorate",
+        current_employer: "Example University",
+        birth_date: "1991-01-15",
+      },
+    });
+
+    const snapshot = await getSnapshot("app_progress");
+
+    expect(snapshot?.latestResult?.extractedFields.year_of_birth).toBe("1991");
+    expect(snapshot?.latestResult?.extractedFields.year_of_birth_source).toBe(
+      "Explicit",
+    );
   });
 
   it("moves initial review through extraction confirmation before final judgment", async () => {

@@ -122,16 +122,18 @@ export const INITIAL_CV_REVIEW_EDITABLE_FIELD_KEYS = [
 
 /** Applicant-facing help for fields whose values combine multiple parts. */
 export const INITIAL_CV_REVIEW_FIELD_HELP = {
+  year_of_birth:
+    "Enter the four-digit birth year shown on your official documents. If the system could not find an explicit birth year in your CV, this field is left blank for you to complete.",
   doctoral_graduation_time:
-    "The year you completed your first doctoral-equivalent degree. If graduation was after 2020, include the month when available (for example, 2021 or 2021-06).",
+    "If you have multiple doctoral degrees (or doctoral degree equivalents), input the graduation time for the first one (please use the time indicated on your degree certificate); Please include the month and day when possible.",
   current_title_equivalence:
-    "A standardized role level mapped from your current job title(s), based on the position most relevant to eligibility review.",
+    "The system will automatically match an officially recognized, standardized equivalent job title based on the position you currently provide, using only the position most relevant to the qualification review procedure.",
   current_country_of_employment:
-    "Your current formal employment location. Each entry uses Institution | Country/Region (for example, Example University | United States). Regions distinguish Mainland China, Hong Kong, Macau, Taiwan, and other countries.",
+    "The entry is presented as 'institution|region'.",
   work_experience_2020_present:
     "A structured timeline of your work and research roles. Each line follows Start–End: Country/Region | Institution | Department/Lab | Job title | Employment nature. “无” or “Not provided” means that part was not stated on your CV. The list may include roles before 2020 when they appear on your CV.",
   research_area:
-    "Your own research focus areas extracted from your CV, usually shown as a bulleted list. This reflects your scholarly work, not your employer's general scope.",
+    "This information is extracted from your CV and presented as bullet points. Please note that this is a brief summary of your scholarly work, rather than designated areas for collaboration with potential employers.",
 } satisfies Partial<Record<InitialCvReviewFieldKey, string>>;
 
 export function getInitialCvReviewFieldHelp(key: InitialCvReviewFieldKey) {

@@ -19,9 +19,9 @@ describe("normalizeAnalysisResultPayload", () => {
 
     expect(result.eligibilityResult).toBe("ELIGIBLE");
     expect(result.displaySummary).toContain(
-      "Congratulations, you are eligible to apply. We have saved your current progress.",
+      "Congratulations! You are eligible to apply.",
     );
-    expect(result.displaySummary).toContain("certification documents");
+    expect(result.displaySummary).toContain("Valid ID or Passport");
     expect(result.reasonText).toBeNull();
     expect(result.rawReasoning).toContain("meets threshold");
   });
@@ -51,9 +51,9 @@ describe("normalizeAnalysisResultPayload", () => {
 
     expect(result.eligibilityResult).toBe("ELIGIBLE");
     expect(result.displaySummary).toContain(
-      "Congratulations, you are eligible to apply. We have saved your current progress.",
+      "Congratulations! You are eligible to apply.",
     );
-    expect(result.displaySummary).toContain("certification documents");
+    expect(result.displaySummary).toContain("Valid ID or Passport");
     expect(result.reasonText).toBeNull();
     expect(result.rawReasoning).toContain("姓名：Jane Doe");
   });

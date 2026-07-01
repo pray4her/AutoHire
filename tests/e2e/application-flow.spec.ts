@@ -124,7 +124,7 @@ test("eligible resume flow can reach materials and submit", async ({
     page.getByRole("button", { name: /Start detailed|Start Detailed/i }),
   ).toHaveCount(0);
   await expect(page.getByText("Detailed review")).toHaveCount(0);
-  await page.getByRole("link", { name: /Additional Information/i }).click();
+  await page.getByRole("link", { name: /Upload Required Documents/i }).click();
 
   await waitForMaterialsPageSession(page);
   await uploadMaterialFile(page, /Identity Documents/i, "passport.pdf");
@@ -204,7 +204,7 @@ test("eligible review with corrected required contact field can continue to mate
     }),
   ).toHaveCount(0);
   await page
-    .getByRole("button", { name: "Continue to Additional Information" })
+    .getByRole("button", { name: "Continue to Upload" })
     .click();
 
   await waitForMaterialsPageSession(page);

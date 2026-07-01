@@ -46,7 +46,7 @@ export const APPLICATION_FLOW_STEPS = [
     hint: "Upload your latest CV and wait for the review outcome.",
   },
   {
-    label: "Additional Information",
+    label: "Upload Required Documents",
     hint: "Upload supporting materials by category (or complete missing fields on the review page when required).",
   },
   {
@@ -63,3 +63,46 @@ export const APPLICATION_FLOW_STEPS_WITH_INTRO = [
   },
   ...APPLICATION_FLOW_STEPS,
 ] as const;
+
+/** Eligible CV review outcome — body copy on `/apply/result`. */
+export const ELIGIBLE_ASSESSMENT_HEADING =
+  "Congratulations! You are eligible to apply.";
+
+export const ELIGIBLE_ASSESSMENT_INTRO =
+  "We have saved your current progress. To proceed, please prepare the following required documents:";
+
+export const ELIGIBLE_ASSESSMENT_DOCUMENTS = [
+  "Valid ID or Passport",
+  "Academic Certificates (Degree/Diploma)",
+  "Professional Qualification Certificates (Proof of Employment)",
+  "Academic Achievements (Papers, Patents, Projects, Awards, etc.)",
+] as const;
+
+export const ELIGIBLE_ASSESSMENT_FOOTNOTE =
+  "Detailed upload guidelines and format requirements will be provided on the next page.";
+
+export const CONTINUE_TO_UPLOAD_LABEL = "Continue to Upload";
+
+/** Ineligible CV review outcome — copy on `/apply/result`. */
+export const INELIGIBLE_PAGE_DESCRIPTION =
+  "The initial qualification review did not pass. Please refer to the details at the bottom of this page.";
+
+export const INELIGIBLE_FLOW_ENDED_TITLE = "Application process ended";
+
+export const INELIGIBLE_CANNOT_PROCEED_MESSAGE =
+  "You cannot continue to document upload, materials submission, or the later steps in this application.";
+
+export const INELIGIBLE_CLOSING_MESSAGE =
+  "Thank you for your interest. We look forward to serving you in the future.";
+
+export const INELIGIBLE_PAGE_CLOSED_HINT =
+  "This application has concluded. You may close this page when you are finished reviewing the result.";
+
+export const ELIGIBLE_DISPLAY_SUMMARY = [
+  ELIGIBLE_ASSESSMENT_HEADING,
+  "",
+  ELIGIBLE_ASSESSMENT_INTRO,
+  ...ELIGIBLE_ASSESSMENT_DOCUMENTS.map((document) => `- ${document}`),
+  "",
+  ELIGIBLE_ASSESSMENT_FOOTNOTE,
+].join("\n");

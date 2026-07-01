@@ -64,7 +64,7 @@ describe("getInitialCvReviewFieldHelp", () => {
       "Start–End",
     );
     expect(getInitialCvReviewFieldHelp("current_country_of_employment")).toContain(
-      "Institution | Country/Region",
+      "institution|region",
     );
     expect(getInitialCvReviewFieldHelp("name")).toBeNull();
   });

@@ -30,6 +30,11 @@ import {
 } from "@/lib/application/screening-contact";
 import { enrichMissingFieldsWithRegistry } from "@/lib/resume-analysis/missing-field-registry";
 import {
+  applyObjectiveExtractionPresentationRules,
+  extractSupplementalFieldValues,
+  sanitizeInferredObjectiveExtractedFields,
+} from "@/lib/resume-analysis/objective-extraction-fields";
+import {
   countPendingSupplementRequests,
   countSatisfiedSupplementRequests,
   deriveMaterialSupplementStatus,
@@ -1939,6 +1944,24 @@ export async function createSupplementalFieldSubmission(input: {
       ...input,
       fieldValues: input.fieldValues as Prisma.InputJsonValue,
     },
+  });
+}
+
+export async function getLatestSupplementalFieldSubmission(applicationId: string) {
+  if (getRuntimeMode() === "memory") {
+    return (
+      getMemoryStore()
+        .supplementalFields.filter(
+          (item) => item.applicationId === applicationId,
+        )
+        .sort(byDateDesc)[0] ?? null
+    );
+  }
+
+  const prisma = await getPrisma();
+  return prisma.supplementalFieldSubmission.findFirst({
+    where: { applicationId },
+    orderBy: { submittedAt: "desc" },
   });
 }
 
@@ -5758,7 +5781,7 @@ function toExtractionReviewSnapshot(
     analysisJobId: review.analysisJobId,
     externalJobId: review.externalJobId ?? null,
     status: review.status,
-    extractedFields,
+    extractedFields: sanitizeInferredObjectiveExtractedFields(extractedFields),
     rawExtractionResponse: review.rawExtractionResponse ?? null,
     errorMessage: review.errorMessage ?? null,
     confirmedAt: review.confirmedAt?.toISOString() ?? null,
@@ -5786,16 +5809,25 @@ function toSnapshotFromMemory(
     store.extractionReviews
       .filter((item) => item.applicationId === application.id)
       .sort(byDateDesc)[0] ?? null;
+  const latestSupplementalSubmission =
+    store.supplementalFields
+      .filter((item) => item.applicationId === application.id)
+      .sort(byDateDesc)[0] ?? null;
   const materials = store.materials.filter(
     (item) => item.applicationId === application.id && !item.isDeleted,
   );
   const mergedExtractedFields = latestResult
-    ? mergeStoredScreeningContactValuesIntoExtractedFields(
-        {
-          ...(latestExtractionReview?.extractedFields ?? {}),
-          ...latestResult.extractedFields,
-        },
-        application,
+    ? applyObjectiveExtractionPresentationRules(
+        mergeStoredScreeningContactValuesIntoExtractedFields(
+          {
+            ...(latestExtractionReview?.extractedFields ?? {}),
+            ...latestResult.extractedFields,
+          },
+          application,
+        ),
+        extractSupplementalFieldValues(
+          latestSupplementalSubmission?.fieldValues,
+        ),
       )
     : null;
   const mergedMissingFields = latestResult
@@ -5876,6 +5908,7 @@ export async function buildApplicationSnapshot(
     latestAnalysisJob,
     latestResult,
     latestExtractionReview,
+    latestSupplementalSubmission,
     materials,
   ] = await Promise.all([
     prisma.resumeFile.findFirst({
@@ -5894,6 +5927,10 @@ export async function buildApplicationSnapshot(
       where: { applicationId },
       orderBy: { createdAt: "desc" },
     }),
+    prisma.supplementalFieldSubmission.findFirst({
+      where: { applicationId },
+      orderBy: { submittedAt: "desc" },
+    }),
     prisma.applicationMaterial.findMany({
       where: { applicationId, isDeleted: false },
     }),
@@ -5909,14 +5946,16 @@ export async function buildApplicationSnapshot(
       string,
       unknown
     > | null) ?? {};
-  const mergedExtractedFields =
+  const mergedExtractedFields = applyObjectiveExtractionPresentationRules(
     mergeStoredScreeningContactValuesIntoExtractedFields(
       {
         ...latestExtractionReviewExtractedFields,
         ...latestResultExtractedFields,
       },
       applicationRow,
-    );
+    ),
+    extractSupplementalFieldValues(latestSupplementalSubmission?.fieldValues),
+  );
   const mergedMissingFields =
     mergeMissingFieldsWithScreeningContactRequirements(
       latestResultMissingFields,

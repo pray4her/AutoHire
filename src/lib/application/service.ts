@@ -50,6 +50,7 @@ import {
   getLatestResumeFile,
   getLatestResumeVersion,
   getLatestSecondaryAnalysisRun,
+  getLatestSupplementalFieldSubmission,
   listMaterials,
   listSecondaryAnalysisFieldValues,
   softDeleteMaterial,
@@ -61,6 +62,11 @@ import {
   upsertSecondaryAnalysisFieldValues,
   upsertSecondaryAnalysisRun,
 } from "@/lib/data/store";
+import {
+  applyObjectiveExtractionPresentationRules,
+  buildSupplementalExtractionPatch,
+  extractSupplementalFieldValues,
+} from "@/lib/resume-analysis/objective-extraction-fields";
 import {
   correctResumeExtraction,
   createResumeExtractionJob,
@@ -830,7 +836,9 @@ export async function refreshAnalysisState(applicationId: string) {
       if (existingReview) {
         await updateExtractionReview(job.id, {
           status: "READY",
-          extractedFields: extraction.extractedFields,
+          extractedFields: sanitizeInferredObjectiveExtractedFields(
+            extraction.extractedFields,
+          ),
           rawExtractionResponse: extraction.rawResponse,
           errorMessage: null,
         });
@@ -840,7 +848,9 @@ export async function refreshAnalysisState(applicationId: string) {
           analysisJobId: job.id,
           externalJobId: job.externalJobId,
           status: "READY",
-          extractedFields: extraction.extractedFields,
+          extractedFields: sanitizeInferredObjectiveExtractedFields(
+            extraction.extractedFields,
+          ),
           rawExtractionResponse: extraction.rawResponse,
         });
       }
@@ -929,11 +939,19 @@ export async function refreshAnalysisState(applicationId: string) {
         !Array.isArray(existingResult.extractedFields)
           ? (existingResult.extractedFields as Record<string, unknown>)
           : {};
-      const extractedFields = {
-        ...confirmedExtractedFields,
-        ...previousExtractedFields,
-        ...(result.extractedFields ?? {}),
-      };
+      const latestSupplementalSubmission =
+        await getLatestSupplementalFieldSubmission(applicationId);
+      const supplementalValues = extractSupplementalFieldValues(
+        latestSupplementalSubmission?.fieldValues,
+      );
+      const extractedFields = applyObjectiveExtractionPresentationRules(
+        {
+          ...confirmedExtractedFields,
+          ...previousExtractedFields,
+          ...(result.extractedFields ?? {}),
+        },
+        supplementalValues,
+      );
 
       if (result.rawReasoning) {
         extractedFields.__rawReasoning = result.rawReasoning;
@@ -1050,6 +1068,30 @@ export async function submitSupplementalFields(input: {
       missingFieldsSnapshot: currentMissingFields,
     },
   });
+
+  const latestExtractionReview =
+    await getLatestExtractionReview(input.applicationId);
+
+  if (latestExtractionReview) {
+    const currentExtractedFields =
+      latestExtractionReview.extractedFields &&
+      typeof latestExtractionReview.extractedFields === "object" &&
+      !Array.isArray(latestExtractionReview.extractedFields)
+        ? (latestExtractionReview.extractedFields as Record<string, unknown>)
+        : {};
+    const supplementalPatch = buildSupplementalExtractionPatch(
+      normalizedPayload.valuesByFieldKey,
+    );
+
+    if (Object.keys(supplementalPatch).length > 0) {
+      await updateExtractionReview(latestExtractionReview.analysisJobId, {
+        extractedFields: applyObjectiveExtractionPresentationRules(
+          currentExtractedFields,
+          normalizedPayload.valuesByFieldKey,
+        ),
+      });
+    }
+  }
 
   if (Object.keys(screeningContactPatch).length > 0) {
     await updateApplication(input.applicationId, screeningContactPatch);
