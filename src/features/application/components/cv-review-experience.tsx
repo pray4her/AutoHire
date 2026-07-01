@@ -65,11 +65,7 @@ import {
   ELIGIBLE_ASSESSMENT_FOOTNOTE,
   ELIGIBLE_ASSESSMENT_HEADING,
   ELIGIBLE_ASSESSMENT_INTRO,
-  INELIGIBLE_CANNOT_PROCEED_MESSAGE,
   INELIGIBLE_CLOSING_MESSAGE,
-  INELIGIBLE_FLOW_ENDED_TITLE,
-  INELIGIBLE_PAGE_CLOSED_HINT,
-  INELIGIBLE_PAGE_DESCRIPTION,
 } from "@/features/application/constants";
 import {
   clearDraft,
@@ -803,13 +799,7 @@ function getInitialBanner(
   }
 
   if (snapshot.applicationStatus === "INELIGIBLE") {
-    return (
-      <StatusBanner
-        tone="neutral"
-        title={INELIGIBLE_FLOW_ENDED_TITLE}
-        description={INELIGIBLE_CANNOT_PROCEED_MESSAGE}
-      />
-    );
+    return null;
   }
 
   if (snapshot.applicationStatus === "ELIGIBLE") {
@@ -1154,11 +1144,14 @@ function formatIneligibleReasonDetails(
   displaySummary: string | null,
   reasonText: string | null,
 ) {
-  const parts = [reasonText, displaySummary]
-    .map((part) => part?.trim())
-    .filter((value): value is string => Boolean(value));
+  const reason = reasonText?.trim();
+  const summary = displaySummary?.trim();
 
-  return [...new Set(parts)].join("\n\n");
+  if (reason) {
+    return reason;
+  }
+
+  return summary || null;
 }
 
 function IneligibleAssessmentResultBody({
@@ -1167,11 +1160,7 @@ function IneligibleAssessmentResultBody({
   reasonDetails: string | null;
 }) {
   return (
-    <div
-      className="flex flex-col gap-4 rounded-xl border border-rose-200/90 bg-white px-4 py-4 sm:px-5 sm:py-5"
-      role="status"
-      aria-live="polite"
-    >
+    <div className="flex flex-col gap-4" role="status" aria-live="polite">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm text-[color:var(--foreground-soft)]">
           Status:
@@ -1179,29 +1168,15 @@ function IneligibleAssessmentResultBody({
         <Badge variant="destructive">Not eligible</Badge>
       </div>
 
-      <p className="text-sm leading-6 text-[color:var(--foreground-soft)]">
-        {INELIGIBLE_CANNOT_PROCEED_MESSAGE}
-      </p>
-
       {reasonDetails ? (
-        <div className="rounded-xl border border-[color:var(--border)] bg-[color:var(--muted)]/35 px-4 py-4">
-          <p className="text-[0.68rem] font-semibold tracking-[0.16em] text-[color:var(--primary)] uppercase">
-            Review details
-          </p>
-          <p className="mt-2 text-sm leading-6 whitespace-pre-wrap text-[color:var(--foreground-soft)]">
-            {reasonDetails}
-          </p>
-        </div>
+        <p className="text-sm leading-6 whitespace-pre-wrap text-[color:var(--foreground-soft)]">
+          {reasonDetails}
+        </p>
       ) : null}
 
-      <div className="border-t border-[color:var(--border)] pt-4">
-        <p className="text-sm font-medium leading-6 text-[color:var(--primary)]">
-          {INELIGIBLE_CLOSING_MESSAGE}
-        </p>
-        <p className="mt-2 text-xs leading-5 text-[color:var(--muted-foreground)]">
-          {INELIGIBLE_PAGE_CLOSED_HINT}
-        </p>
-      </div>
+      <p className="text-sm leading-6 text-[color:var(--foreground-soft)]">
+        {INELIGIBLE_CLOSING_MESSAGE}
+      </p>
     </div>
   );
 }
@@ -2197,7 +2172,7 @@ export function CvReviewExperience({
       case "SECONDARY_FAILED":
         return "The additional review step did not finish successfully. Please contact the program team if you need help continuing.";
       case "INELIGIBLE":
-        return INELIGIBLE_PAGE_DESCRIPTION;
+        return "";
       case "INTRO_VIEWED":
         return "Upload your CV to begin the preliminary eligibility assessment.";
       case "CV_UPLOADED":
@@ -2225,15 +2200,13 @@ export function CvReviewExperience({
     <PageFrame>
       <PageShell
         title={
-          snapshot?.applicationStatus === "INELIGIBLE"
-            ? "Initial qualification review complete"
-            : currentResultStep === 1
-              ? snapshot?.applicationStatus === "CV_EXTRACTION_REVIEW"
-                ? "Confirm CV Information"
-                : "CV Upload & Preliminary Assessment"
-              : isEligibleContactCompletion
-                ? "Complete your contact details to continue."
-                : "CV Upload & Preliminary Assessment"
+          currentResultStep === 1
+            ? snapshot?.applicationStatus === "CV_EXTRACTION_REVIEW"
+              ? "Confirm CV Information"
+              : "CV Upload & Preliminary Assessment"
+            : isEligibleContactCompletion
+              ? "Complete your contact details to continue."
+              : "CV Upload & Preliminary Assessment"
         }
         description={headerSummary}
         headerVariant="centered"

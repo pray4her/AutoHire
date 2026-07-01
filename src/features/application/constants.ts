@@ -83,20 +83,9 @@ export const ELIGIBLE_ASSESSMENT_FOOTNOTE =
 
 export const CONTINUE_TO_UPLOAD_LABEL = "Continue to Upload";
 
-/** Ineligible CV review outcome — copy on `/apply/result`. */
-export const INELIGIBLE_PAGE_DESCRIPTION =
-  "The initial qualification review did not pass. Please refer to the details at the bottom of this page.";
-
-export const INELIGIBLE_FLOW_ENDED_TITLE = "Application process ended";
-
-export const INELIGIBLE_CANNOT_PROCEED_MESSAGE =
-  "You cannot continue to document upload, materials submission, or the later steps in this application.";
-
+/** Ineligible CV review outcome — closing copy on `/apply/result`. */
 export const INELIGIBLE_CLOSING_MESSAGE =
   "Thank you for your interest. We look forward to serving you in the future.";
-
-export const INELIGIBLE_PAGE_CLOSED_HINT =
-  "This application has concluded. You may close this page when you are finished reviewing the result.";
 
 export const ELIGIBLE_DISPLAY_SUMMARY = [
   ELIGIBLE_ASSESSMENT_HEADING,

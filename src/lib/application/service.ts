@@ -66,6 +66,7 @@ import {
   applyObjectiveExtractionPresentationRules,
   buildSupplementalExtractionPatch,
   extractSupplementalFieldValues,
+  sanitizeInferredObjectiveExtractedFields,
 } from "@/lib/resume-analysis/objective-extraction-fields";
 import {
   correctResumeExtraction,
