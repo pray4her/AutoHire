@@ -503,12 +503,25 @@ function createId(prefix: string) {
 }
 
 function byDateDesc<
-  T extends { createdAt?: Date; uploadedAt?: Date; startedAt?: Date },
+  T extends {
+    createdAt?: Date;
+    uploadedAt?: Date;
+    startedAt?: Date;
+    submittedAt?: Date;
+  },
 >(left: T, right: T) {
   const leftValue =
-    left.createdAt ?? left.uploadedAt ?? left.startedAt ?? new Date(0);
+    left.createdAt ??
+    left.uploadedAt ??
+    left.startedAt ??
+    left.submittedAt ??
+    new Date(0);
   const rightValue =
-    right.createdAt ?? right.uploadedAt ?? right.startedAt ?? new Date(0);
+    right.createdAt ??
+    right.uploadedAt ??
+    right.startedAt ??
+    right.submittedAt ??
+    new Date(0);
 
   return rightValue.getTime() - leftValue.getTime();
 }
