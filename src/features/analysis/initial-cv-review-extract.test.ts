@@ -71,37 +71,27 @@ describe("getInitialCvReviewFieldHelp", () => {
 });
 
 describe("buildInitialCvReviewExtractionText", () => {
-  it("keeps the UI review table aligned with the current extraction contract", () => {
-    expect(INITIAL_CV_REVIEW_FIELD_ROWS).toHaveLength(15);
-    expect(ALL_CV_EXTRACTION_FIELD_ROWS).toHaveLength(15);
-    expect(INITIAL_CV_REVIEW_FIELD_ROWS.map((row) => row.label)).toEqual([
-      "Year of Birth",
-      "Year of Birth Source",
-      "Highest Degree Level",
-      "Education History",
-      "Doctoral Degree Status",
-      "Doctoral Graduation Time",
-      "Doctoral Degree Country/Region",
-      "Current Title Equivalence",
-      "Current Employment Country/Region",
-      "Current Employment Formality Judgment",
-      "Complete Work Experience Timeline",
-      "Postdoctoral Experience Timeline",
-      "Work Experience Date Ambiguity",
-      "Research Area",
-      "Applied/Industrial Relevance",
-    ]);
+  it("keeps the UI review table limited to the original 11 fields", () => {
+    expect(INITIAL_CV_REVIEW_FIELD_ROWS).toHaveLength(11);
+    expect(ALL_CV_EXTRACTION_FIELD_ROWS).toHaveLength(25);
+    expect(
+      INITIAL_CV_REVIEW_FIELD_ROWS.some(
+        (row) => row.key === "education_history",
+      ),
+    ).toBe(false);
   });
 
-  it("includes additional model-extracted fields after the contract fields", () => {
+  it("includes additional model-extracted fields after the editable review fields", () => {
     const text = buildInitialCvReviewExtractionText({
-      year_of_birth: "1984",
+      name: "Corrected Name",
+      personal_email: "candidate@example.com",
       education_history: ["Example University", "Example Institute"],
       custom_model_field: 12,
       profile_verified: true,
     });
 
-    expect(text).toContain("- Year of Birth: 1984");
+    expect(text).toContain("- Name: Corrected Name");
+    expect(text).toContain("- Personal Email: candidate@example.com");
     expect(text).toContain(
       '- Education History: ["Example University","Example Institute"]',
     );

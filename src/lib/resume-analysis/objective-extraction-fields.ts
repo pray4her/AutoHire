@@ -70,16 +70,14 @@ export function sanitizeInferredObjectiveExtractedFields(
 
   const doctoralStatus = normalizeScalar(next.doctoral_degree_status);
   const doctoralGraduationTime = normalizeScalar(next.doctoral_graduation_time);
-  const doctoralCountryRegion = normalizeScalar(
-    next.doctoral_degree_country_region,
+  const doctoralInstitution = normalizeScalar(
+    next.doctoral_degree_institution_country_region,
   );
-  const hasDoctoralCountryRegion = !isMissingExtractionMarker(
-    doctoralCountryRegion,
-  );
+  const hasDoctoralInstitution = !isMissingExtractionMarker(doctoralInstitution);
 
   if (
     doctoralStatus === DOCTORAL_DEGREE_OBTAINED &&
-    !hasDoctoralCountryRegion &&
+    !hasDoctoralInstitution &&
     !isMissingExtractionMarker(doctoralGraduationTime)
   ) {
     next.doctoral_degree_status = "";

@@ -139,19 +139,30 @@ const EXTRACTION_READONLY_FIELD_KEYS = new Set<InitialCvReviewFieldKey>(
 );
 
 const EXTRACTION_OPTIONAL_FIELD_KEYS = new Set<InitialCvReviewFieldKey>([
-  "postdoctoral_experience_timeline",
+  "work_email",
+  "phone_number",
 ]);
 
 const EXTRACTION_MULTILINE_FIELD_KEYS = new Set<InitialCvReviewFieldKey>([
   "education_history",
+  "doctoral_degree_institution_country_region",
+  "current_raw_title",
   "current_country_of_employment",
+  "current_employment_nature",
   "work_experience_2020_present",
+  "complete_overseas_work_experience_timeline",
+  "overseas_enterprise_work_experience_timeline",
   "postdoctoral_experience_timeline",
+  "overseas_postdoctoral_experience_timeline",
+  "work_experience_date_ambiguity_notes",
   "research_area",
   "applied_industrial_relevance",
 ]);
 
-const EXTRACTION_EMAIL_FIELD_KEYS = new Set<InitialCvReviewFieldKey>();
+const EXTRACTION_EMAIL_FIELD_KEYS = new Set<InitialCvReviewFieldKey>([
+  "personal_email",
+  "work_email",
+]);
 
 const YEAR_OF_BIRTH_FIELD_KEY: InitialCvReviewFieldKey = "year_of_birth";
 

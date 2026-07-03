@@ -47,12 +47,9 @@ const INITIAL_CV_REVIEW_FIELD_KEYS = ALL_CV_EXTRACTION_FIELD_ROWS.map(
 );
 
 const INITIAL_CV_REVIEW_FIELD_ALIASES: Record<string, string> = {
-  "Doctoral Degree Institution and Country/Region":
-    "doctoral_degree_country_region",
   "Current Employment Country/Region": "current_country_of_employment",
   "Current Country of Employment": "current_country_of_employment",
   "Current Job Country": "current_country_of_employment",
-  "Work Experience from 2020 to the Present": "work_experience_2020_present",
   "Work Experience (2020-Present)": "work_experience_2020_present",
   "Work Experience (2020–present)": "work_experience_2020_present",
 };
@@ -353,19 +350,12 @@ function parseMissingFieldNamesAfterMarker(formal: string) {
 function criticalFieldLabelsForInference(): Record<string, string> {
   return {
     year_of_birth: "Year of Birth",
-    highest_degree_level: "Highest Degree Level",
     doctoral_degree_status: "Doctoral Degree Status",
     doctoral_graduation_time: "Doctoral Graduation Time",
-    doctoral_degree_country_region: "Doctoral Degree Country/Region",
     current_title_equivalence: "Current Title Equivalence",
     current_country_of_employment: "Current Employment Country/Region",
-    current_employment_formality_judgment:
-      "Current Employment Formality Judgment",
-    work_experience_2020_present: "Complete Work Experience Timeline",
-    postdoctoral_experience_timeline: "Postdoctoral Experience Timeline",
-    work_experience_date_ambiguity: "Work Experience Date Ambiguity",
+    work_experience_2020_present: "Work Experience (2020-Present)",
     research_area: "Research Area",
-    applied_industrial_relevance: "Applied/Industrial Relevance",
   } satisfies Record<
     (typeof INITIAL_CV_REVIEW_CRITICAL_FIELD_KEYS)[number],
     string
@@ -539,20 +529,6 @@ function normalizeExtractedFieldKeys(record: Record<string, unknown>) {
   if (
     !Object.prototype.hasOwnProperty.call(
       normalized,
-      "doctoral_degree_country_region",
-    ) &&
-    Object.prototype.hasOwnProperty.call(
-      normalized,
-      "doctoral_degree_institution_country_region",
-    )
-  ) {
-    normalized.doctoral_degree_country_region =
-      normalized.doctoral_degree_institution_country_region;
-  }
-
-  if (
-    !Object.prototype.hasOwnProperty.call(
-      normalized,
       "current_country_of_employment",
     ) &&
     Object.prototype.hasOwnProperty.call(
@@ -588,7 +564,6 @@ function normalizeExtractedFieldKeys(record: Record<string, unknown>) {
       normalized.complete_work_experience_timeline;
   }
 
-  delete normalized.doctoral_degree_institution_country_region;
   delete normalized.current_employment_country_region;
   delete normalized.current_job_country;
   delete normalized.complete_work_experience_timeline;
