@@ -496,4 +496,54 @@ describe("normalizeExtractionResultPayload", () => {
       "Industry R&D",
     );
   });
+
+  it("parses asterisk bullet extraction contracts from upstream", () => {
+    const result = normalizeExtractionResultPayload({
+      extraction_raw_response: `### 1. Extracted Information
+
+* Name: Dr. Engr. Inam Ullah
+
+* Personal Email: inam.fragrance@gmail.com
+
+* Work Email: inam@gachon.ac.kr
+
+* Phone Number: +82-1026191272
+
+* Year of Birth: 1993
+
+* Year of Birth Source: Explicit
+
+* Doctoral Degree Status: Yes, obtained
+
+* Doctoral Graduation Time: 2021
+
+* Doctoral Degree Country/Region: China, region unspecified
+
+* Complete Work Experience Timeline:
+  1. **Sept. 2018-June 2022**: China, region unspecified | Hohai University | !!!null!!! | Research Associate | !!!null!!!
+
+* Research Area:
+  * Internet of Things (IoT)
+  * Artificial Intelligence (AI)`,
+    });
+
+    expect(result.extractedFields).toMatchObject({
+      name: "Dr. Engr. Inam Ullah",
+      personal_email: "inam.fragrance@gmail.com",
+      work_email: "inam@gachon.ac.kr",
+      phone_number: "+82-1026191272",
+      year_of_birth: "1993",
+      year_of_birth_source: "Explicit",
+      doctoral_degree_status: "Yes, obtained",
+      doctoral_graduation_time: "2021",
+      doctoral_degree_institution_country_region:
+        "China, region unspecified",
+    });
+    expect(result.extractedFields.work_experience_2020_present).toContain(
+      "Sept. 2018-June 2022",
+    );
+    expect(result.extractedFields.research_area).toContain(
+      "Internet of Things (IoT)",
+    );
+  });
 });

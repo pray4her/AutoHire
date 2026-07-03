@@ -52,7 +52,13 @@ const INITIAL_CV_REVIEW_FIELD_ALIASES: Record<string, string> = {
   "Current Job Country": "current_country_of_employment",
   "Work Experience (2020-Present)": "work_experience_2020_present",
   "Work Experience (2020–present)": "work_experience_2020_present",
+  "Doctoral Degree Country/Region":
+    "doctoral_degree_institution_country_region",
 };
+
+/** Field header lines in section 1 may use `-`, `*`, or `•` list markers. */
+const EXTRACTED_INFORMATION_FIELD_LINE =
+  /^[-*•]\s*([^:\n]+):\s*(.*)$/;
 
 const BYPASS_POSTDOC_PREFIX =
   "Only eligible to apply as an overseas postdoctoral researcher coming to work in China";
@@ -305,7 +311,7 @@ function parseExtractedInformationSection(
   };
 
   for (const line of body.split(/\r?\n/)) {
-    const fieldMatch = line.match(/^-\s*([^:\n]+):\s*(.*)$/);
+    const fieldMatch = line.match(EXTRACTED_INFORMATION_FIELD_LINE);
     const matchedKey = fieldMatch
       ? fieldKeyByLabel.get(fieldMatch[1].trim())
       : undefined;
