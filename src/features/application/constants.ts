@@ -87,6 +87,10 @@ export const CONTINUE_TO_UPLOAD_LABEL = "Continue to Upload";
 export const INELIGIBLE_CLOSING_MESSAGE =
   "Thank you for your interest. We look forward to serving you in the future.";
 
+/** Shown after automated eligibility judgment on `/apply/result`. */
+export const ELIGIBILITY_ASSESSMENT_ACCURACY_NOTE =
+  "As job titles vary across different regions and countries, the system's eligibility assessment may contain minor discrepancies. All CVs will undergo a secondary manual review to ensure the accuracy of eligibility determinations.";
+
 export const ELIGIBLE_DISPLAY_SUMMARY = [
   ELIGIBLE_ASSESSMENT_HEADING,
   "",

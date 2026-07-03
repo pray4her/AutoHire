@@ -5829,6 +5829,9 @@ function toSnapshotFromMemory(
   const materials = store.materials.filter(
     (item) => item.applicationId === application.id && !item.isDeleted,
   );
+  const invitation =
+    store.invitations.find((item) => item.id === application.invitationId) ??
+    null;
   const mergedExtractedFields = latestResult
     ? applyObjectiveExtractionPresentationRules(
         mergeStoredScreeningContactValuesIntoExtractedFields(
@@ -5899,6 +5902,7 @@ function toSnapshotFromMemory(
       product: countMaterialsByCategory(materials, "PRODUCT"),
     },
     submittedAt: application.submittedAt?.toISOString() ?? null,
+    invitationLinkExpiresAt: invitation?.expiredAt?.toISOString() ?? null,
   };
 }
 
@@ -5976,6 +5980,7 @@ export async function buildApplicationSnapshot(
       mergedExtractedFields,
       applicationRow,
     );
+  const invitation = await findInvitationById(application.invitationId);
 
   return {
     applicationId: application.id,
@@ -6032,6 +6037,7 @@ export async function buildApplicationSnapshot(
       product: countMaterialsByCategory(materials, "PRODUCT"),
     },
     submittedAt: application.submittedAt?.toISOString() ?? null,
+    invitationLinkExpiresAt: invitation?.expiredAt?.toISOString() ?? null,
   };
 }
 

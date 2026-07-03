@@ -58,6 +58,7 @@ const MISSING_FIELD_REGISTRY: Record<string, MissingFieldConfig> = {
       "最高学位",
       "最高学历",
       "Highest Degree",
+      "Highest Degree Level",
       "Doctoral Degree or Equivalent",
     ],
   },
@@ -122,6 +123,7 @@ const MISSING_FIELD_REGISTRY: Record<string, MissingFieldConfig> = {
       "Work Experience from 2020 to Present",
       "Work Experience 2020 to Present",
       "Work Experience (2020-Present)",
+      "Complete Work Experience Timeline",
     ],
   },
   source_country: {

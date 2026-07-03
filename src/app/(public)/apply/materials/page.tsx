@@ -443,23 +443,27 @@ function MaterialsPageContent() {
           </SectionCard>
 
           {!isReadOnlyReview && snapshot?.applicationStatus !== "SUBMITTED" ? (
-            <SectionCard
-              title="Final submission"
-              description="Confirm only when the evidence package is complete enough for review."
-            >
+            <SectionCard title="Final submission">
               <div className="flex flex-col gap-4">
-                <p className="text-sm leading-6 text-[color:var(--foreground-soft)]">
-                  You may upload evidence in multiple rounds before final
-                  confirmation. Once submitted, the page becomes a tracking
-                  dashboard and further edits are disabled.
-                </p>
+                <div className="space-y-4 text-sm leading-6 text-[color:var(--foreground-soft)]">
+                  <p>
+                    The &apos;Confirm Submission&apos; button will only be
+                    clickable when all compulsory files have been uploaded.
+                  </p>
+                  <p>
+                    Before clicking &apos;Confirm Submission&apos;, you may
+                    revisit this page multiple times, and your progress will be
+                    saved automatically.
+                  </p>
+                  <p>
+                    Please note that once you click &apos;Confirm
+                    Submission&apos;, the page will only display your uploaded
+                    information and will no longer be editable.
+                  </p>
+                </div>
                 {!minimumRequirementsMet ? (
                   <div className="rounded-xl border border-[color:var(--border-strong)] bg-[color:var(--muted)] px-4 py-3 text-sm text-[color:var(--foreground)]">
-                    <p className="font-medium">
-                      Final submission is locked until the minimum files are
-                      uploaded.
-                    </p>
-                    <p className="mt-1 text-xs leading-5 text-[color:var(--foreground-soft)]">
+                    <p className="text-xs leading-5 text-[color:var(--foreground-soft)]">
                       Missing:{" "}
                       {missingRequiredCategories
                         .map((category) => category.label)

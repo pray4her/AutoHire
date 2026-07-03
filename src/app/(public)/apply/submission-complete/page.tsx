@@ -9,7 +9,6 @@ import {
   Send,
 } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -53,14 +52,12 @@ import { usePageDurationTracking } from "@/lib/tracking/use-page-duration-tracki
 import { cn } from "@/lib/utils";
 
 const SUBMISSION_HEADLINE =
-  "Application Received! We will review your package and contact you within 1 week.";
+  "Submission completed! We will send an email to the address provided in your CV within approximately one week, to inform further steps. Please stay in touch.";
 const NEXT_STEP_MESSAGE =
   "Next Step: Connect with your dedicated Talent Consultant.";
 
-/** Primary: 给我们留言 · Secondary: 如果您有任何想说的，请在这里告诉我们 */
-const FEEDBACK_HEADING_PRIMARY = "Leave us a message";
-const FEEDBACK_HEADING_SECONDARY =
-  "If you have anything you'd like to say, please tell us here.";
+const FEEDBACK_PROMPT =
+  "We welcome any suggestions to help improve this experience.";
 
 /** Mid-size (“s”) success links under QR codes: between compact and full default height. */
 const QR_CONTACT_OPEN_LINK_CLASS_NAME = cn(
@@ -531,22 +528,6 @@ export default function SubmissionCompletePage() {
                     </div>
                   </div>
                 </div>
-
-                <div className="flex flex-col items-center gap-3 border-t border-emerald-200/80 pt-6 text-center">
-                  <p className="max-w-md text-sm leading-6 text-[color:var(--foreground-soft)]">
-                    Need to add or replace supporting documents? Continue below
-                    to update your materials.
-                  </p>
-                  <Link
-                    href="/apply/supplement"
-                    className={cn(
-                      getButtonClassName("primary"),
-                      "w-full max-w-xs sm:w-auto",
-                    )}
-                  >
-                    Update materials
-                  </Link>
-                </div>
               </div>
             </SectionCard>
           ) : null}
@@ -558,14 +539,12 @@ export default function SubmissionCompletePage() {
             >
               <SectionCard
                 title={
-                  isSubmitted
-                    ? "Thanks for your feedback."
-                    : FEEDBACK_HEADING_PRIMARY
+                  isSubmitted ? "Thanks for your feedback." : undefined
                 }
                 description={
                   isSubmitted
                     ? "Your feedback was sent and will help us improve this experience."
-                    : FEEDBACK_HEADING_SECONDARY
+                    : FEEDBACK_PROMPT
                 }
                 className="mx-auto max-w-[48rem] border-[color:var(--border)] bg-white shadow-none"
               >
@@ -692,7 +671,6 @@ export default function SubmissionCompletePage() {
                                 "border-rose-400 focus-visible:ring-rose-200",
                             ),
                           )}
-                          placeholder="Tell us what happened, what felt confusing, or what we could make better."
                           value={feedback.comment}
                           onChange={(event) => {
                             setSubmitError(null);

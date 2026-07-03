@@ -139,7 +139,7 @@ test("eligible resume flow can reach materials and submit", async ({
   await page.getByRole("button", { name: "Confirm Submission" }).click();
   await expect(
     page.getByText(
-      "Application Received! We will review your package and contact you within 1 week.",
+      "Submission completed! We will send an email to the address provided in your CV within approximately one week, to inform further steps. Please stay in touch.",
     ),
   ).toBeVisible();
 });
@@ -237,7 +237,7 @@ test("submitted token restores submitted materials page", async ({ page }) => {
   ).toBeVisible();
   await expect(
     page.getByText(
-      "Application Received! We will review your package and contact you within 1 week.",
+      "Submission completed! We will send an email to the address provided in your CV within approximately one week, to inform further steps. Please stay in touch.",
     ),
   ).toBeVisible();
   await expect(
@@ -259,7 +259,9 @@ test("submitted token restores submitted materials page", async ({ page }) => {
   ).toHaveAttribute("href", "/apply/supplement");
   await expect(page.getByRole("link", { name: "Open WeChat" })).toBeVisible();
   await expect(
-    page.getByRole("heading", { name: "Leave us a message" }),
+    page.getByText(
+      "We welcome any suggestions to help improve this experience.",
+    ),
   ).toBeVisible();
 });
 

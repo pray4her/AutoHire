@@ -151,6 +151,7 @@ export type ApplicationSnapshot = {
   uploadedMaterialsSummary: MaterialSummary;
   productInnovationDescription: string | null;
   submittedAt: string | null;
+  invitationLinkExpiresAt: string | null;
 };
 
 export type ApplicationFeedbackSnapshot = {

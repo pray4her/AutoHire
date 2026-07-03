@@ -142,6 +142,11 @@ const INTRO_SECTION_ITEMS = [
     summary:
       "Professional Service Provider for National Talent Programs: Our Role and Commitment",
   },
+  {
+    id: "link-notice",
+    title: "Important Notice",
+    summary: "Regarding Your Personalized Application Link",
+  },
 ] as const;
 
 type IntroSectionId = (typeof INTRO_SECTION_ITEMS)[number]["id"];
@@ -151,6 +156,40 @@ const INTRO_SECTION_TRIGGER_CLASS =
 
 const INTRO_SECTION_PANEL_CLASS =
   "w-full min-w-0 border-t border-[color:var(--border)] bg-[color:var(--muted)]/38 px-5 py-5 sm:px-6";
+
+const PERSONALIZED_LINK_NOTICE_ITEMS = [
+  {
+    title: "Unique Link – Please Do Not Forward",
+    description:
+      "The link you received is exclusively generated for you and can only be used to submit a single application. To protect your personal privacy, please do not forward this link to others.",
+  },
+  {
+    title: "Link Expiration Date",
+    description:
+      "This link will remain valid until {expirationDate}. Please be aware of the deadline and complete your submission as soon as possible, as the link will automatically expire afterward.",
+  },
+  {
+    title: "Saving Progress & Switching Devices",
+    description:
+      "Within the valid period, the system will automatically record and save your progress. If you switch to a different phone, computer, or browser midway through the process, please ensure you re-enter the application by clicking the full link in the original email. This will allow you to seamlessly resume your previous entries.",
+  },
+] as const;
+
+function formatInvitationLinkExpiration(value: string | null | undefined) {
+  if (!value) {
+    return "the date specified in your invitation email";
+  }
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return "the date specified in your invitation email";
+  }
+
+  return new Intl.DateTimeFormat("en", {
+    dateStyle: "long",
+  }).format(date);
+}
 
 function toggleIntroSection(
   openSections: Set<IntroSectionId>,
@@ -289,6 +328,9 @@ export function ApplyEntryClient({ token }: ApplyEntryClientProps) {
   const isReadOnlyReview = snapshot
     ? isFlowStepReadOnly(snapshot.applicationStatus, 0)
     : false;
+  const invitationExpirationLabel = formatInvitationLinkExpiration(
+    snapshot?.invitationLinkExpiresAt,
+  );
 
   function renderSectionContent(sectionId: IntroSectionId) {
     switch (sectionId) {
@@ -508,6 +550,26 @@ export function ApplyEntryClient({ token }: ApplyEntryClientProps) {
             </div>
           </div>
         );
+      case "link-notice":
+        return (
+          <ol className="list-decimal space-y-5 pl-5 text-sm leading-7 text-[color:var(--foreground-soft)] marker:font-semibold">
+            {PERSONALIZED_LINK_NOTICE_ITEMS.map((item) => {
+              const description = item.description.replace(
+                "{expirationDate}",
+                invitationExpirationLabel,
+              );
+
+              return (
+                <li key={item.title} className="pl-1">
+                  <p className="font-semibold text-[color:var(--foreground)]">
+                    {item.title}
+                  </p>
+                  <p className="mt-2">{description}</p>
+                </li>
+              );
+            })}
+          </ol>
+        );
       default:
         return null;
     }
@@ -564,7 +626,10 @@ export function ApplyEntryClient({ token }: ApplyEntryClientProps) {
             aria-label="Program introduction"
           >
             <div className="divide-y divide-[color:var(--border)]">
-              {INTRO_SECTION_ITEMS.map((section) => {
+              {INTRO_SECTION_ITEMS.filter(
+                (section) =>
+                  section.id !== "link-notice" || (snapshot && !error),
+              ).map((section) => {
                 const isOpen = openSections.has(section.id);
                 const panelId = `apply-intro-panel-${section.id}`;
 
