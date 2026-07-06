@@ -2,7 +2,7 @@
 
 import "@testing-library/jest-dom/vitest";
 
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -64,10 +64,23 @@ function renderPicker(
   return { onRefresh };
 }
 
+const mockedCreateSupplementUploadBatch =
+  supplementClient.createSupplementUploadBatch as ReturnType<typeof vi.fn>;
+const mockedCreateSupplementUploadIntent =
+  supplementClient.createSupplementUploadIntent as ReturnType<typeof vi.fn>;
+const mockedUploadSupplementBinary =
+  supplementClient.uploadSupplementBinary as ReturnType<typeof vi.fn>;
+const mockedConfirmSupplementFileUpload =
+  supplementClient.confirmSupplementFileUpload as ReturnType<typeof vi.fn>;
+const mockedConfirmSupplementUploadBatch =
+  supplementClient.confirmSupplementUploadBatch as ReturnType<typeof vi.fn>;
+const mockedDeleteSupplementDraftFile =
+  supplementClient.deleteSupplementDraftFile as ReturnType<typeof vi.fn>;
+
 describe("SupplementFilePicker", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    vi.mocked(supplementClient.createSupplementUploadBatch).mockResolvedValue({
+    mockedCreateSupplementUploadBatch.mockResolvedValue({
       uploadBatchId: "batch_123",
       applicationId: "app_123",
       category: "EDUCATION",
@@ -75,7 +88,7 @@ describe("SupplementFilePicker", () => {
       fileCount: 0,
       createdAt: "2026-05-05T10:03:00.000Z",
     });
-    vi.mocked(supplementClient.createSupplementUploadIntent).mockResolvedValue({
+    mockedCreateSupplementUploadIntent.mockResolvedValue({
       uploadId: "upload_123",
       uploadUrl: "https://upload.example.test",
       method: "PUT",
@@ -83,8 +96,8 @@ describe("SupplementFilePicker", () => {
       objectKey: "objects/degree.pdf",
       deduped: false,
     });
-    vi.mocked(supplementClient.uploadSupplementBinary).mockResolvedValue();
-    vi.mocked(supplementClient.confirmSupplementFileUpload).mockResolvedValue({
+    mockedUploadSupplementBinary.mockResolvedValue(undefined);
+    mockedConfirmSupplementFileUpload.mockResolvedValue({
       file: {
         id: "file_uploaded",
         uploadBatchId: "batch_123",
@@ -97,7 +110,7 @@ describe("SupplementFilePicker", () => {
         status: "DRAFT",
       },
     });
-    vi.mocked(supplementClient.confirmSupplementUploadBatch).mockResolvedValue({
+    mockedConfirmSupplementUploadBatch.mockResolvedValue({
       uploadBatchId: "batch_123",
       applicationId: "app_123",
       category: "EDUCATION",
@@ -105,7 +118,7 @@ describe("SupplementFilePicker", () => {
       reviewRunId: "run_123",
       status: "REVIEWING",
     });
-    vi.mocked(supplementClient.deleteSupplementDraftFile).mockResolvedValue({
+    mockedDeleteSupplementDraftFile.mockResolvedValue({
       deleted: true,
       fileId: "file_1",
       uploadBatchId: "batch_1",
@@ -127,6 +140,15 @@ describe("SupplementFilePicker", () => {
 
     expect(screen.getByText("degree.pdf")).toBeInTheDocument();
     expect(screen.getByText(/Ready to upload · 1 KB/i)).toBeInTheDocument();
+  });
+
+  it("applies the unified upload accept list to the file input", () => {
+    renderPicker();
+
+    expect(screen.getByLabelText("Upload supplement files")).toHaveAttribute(
+      "accept",
+      ".pdf,.docx,.png,.jpg,.jpeg,.webp,.gif",
+    );
   });
 
   it("deduplicates selected files by file name and size and shows a notice", async () => {
@@ -171,6 +193,23 @@ describe("SupplementFilePicker", () => {
     expect(screen.queryByText("two.pdf")).not.toBeInTheDocument();
     expect(
       screen.getByText(/1 file over the 10-file limit skipped/i),
+    ).toBeInTheDocument();
+  });
+
+  it("skips unsupported file types and shows a notice", async () => {
+    renderPicker();
+    const input = screen.getByLabelText("Upload supplement files");
+
+    fireEvent.change(input, {
+      target: {
+        files: [file("degree.pdf", 1024), file("script.js", 2048, "text/javascript")],
+      },
+    });
+
+    expect(screen.getByText("degree.pdf")).toBeInTheDocument();
+    expect(screen.queryByText("script.js")).not.toBeInTheDocument();
+    expect(
+      screen.getByText(/1 unsupported file type skipped/i),
     ).toBeInTheDocument();
   });
 

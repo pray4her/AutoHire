@@ -1,14 +1,16 @@
 export const ALLOWED_DOCUMENT_EXTENSIONS = [
   ".pdf",
-  ".doc",
   ".docx",
-  ".zip",
-  ".rar",
-  ".7z",
+  ".png",
+  ".jpg",
+  ".jpeg",
+  ".webp",
+  ".gif",
 ] as const;
 
-export const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
-export const MAX_ARCHIVE_SIZE_BYTES = 100 * 1024 * 1024;
+export const ALLOWED_DOCUMENT_ACCEPT = ALLOWED_DOCUMENT_EXTENSIONS.join(",");
+export const ALLOWED_DOCUMENT_FORMATS_LABEL =
+  "PDF, DOCX, and image files (PNG, JPG, JPEG, WEBP, GIF)";
 
-/** Product category materials: larger single-file cap (no extension restriction in validateUpload). */
+export const MAX_FILE_SIZE_BYTES = 20 * 1024 * 1024;
 export const MAX_PRODUCT_MATERIAL_BYTES = 300 * 1024 * 1024;

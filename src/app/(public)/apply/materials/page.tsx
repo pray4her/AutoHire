@@ -51,6 +51,10 @@ import {
   getOrCreateTrackingSessionId,
 } from "@/lib/tracking/client";
 import { usePageDurationTracking } from "@/lib/tracking/use-page-duration-tracking";
+import {
+  ALLOWED_DOCUMENT_ACCEPT,
+  ALLOWED_DOCUMENT_FORMATS_LABEL,
+} from "@/features/upload/constants";
 
 const REQUIRED_CATEGORIES: Array<{
   key: Lowercase<MaterialCategory>;
@@ -300,7 +304,7 @@ function MaterialsPageContent() {
             description={
               isReadOnlyReview
                 ? "The submitted package remains grouped by category for reference."
-                : "Please upload files by category. Categories marked with an asterisk (*) are mandatory."
+                : `Please upload ${ALLOWED_DOCUMENT_FORMATS_LABEL.toLowerCase()} by category. Categories marked with an asterisk (*) are mandatory.`
             }
           >
             <div className="flex flex-col gap-3">
@@ -375,6 +379,7 @@ function MaterialsPageContent() {
                           <input
                             type="file"
                             multiple
+                            accept={ALLOWED_DOCUMENT_ACCEPT}
                             disabled={isCategoryUploading(category.key)}
                             onChange={(event) => {
                               setError(null);

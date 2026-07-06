@@ -24,6 +24,7 @@ import type {
   SupplementCategory,
   SupplementFileSummary,
 } from "@/features/material-supplement/types";
+import { ALLOWED_DOCUMENT_ACCEPT } from "@/features/upload/constants";
 import { cn } from "@/lib/utils";
 
 const UPLOAD_INPUT_LABEL = "Upload supplement files";
@@ -362,6 +363,7 @@ export function SupplementFilePicker({
           multiple
           aria-label={UPLOAD_INPUT_LABEL}
           className="sr-only"
+          accept={ALLOWED_DOCUMENT_ACCEPT}
           disabled={selectionDisabled}
           onChange={(event) => handleSelect(event.target.files)}
         />

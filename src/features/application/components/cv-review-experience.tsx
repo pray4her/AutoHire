@@ -69,6 +69,10 @@ import {
   INELIGIBLE_CLOSING_MESSAGE,
 } from "@/features/application/constants";
 import {
+  ALLOWED_DOCUMENT_ACCEPT,
+  ALLOWED_DOCUMENT_FORMATS_LABEL,
+} from "@/features/upload/constants";
+import {
   clearDraft,
   readDraft,
   writeDraft,
@@ -1278,7 +1282,7 @@ const CV_UPLOAD_GUIDELINES = [
   {
     title: "Upload & Confirm",
     description:
-      'Upload your latest CV and click "Confirm Upload". Keep this page open for processing.',
+      `Upload your latest CV as ${ALLOWED_DOCUMENT_FORMATS_LABEL.toLowerCase()} and click "Confirm Upload". Keep this page open for processing.`,
   },
   {
     title: "Finality",
@@ -2293,7 +2297,7 @@ export function CvReviewExperience({
                           performResumeUpload(nextFile);
                         }}
                         className="sr-only"
-                        accept=".pdf,.doc,.docx,.zip"
+                        accept={ALLOWED_DOCUMENT_ACCEPT}
                       />
                       <div
                         className={cn(
@@ -2316,7 +2320,7 @@ export function CvReviewExperience({
                               >
                                 +
                               </span>
-                              Click to upload file
+                              Upload CV file
                             </>
                           )}
                         </p>

@@ -48,7 +48,6 @@ import {
   deleteSupplementDraftFile,
 } from "@/lib/material-supplement/upload";
 import {
-  MAX_ARCHIVE_SIZE_BYTES,
   MAX_FILE_SIZE_BYTES,
 } from "@/features/upload/constants";
 import { SUPPORTED_SUPPLEMENT_CATEGORIES } from "@/features/material-supplement/constants";
@@ -1448,12 +1447,12 @@ describe("material supplement upload intents", () => {
         category: "EDUCATION",
         fileName: "degree.zip",
         fileType: "application/zip",
-        fileSize: MAX_ARCHIVE_SIZE_BYTES + 1,
+        fileSize: MAX_FILE_SIZE_BYTES,
         requestOrigin: "http://localhost",
       }),
     ).rejects.toMatchObject<Partial<MaterialSupplementServiceError>>({
       status: 400,
-      code: "SUPPLEMENT_FILE_SIZE_EXCEEDED",
+      code: "SUPPLEMENT_FILE_TYPE_UNSUPPORTED",
     });
   });
 

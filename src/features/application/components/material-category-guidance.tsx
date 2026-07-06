@@ -50,7 +50,7 @@ const GUIDANCE: Record<MaterialCategory, readonly GuidanceBlock[]> = {
   PAPER: [
     {
       items: [
-        "Upload full-text versions of published papers (source files preferred).",
+        "Upload full-text versions of published papers as PDF, DOCX, or image files.",
         "Include DOI, journal information and publication metadata in the file where available.",
       ],
     },
@@ -91,7 +91,7 @@ const GUIDANCE: Record<MaterialCategory, readonly GuidanceBlock[]> = {
     {
       items: [
         "Summarize the product name, innovative features and measurable economic benefits in the text field above.",
-        "Attach brochures, one-pagers, deck PDFs or images to support your product introduction.",
+        "Attach brochures, one-pagers, or deck materials as PDF, DOCX, or image files to support your product introduction.",
       ],
     },
   ],
