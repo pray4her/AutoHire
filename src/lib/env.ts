@@ -81,6 +81,7 @@ let cachedEnv: z.infer<typeof envSchema> | undefined;
 export function getEnv() {
   if (!cachedEnv) {
     cachedEnv = envSchema.parse(process.env);
+    assertProductionHttps(cachedEnv.APP_BASE_URL);
   }
 
   return cachedEnv;
@@ -102,4 +103,14 @@ export function getRuntimeMode() {
   }
 
   return env.DATABASE_URL ? "prisma" : "memory";
+}
+
+function assertProductionHttps(appBaseUrl: string) {
+  if (process.env.NODE_ENV !== "production") {
+    return;
+  }
+
+  if (!appBaseUrl.startsWith("https://")) {
+    throw new Error("APP_BASE_URL must use https in production.");
+  }
 }
