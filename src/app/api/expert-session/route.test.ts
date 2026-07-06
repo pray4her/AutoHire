@@ -108,10 +108,31 @@ describe("GET /api/expert-session", () => {
     );
 
     expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("http://localhost/apply?invite=1");
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/apply?invite=1",
+    );
 
     const setCookie = response.headers.get("set-cookie") ?? "";
     expect(setCookie).toContain(`${getSessionCookieName()}=`);
+  });
+
+  it("prefers forwarded public host headers when building apply bootstrap redirects", async () => {
+    const response = await expertSessionGet(
+      new NextRequest(
+        "http://localhost:3000/api/expert-session?token=sample-init-token&redirectTo=%2Fapply%3Finvite%3D1",
+        {
+          headers: {
+            "x-forwarded-host": "talent.1000help.com",
+            "x-forwarded-proto": "https",
+          },
+        },
+      ),
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "https://talent.1000help.com/apply?invite=1",
+    );
   });
 
   it("redirects invalid invite links to a controlled apply error state", async () => {
@@ -123,7 +144,26 @@ describe("GET /api/expert-session", () => {
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(
-      "http://localhost/apply?accessError=INVALID_TOKEN",
+      "http://localhost:3000/apply?accessError=INVALID_TOKEN",
+    );
+  });
+
+  it("uses a legal redirect status for invalid invite bootstrap redirects", async () => {
+    const response = await expertSessionGet(
+      new NextRequest(
+        "http://localhost/api/expert-session?token=bad-token&redirectTo=%2Fapply%3Finvite%3D1",
+        {
+          headers: {
+            "x-forwarded-host": "talent.1000help.com",
+            "x-forwarded-proto": "https",
+          },
+        },
+      ),
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "https://talent.1000help.com/apply?accessError=INVALID_TOKEN",
     );
   });
 

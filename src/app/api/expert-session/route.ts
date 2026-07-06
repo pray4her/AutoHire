@@ -8,7 +8,11 @@ import {
   getSessionCookieName,
   getSessionMaxAgeSeconds,
 } from "@/lib/auth/session";
-import { isClientHttps, jsonError } from "@/lib/http";
+import {
+  isClientHttps,
+  jsonError,
+  resolveClientFacingOrigin,
+} from "@/lib/http";
 import { trackEventFromRequest } from "@/lib/tracking/service";
 
 function resolveRedirectTarget(
@@ -19,17 +23,16 @@ function resolveRedirectTarget(
     return null;
   }
 
-  return new URL(redirectTo, request.url);
+  return new URL(redirectTo, resolveClientFacingOrigin(request));
 }
 
 function buildApplyErrorRedirect(
   request: NextRequest,
   code: string,
-  status: number,
 ) {
-  const location = new URL("/apply", request.url);
+  const location = new URL("/apply", resolveClientFacingOrigin(request));
   location.searchParams.set("accessError", code);
-  return NextResponse.redirect(location, { status });
+  return NextResponse.redirect(location, { status: 307 });
 }
 
 export async function GET(request: NextRequest) {
@@ -51,11 +54,7 @@ export async function GET(request: NextRequest) {
       });
 
       if (redirectTo) {
-        return buildApplyErrorRedirect(
-          request,
-          result.code,
-          result.status === 401 ? 307 : result.status,
-        );
+        return buildApplyErrorRedirect(request, result.code);
       }
 
       return jsonError(result.message, result.status, {
