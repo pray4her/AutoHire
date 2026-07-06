@@ -18,7 +18,7 @@ export function readInviteTokenFromSearchParams(
   return null;
 }
 
-type NextSearchParamValue = string | string[] | undefined;
+export type NextSearchParamValue = string | string[] | undefined;
 
 export function resolveInviteTokenFromNextSearchParams(
   sp: Record<string, NextSearchParamValue>,

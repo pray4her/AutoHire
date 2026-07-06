@@ -100,6 +100,33 @@ describe("GET /api/expert-session", () => {
     expect(application?.lastAccessedAt).not.toBeNull();
   });
 
+  it("sets a session cookie and redirects back to apply for token bootstrap", async () => {
+    const response = await expertSessionGet(
+      new NextRequest(
+        "http://localhost/api/expert-session?token=sample-init-token&redirectTo=%2Fapply%3Finvite%3D1",
+      ),
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe("http://localhost/apply?invite=1");
+
+    const setCookie = response.headers.get("set-cookie") ?? "";
+    expect(setCookie).toContain(`${getSessionCookieName()}=`);
+  });
+
+  it("redirects invalid invite links to a controlled apply error state", async () => {
+    const response = await expertSessionGet(
+      new NextRequest(
+        "http://localhost/api/expert-session?token=bad-token&redirectTo=%2Fapply%3Finvite%3D1",
+      ),
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost/apply?accessError=INVALID_TOKEN",
+    );
+  });
+
   it("rejects session restore when the invitation was disabled after login", async () => {
     const initialResponse = await expertSessionGet(
       new NextRequest(

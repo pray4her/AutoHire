@@ -2,23 +2,27 @@
 
 import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
-import { usePathname, useRouter } from "next/navigation";
+import { useRouter } from "next/navigation";
 
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   ActionButton,
   PageFrame,
   PageShell,
   StatusBanner,
 } from "@/components/ui/page-shell";
-import { fetchSession, postIntroConfirm } from "@/features/application/client";
+import { postIntroConfirm } from "@/features/application/client";
 import { APPLICATION_FLOW_STEPS_WITH_INTRO } from "@/features/application/constants";
-import { removeInviteTokenFromUrl } from "@/features/application/invite-url-token";
 import {
   buildApplyFlowStepLinks,
   getReachableFlowStep,
   isFlowStepReadOnly,
-  resolveRouteFromStatus,
-  shouldRedirectFromApply,
 } from "@/features/application/route";
 import type { ApplicationSnapshot } from "@/features/application/types";
 import { trackClick, trackPageView } from "@/lib/tracking/client";
@@ -26,7 +30,8 @@ import { usePageDurationTracking } from "@/lib/tracking/use-page-duration-tracki
 import { cn } from "@/lib/utils";
 
 type ApplyEntryClientProps = {
-  token: string | null;
+  initialSnapshot: ApplicationSnapshot;
+  openedFromInviteLink: boolean;
 };
 
 const PROCESS = [
@@ -40,6 +45,8 @@ const INTRO_DESCRIPTION =
   "The 2026 application cycle is now closed. We are currently preparing for the 2027 application. Due to the large volume of required documents, please contact us early to begin your preparations.";
 
 const APPLICATION_DEADLINE_PILL = "Applications are accepted year-round.";
+
+const INVITE_NOTICE_STORAGE_KEY_PREFIX = "apply-invite-notice-seen";
 
 const COMPETITIVE_PACKAGE_ITEMS = [
   "Annual Salary: ¥500K – ¥2M RMB (negotiable)",
@@ -142,11 +149,6 @@ const INTRO_SECTION_ITEMS = [
     summary:
       "Professional Service Provider for National Talent Programs: Our Role and Commitment",
   },
-  {
-    id: "link-notice",
-    title: "Important Notice",
-    summary: "Regarding Your Personalized Application Link",
-  },
 ] as const;
 
 type IntroSectionId = (typeof INTRO_SECTION_ITEMS)[number]["id"];
@@ -206,20 +208,50 @@ function toggleIntroSection(
   return next;
 }
 
-export function ApplyEntryClient({ token }: ApplyEntryClientProps) {
+function buildInviteNoticeStorageKey(
+  snapshot: Pick<ApplicationSnapshot, "applicationId" | "invitationId"> | null,
+  token: string | null,
+) {
+  const inviteKey = snapshot?.invitationId || snapshot?.applicationId || token;
+
+  return inviteKey
+    ? `${INVITE_NOTICE_STORAGE_KEY_PREFIX}:${inviteKey}`
+    : null;
+}
+
+function hasSeenInviteNotice(storageKey: string) {
+  try {
+    return window.localStorage.getItem(storageKey) === "seen";
+  } catch {
+    return false;
+  }
+}
+
+function rememberInviteNotice(storageKey: string) {
+  try {
+    window.localStorage.setItem(storageKey, "seen");
+  } catch {
+  }
+}
+
+export function ApplyEntryClient({
+  initialSnapshot,
+  openedFromInviteLink,
+}: ApplyEntryClientProps) {
   const router = useRouter();
-  const pathname = usePathname();
-  const [snapshot, setSnapshot] = useState<ApplicationSnapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<ApplicationSnapshot | null>(
+    initialSnapshot,
+  );
   const flowStepLinks = useMemo(
     () => buildApplyFlowStepLinks(snapshot?.applicationStatus),
     [snapshot?.applicationStatus],
   );
   const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
   const [isPending, startTransition] = useTransition();
   const [openSections, setOpenSections] = useState<Set<IntroSectionId>>(
     () => new Set(["overview"]),
   );
+  const [isInviteNoticeOpen, setIsInviteNoticeOpen] = useState(false);
   const hasTrackedPageView = useRef(false);
 
   usePageDurationTracking({
@@ -229,65 +261,36 @@ export function ApplyEntryClient({ token }: ApplyEntryClientProps) {
   });
 
   useEffect(() => {
-    let active = true;
-
-    async function load() {
-      setIsLoading(true);
-      setError(null);
-
-      try {
-        const nextSnapshot = await fetchSession(token);
-
-        if (!active) {
-          return;
-        }
-
-        // Only skip the intro when opening an invite link with `t` / `token`
-        // while the application is already past INIT. Stepper navigation to
-        // `/apply` uses the session cookie without a URL token and must stay
-        // on the project introduction (read-only when progress > INIT).
-        if (token && shouldRedirectFromApply(nextSnapshot)) {
-          router.replace(
-            resolveRouteFromStatus(nextSnapshot.applicationStatus),
-          );
-          return;
-        }
-
-        if (token && typeof window !== "undefined") {
-          window.history.replaceState(
-            window.history.state,
-            "",
-            removeInviteTokenFromUrl(window.location.href),
-          );
-        }
-
-        setSnapshot(nextSnapshot);
-      } catch (nextError) {
-        if (!active) {
-          return;
-        }
-
-        setError(
-          nextError instanceof Error
-            ? nextError.message
-            : "Unable to initialize the current application session.",
-        );
-      } finally {
-        if (active) {
-          setIsLoading(false);
-        }
-      }
+    if (!openedFromInviteLink || typeof window === "undefined") {
+      return;
     }
 
-    void load();
+    const url = new URL(window.location.href);
 
-    return () => {
-      active = false;
-    };
-  }, [pathname, router, token]);
+    if (!url.searchParams.has("invite")) {
+      return;
+    }
+
+    url.searchParams.delete("invite");
+    const search = url.searchParams.toString();
+
+    window.history.replaceState(
+      window.history.state,
+      "",
+      `${url.pathname}${search ? `?${search}` : ""}${url.hash}`,
+    );
+  }, [openedFromInviteLink]);
 
   useEffect(() => {
-    if (!snapshot || hasTrackedPageView.current) {
+    setSnapshot(initialSnapshot);
+  }, [initialSnapshot]);
+
+  useEffect(() => {
+    if (hasTrackedPageView.current) {
+      return;
+    }
+
+    if (!snapshot) {
       return;
     }
 
@@ -296,9 +299,22 @@ export function ApplyEntryClient({ token }: ApplyEntryClientProps) {
       pageName: "apply_entry",
       stepName: "intro",
       applicationId: snapshot.applicationId,
-      token,
     });
-  }, [snapshot, token]);
+  }, [snapshot]);
+
+  useEffect(() => {
+    if (!openedFromInviteLink || !snapshot || error) {
+      return;
+    }
+
+    const storageKey = buildInviteNoticeStorageKey(snapshot, null);
+
+    if (!storageKey || hasSeenInviteNotice(storageKey)) {
+      return;
+    }
+
+    setIsInviteNoticeOpen(true);
+  }, [error, openedFromInviteLink, snapshot]);
 
   function handleStart() {
     if (!snapshot || isFlowStepReadOnly(snapshot.applicationStatus, 0)) {
@@ -331,6 +347,22 @@ export function ApplyEntryClient({ token }: ApplyEntryClientProps) {
   const invitationExpirationLabel = formatInvitationLinkExpiration(
     snapshot?.invitationLinkExpiresAt,
   );
+
+  function handleInviteNoticeOpenChange(nextOpen: boolean) {
+    if (!nextOpen) {
+      const storageKey = buildInviteNoticeStorageKey(snapshot, null);
+
+      if (storageKey) {
+        rememberInviteNotice(storageKey);
+      }
+    }
+
+    setIsInviteNoticeOpen(nextOpen);
+  }
+
+  function handleInviteNoticeDismiss() {
+    handleInviteNoticeOpenChange(false);
+  }
 
   function renderSectionContent(sectionId: IntroSectionId) {
     switch (sectionId) {
@@ -550,26 +582,6 @@ export function ApplyEntryClient({ token }: ApplyEntryClientProps) {
             </div>
           </div>
         );
-      case "link-notice":
-        return (
-          <ol className="list-decimal space-y-5 pl-5 text-sm leading-7 text-[color:var(--foreground-soft)] marker:font-semibold">
-            {PERSONALIZED_LINK_NOTICE_ITEMS.map((item) => {
-              const description = item.description.replace(
-                "{expirationDate}",
-                invitationExpirationLabel,
-              );
-
-              return (
-                <li key={item.title} className="pl-1">
-                  <p className="font-semibold text-[color:var(--foreground)]">
-                    {item.title}
-                  </p>
-                  <p className="mt-2">{description}</p>
-                </li>
-              );
-            })}
-          </ol>
-        );
       default:
         return null;
     }
@@ -577,6 +589,76 @@ export function ApplyEntryClient({ token }: ApplyEntryClientProps) {
 
   return (
     <PageFrame>
+      <Dialog
+        open={isInviteNoticeOpen}
+        onOpenChange={handleInviteNoticeOpenChange}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className="overflow-hidden rounded-[1.1rem] border-none bg-transparent p-0 shadow-[0_28px_72px_rgba(15,23,42,0.28)] sm:max-w-[44rem]"
+        >
+          <div className="relative overflow-hidden rounded-[1.1rem] border border-[color:var(--border)] bg-[color:var(--background-elevated)]">
+            <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.12),transparent_72%)]" />
+            <div className="relative flex flex-col">
+              <DialogHeader className="border-b border-[color:var(--border)] px-6 pt-6 pb-5 sm:px-8 sm:pt-7 sm:pb-6">
+                <DialogTitle className="flex max-w-[31rem] min-w-0 flex-col gap-2 text-left">
+                  <span className="text-[0.72rem] font-semibold tracking-[0.22em] text-[color:var(--foreground-soft)] uppercase">
+                    Important Notice
+                  </span>
+                  <span className="text-[1.28rem] leading-[1.14] font-semibold tracking-[-0.035em] text-[color:var(--primary)] sm:text-[1.72rem]">
+                    Regarding Your Personalized Application Link
+                  </span>
+                </DialogTitle>
+              </DialogHeader>
+
+              <div className="max-h-[min(27rem,56vh)] overflow-y-auto px-6 py-5 sm:px-8 sm:py-6">
+                <ol className="flex flex-col gap-5">
+                  {PERSONALIZED_LINK_NOTICE_ITEMS.map((item, index) => {
+                    const description = item.description.replace(
+                      "{expirationDate}",
+                      invitationExpirationLabel,
+                    );
+
+                    return (
+                      <li key={item.title}>
+                        <div className="flex items-start gap-4">
+                          <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--primary)] text-sm font-semibold text-white shadow-[0_10px_24px_rgba(10,25,47,0.14)]">
+                            {index + 1}
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-[0.98rem] font-semibold leading-6 text-[color:var(--foreground)]">
+                              {item.title}
+                            </p>
+                            <p className="mt-2 text-sm leading-7 text-[color:var(--foreground-soft)]">
+                              {description}
+                            </p>
+                          </div>
+                        </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </div>
+
+              <div className="flex flex-col gap-4 border-t border-[color:var(--border)] bg-white/82 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-6">
+                <p className="max-w-[32rem] text-sm leading-6 text-[color:var(--foreground-soft)]">
+                  Keep the original email so you can reopen the same link if
+                  you continue on another device or browser.
+                </p>
+                <Button
+                  type="button"
+                  size="lg"
+                  onClick={handleInviteNoticeDismiss}
+                  className="min-h-12 min-w-36 self-end rounded-md px-6 sm:self-auto"
+                >
+                  I understand
+                </Button>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       <PageShell
         title="Global Excellent Scientists Fund"
         description={INTRO_DESCRIPTION}
@@ -598,14 +680,6 @@ export function ApplyEntryClient({ token }: ApplyEntryClientProps) {
         }
       >
         <div className="mx-auto max-w-4xl space-y-4">
-          {isLoading ? (
-            <StatusBanner
-              tone="loading"
-              title="Preparing your invitation"
-              description="Validating the invitation link and checking whether an application session is already available."
-            />
-          ) : null}
-
           {error ? (
             <StatusBanner
               tone="danger"
@@ -626,10 +700,7 @@ export function ApplyEntryClient({ token }: ApplyEntryClientProps) {
             aria-label="Program introduction"
           >
             <div className="divide-y divide-[color:var(--border)]">
-              {INTRO_SECTION_ITEMS.filter(
-                (section) =>
-                  section.id !== "link-notice" || (snapshot && !error),
-              ).map((section) => {
+              {INTRO_SECTION_ITEMS.map((section) => {
                 const isOpen = openSections.has(section.id);
                 const panelId = `apply-intro-panel-${section.id}`;
 
