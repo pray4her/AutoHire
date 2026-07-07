@@ -136,7 +136,7 @@ function getActiveCardVariants(shouldReduceMotion: boolean) {
 export function StackedTestimonialsCarousel({
   testimonials,
 }: StackedTestimonialsCarouselProps) {
-  const shouldReduceMotion = useReducedMotion();
+  const shouldReduceMotion = useReducedMotion() ?? false;
   const [activeIndex, setActiveIndex] = useState(0);
   const [direction, setDirection] = useState<SlideDirection>(1);
   const pointerStartRef = useRef<{
