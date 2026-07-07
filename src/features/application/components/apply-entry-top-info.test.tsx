@@ -3,7 +3,7 @@
 import "@testing-library/jest-dom/vitest";
 
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -122,9 +122,8 @@ const snapshot: ApplicationSnapshot = {
   invitationLinkExpiresAt: "2027-03-15T00:00:00.000Z",
 };
 
-describe("ApplyEntryClient", () => {
+describe("ApplyEntryClient top info accordion", () => {
   beforeEach(() => {
-    window.localStorage.clear();
     vi.clearAllMocks();
     postIntroConfirmMock.mockResolvedValue(undefined);
     trackClickMock.mockResolvedValue(undefined);
@@ -135,55 +134,7 @@ describe("ApplyEntryClient", () => {
     cleanup();
   });
 
-  it("opens the invitation notice once for an invite-link visit", async () => {
-    const user = userEvent.setup();
-
-    render(
-      <ApplyEntryClient
-        initialSnapshot={snapshot}
-        openedFromInviteLink={true}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(
-        screen.getByText("Regarding Your Personalized Application Link"),
-      ).toBeInTheDocument();
-      expect(screen.getByText("Important Notice")).toBeInTheDocument();
-    });
-
-    await user.click(screen.getByRole("button", { name: "I understand" }));
-
-    await waitFor(() => {
-      expect(
-        screen.queryByText("Regarding Your Personalized Application Link"),
-      ).not.toBeInTheDocument();
-    });
-
-    expect(
-      window.localStorage.getItem("apply-invite-notice-seen:invite_001"),
-    ).toBe("seen");
-
-    cleanup();
-    render(
-      <ApplyEntryClient
-        initialSnapshot={snapshot}
-        openedFromInviteLink={true}
-      />,
-    );
-
-    await waitFor(() => {
-      expect(
-        screen.getByRole("button", { name: "Continue to CV Submission" }),
-      ).toBeInTheDocument();
-    });
-
-    expect(
-      screen.queryByText("Regarding Your Personalized Application Link"),
-    ).not.toBeInTheDocument();
-  });
-
-  it("does not open the invitation notice without an invite token", async () => {
+  it("renders the top information accordion before the program introduction", () => {
     render(
       <ApplyEntryClient
         initialSnapshot={snapshot}
@@ -191,23 +142,71 @@ describe("ApplyEntryClient", () => {
       />,
     );
 
-    expect(
-      screen.queryByText("Regarding Your Personalized Application Link"),
-    ).not.toBeInTheDocument();
+    const topInfoTrigger = screen.getByRole("button", { name: "who are we" });
+    const gesfTrigger = screen.getByRole("button", {
+      name: /Global Excellent Scientists Fund \(GESF\)/,
+    });
+    const documentPosition = topInfoTrigger.compareDocumentPosition(gesfTrigger);
+
+    expect(documentPosition & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("cleans the invite bootstrap query param after rendering", async () => {
-    window.history.replaceState({}, "", "/apply?invite=1");
+  it("keeps the top information accordion single-open and exposes consultant links", async () => {
+    const user = userEvent.setup();
 
     render(
       <ApplyEntryClient
         initialSnapshot={snapshot}
-        openedFromInviteLink={true}
+        openedFromInviteLink={false}
       />,
     );
 
-    await waitFor(() => {
-      expect(window.location.search).toBe("");
+    const whoAreWeTrigger = screen.getByRole("button", { name: "who are we" });
+    const qualificationTrigger = screen.getByRole("button", {
+      name: "Why are we qualified to handle your application",
     });
+    const consultantTrigger = screen.getByRole("button", {
+      name: "Chat with a talent consultant",
+    });
+
+    expect(whoAreWeTrigger).toHaveAttribute("aria-expanded", "true");
+    expect(qualificationTrigger).toHaveAttribute("aria-expanded", "false");
+
+    await user.click(qualificationTrigger);
+
+    expect(whoAreWeTrigger).toHaveAttribute("aria-expanded", "false");
+    expect(qualificationTrigger).toHaveAttribute("aria-expanded", "true");
+
+    const qualificationRegion = screen.getByRole("region", {
+      name: "Why are we qualified to handle your application",
+    });
+
+    expect(
+      within(qualificationRegion).getByText("ISO 27001 certified"),
+    ).toBeInTheDocument();
+    expect(
+      within(qualificationRegion).getByText("5000+ overseas experts supported"),
+    ).toBeInTheDocument();
+
+    await user.click(consultantTrigger);
+
+    expect(qualificationTrigger).toHaveAttribute("aria-expanded", "false");
+    expect(consultantTrigger).toHaveAttribute("aria-expanded", "true");
+
+    const consultantRegion = screen.getByRole("region", {
+      name: "Chat with a talent consultant",
+    });
+    const emailLink = within(consultantRegion).getByRole("link", {
+      name: /Email/i,
+    });
+    const whatsappLink = within(consultantRegion).getByRole("link", {
+      name: /WhatsApp/i,
+    });
+
+    expect(emailLink).toHaveAttribute("href", "mailto:lishijing@1000help.com");
+    expect(whatsappLink).toHaveAttribute(
+      "href",
+      "https://wa.me/8617363307362",
+    );
   });
 });

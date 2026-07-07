@@ -1,0 +1,91 @@
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { PERSONALIZED_LINK_NOTICE_ITEMS } from "@/features/application/components/apply-entry-intro-content";
+
+type ApplyInviteNoticeDialogProps = {
+  readonly invitationExpirationLabel: string;
+  readonly isOpen: boolean;
+  readonly onOpenChange: (nextOpen: boolean) => void;
+  readonly onDismiss: () => void;
+};
+
+export function ApplyInviteNoticeDialog({
+  invitationExpirationLabel,
+  isOpen,
+  onOpenChange,
+  onDismiss,
+}: ApplyInviteNoticeDialogProps) {
+  return (
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent
+        showCloseButton={false}
+        className="overflow-hidden rounded-[1.1rem] border-none bg-transparent p-0 shadow-[0_28px_72px_rgba(15,23,42,0.28)] sm:max-w-[44rem]"
+      >
+        <div className="relative overflow-hidden rounded-[1.1rem] border border-[color:var(--border)] bg-[color:var(--background-elevated)]">
+          <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.12),transparent_72%)]" />
+          <div className="relative flex flex-col">
+            <DialogHeader className="border-b border-[color:var(--border)] px-6 pt-6 pb-5 sm:px-8 sm:pt-7 sm:pb-6">
+              <DialogTitle className="flex max-w-[31rem] min-w-0 flex-col gap-2 text-left">
+                <span className="text-[0.72rem] font-semibold tracking-[0.22em] text-[color:var(--foreground-soft)] uppercase">
+                  Important Notice
+                </span>
+                <span className="text-[1.28rem] leading-[1.14] font-semibold tracking-[-0.035em] text-[color:var(--primary)] sm:text-[1.72rem]">
+                  Regarding Your Personalized Application Link
+                </span>
+              </DialogTitle>
+            </DialogHeader>
+
+            <div className="max-h-[min(27rem,56vh)] overflow-y-auto px-6 py-5 sm:px-8 sm:py-6">
+              <ol className="flex flex-col gap-5">
+                {PERSONALIZED_LINK_NOTICE_ITEMS.map((item, index) => {
+                  const description = item.description.replace(
+                    "{expirationDate}",
+                    invitationExpirationLabel,
+                  );
+
+                  return (
+                    <li key={item.title}>
+                      <div className="flex items-start gap-4">
+                        <span className="inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-[color:var(--primary)] text-sm font-semibold text-white shadow-[0_10px_24px_rgba(10,25,47,0.14)]">
+                          {index + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="text-[0.98rem] font-semibold leading-6 text-[color:var(--foreground)]">
+                            {item.title}
+                          </p>
+                          <p className="mt-2 text-sm leading-7 text-[color:var(--foreground-soft)]">
+                            {description}
+                          </p>
+                        </div>
+                      </div>
+                    </li>
+                  );
+                })}
+              </ol>
+            </div>
+
+            <div className="flex flex-col gap-4 border-t border-[color:var(--border)] bg-white/82 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-6">
+              <p className="max-w-[32rem] text-sm leading-6 text-[color:var(--foreground-soft)]">
+                Keep the original email so you can reopen the same link if you
+                continue on another device or browser.
+              </p>
+              <Button
+                type="button"
+                size="lg"
+                onClick={onDismiss}
+                className="min-h-12 min-w-36 self-end rounded-md px-6 sm:self-auto"
+              >
+                I understand
+              </Button>
+            </div>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+}
