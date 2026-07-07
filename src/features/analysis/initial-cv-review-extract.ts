@@ -108,6 +108,7 @@ export const INITIAL_CV_REVIEW_FIELD_ROWS = [
 }>;
 
 export const INITIAL_CV_REVIEW_EDITABLE_FIELD_KEYS = [
+  "name",
   "personal_email",
   "work_email",
   "phone_number",
@@ -120,8 +121,29 @@ export const INITIAL_CV_REVIEW_EDITABLE_FIELD_KEYS = [
   "research_area",
 ] as const satisfies readonly InitialCvReviewFieldKey[];
 
+export const WORK_EXPERIENCE_EMPTY_HINT_INTRO =
+  "Please refer to the example format below to understand how the extracted professional experience is structured:";
+
+export const WORK_EXPERIENCE_EMPTY_HINT_EXAMPLE_SEGMENTS = [
+  "2024-2025:China",
+  "Tsinghua University",
+  "Department of Mathematics",
+  "Professor",
+  "full-time",
+] as const;
+
 export const WORK_EXPERIENCE_2020_PRESENT_EDIT_PLACEHOLDER =
-  "Please list your professional experience according to the format below:\n2002-2003, Canada, University of Saskatchewan, Department of Chemistry, Senior researcher, full-time";
+  `${WORK_EXPERIENCE_EMPTY_HINT_INTRO}\nExample: ${WORK_EXPERIENCE_EMPTY_HINT_EXAMPLE_SEGMENTS.join(" |")}`;
+
+export function getInitialCvReviewEmptyFieldDisplay(
+  key: InitialCvReviewFieldKey,
+): string {
+  if (key === "work_experience_2020_present") {
+    return WORK_EXPERIENCE_2020_PRESENT_EDIT_PLACEHOLDER;
+  }
+
+  return "Not provided";
+}
 
 /** Applicant-facing help for fields whose values combine multiple parts. */
 export const INITIAL_CV_REVIEW_FIELD_HELP = {
@@ -163,6 +185,16 @@ export function hasInitialCvReviewExtract(
   return false;
 }
 
+export function isMissingExtractionMarker(value: string) {
+  const trimmed = value.trim();
+
+  return !trimmed || /^!!!\s*null\s*!!!$/i.test(trimmed);
+}
+
+export function normalizeApplicantFacingExtractionValue(value: string) {
+  return isMissingExtractionMarker(value) ? "" : value.trim();
+}
+
 export function getInitialCvReviewFieldValue(
   extractedFields: Record<string, unknown>,
   key: string,
@@ -173,7 +205,7 @@ export function getInitialCvReviewFieldValue(
     return "";
   }
 
-  return serializeExtractionValue(raw);
+  return normalizeApplicantFacingExtractionValue(serializeExtractionValue(raw));
 }
 
 export function formatInitialCvReviewDisplayValue(value: string) {

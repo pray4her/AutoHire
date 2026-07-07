@@ -6,7 +6,11 @@ import {
   flattenExtractionMarkdownBulletList,
   formatExtractionMarkdownFieldValue,
   formatInitialCvReviewDisplayValue,
+  getInitialCvReviewEmptyFieldDisplay,
   getInitialCvReviewFieldHelp,
+  getInitialCvReviewFieldValue,
+  normalizeApplicantFacingExtractionValue,
+  INITIAL_CV_REVIEW_EDITABLE_FIELD_KEYS,
   INITIAL_CV_REVIEW_FIELD_ROWS,
 } from "@/features/analysis/initial-cv-review-extract";
 
@@ -58,6 +62,48 @@ describe("formatExtractionMarkdownFieldValue", () => {
   });
 });
 
+describe("normalizeApplicantFacingExtractionValue", () => {
+  it("converts missing extraction markers to an empty string", () => {
+    expect(normalizeApplicantFacingExtractionValue("!!!null!!!")).toBe("");
+    expect(normalizeApplicantFacingExtractionValue(" !!! Null !!! ")).toBe("");
+    expect(normalizeApplicantFacingExtractionValue("  Professor  ")).toBe(
+      "Professor",
+    );
+  });
+});
+
+describe("getInitialCvReviewFieldValue", () => {
+  it("returns an empty string for missing upstream extraction values", () => {
+    expect(
+      getInitialCvReviewFieldValue(
+        { year_of_birth: null, research_area: "!!!null!!!" },
+        "year_of_birth",
+      ),
+    ).toBe("");
+    expect(
+      getInitialCvReviewFieldValue(
+        { year_of_birth: null, research_area: "!!!null!!!" },
+        "research_area",
+      ),
+    ).toBe("");
+    expect(
+      getInitialCvReviewFieldValue(
+        { year_of_birth: "1990" },
+        "year_of_birth",
+      ),
+    ).toBe("1990");
+  });
+});
+
+describe("getInitialCvReviewEmptyFieldDisplay", () => {
+  it("shows the work experience placeholder when that field is empty", () => {
+    expect(getInitialCvReviewEmptyFieldDisplay("work_experience_2020_present")).toContain(
+      "Please refer to the example format below",
+    );
+    expect(getInitialCvReviewEmptyFieldDisplay("name")).toBe("Not provided");
+  });
+});
+
 describe("getInitialCvReviewFieldHelp", () => {
   it("returns help text for composite extraction fields", () => {
     expect(getInitialCvReviewFieldHelp("year_of_birth")).toContain(
@@ -80,6 +126,7 @@ describe("buildInitialCvReviewExtractionText", () => {
   it("keeps the UI review table limited to the original 11 fields", () => {
     expect(INITIAL_CV_REVIEW_FIELD_ROWS).toHaveLength(11);
     expect(ALL_CV_EXTRACTION_FIELD_ROWS).toHaveLength(25);
+    expect(INITIAL_CV_REVIEW_EDITABLE_FIELD_KEYS).toContain("name");
     expect(
       INITIAL_CV_REVIEW_FIELD_ROWS.some(
         (row) => row.key === "education_history",

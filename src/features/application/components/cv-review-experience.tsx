@@ -24,12 +24,15 @@ import {
   formatExtractionMarkdownFieldValue,
   getInitialCvReviewFieldHelp,
   getInitialCvReviewFieldValue,
+  getInitialCvReviewEmptyFieldDisplay,
   hasInitialCvReviewExtract,
+  isMissingExtractionMarker,
+  normalizeApplicantFacingExtractionValue,
   INITIAL_CV_REVIEW_EDITABLE_FIELD_KEYS,
   INITIAL_CV_REVIEW_FIELD_ROWS,
-  WORK_EXPERIENCE_2020_PRESENT_EDIT_PLACEHOLDER,
   type InitialCvReviewFieldKey,
 } from "@/features/analysis/initial-cv-review-extract";
+import { WorkExperienceEmptyHint } from "@/features/application/components/work-experience-empty-hint";
 import {
   ActionButton,
   MetaStrip,
@@ -248,9 +251,7 @@ function buildExtractionCorrectionFields(
 }
 
 function isMissingExtractionValue(value: string) {
-  const trimmed = value.trim();
-
-  return !trimmed || /^!!!\s*null\s*!!!$/i.test(trimmed);
+  return isMissingExtractionMarker(value);
 }
 
 const extractionFieldMarkdownClassName =
@@ -266,14 +267,18 @@ function ExtractionFieldDisplayValue({
   className?: string;
 }) {
   if (isMissingExtractionValue(value)) {
+    if (fieldKey === "work_experience_2020_present") {
+      return <WorkExperienceEmptyHint className={className} />;
+    }
+
     return (
       <span
         className={cn(
-          "text-[color:var(--muted-foreground)]",
+          "whitespace-pre-wrap text-[color:var(--muted-foreground)]",
           className,
         )}
       >
-        Not provided
+        {getInitialCvReviewEmptyFieldDisplay(fieldKey)}
       </span>
     );
   }
@@ -1005,34 +1010,36 @@ function EditableExtractionReviewCard({
         !workExperiencePlaceholderDismissed;
 
       return (
-        <textarea
-          autoFocus
-          className={getInputClassName(
-            cn(
-              "min-h-28",
-              hasError &&
-                showErrors &&
-                "border-[color:var(--accent)] ring-1 ring-[color:var(--ring)]",
-            ),
-          )}
-          placeholder={
-            showWorkExperiencePlaceholder
-              ? WORK_EXPERIENCE_2020_PRESENT_EDIT_PLACEHOLDER
-              : undefined
-          }
-          onFocus={() => {
-            if (row.key === "work_experience_2020_present") {
-              setWorkExperiencePlaceholderDismissed(true);
-            }
-          }}
-          onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>) => {
-            if (event.key === "Enter" && !event.shiftKey) {
-              event.preventDefault();
-              onCommitEdit(event.currentTarget.value);
-            }
-          }}
-          {...commonProps}
-        />
+        <div className="relative">
+          {showWorkExperiencePlaceholder ? (
+            <div className="pointer-events-none absolute inset-x-0 top-0 z-10 px-3 py-2">
+              <WorkExperienceEmptyHint />
+            </div>
+          ) : null}
+          <textarea
+            autoFocus
+            className={getInputClassName(
+              cn(
+                "min-h-28",
+                hasError &&
+                  showErrors &&
+                  "border-[color:var(--accent)] ring-1 ring-[color:var(--ring)]",
+              ),
+            )}
+            onFocus={() => {
+              if (row.key === "work_experience_2020_present") {
+                setWorkExperiencePlaceholderDismissed(true);
+              }
+            }}
+            onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>) => {
+              if (event.key === "Enter" && !event.shiftKey) {
+                event.preventDefault();
+                onCommitEdit(event.currentTarget.value);
+              }
+            }}
+            {...commonProps}
+          />
+        </div>
       );
     }
 
@@ -1718,7 +1725,11 @@ export function CvReviewExperience({
     }
 
     setActiveExtractionField(fieldKey);
-    setExtractionDraftValue(extractionCorrectionFields[fieldKey] ?? "");
+    setExtractionDraftValue(
+      normalizeApplicantFacingExtractionValue(
+        extractionCorrectionFields[fieldKey] ?? "",
+      ),
+    );
   }
 
   function handleCommitExtractionFieldEdit(value?: string) {
@@ -1726,12 +1737,13 @@ export function CvReviewExperience({
       return;
     }
 
-    const nextValue =
+    const nextValue = normalizeApplicantFacingExtractionValue(
       activeExtractionField === "doctoral_degree_status"
         ? normalizeDoctoralDegreeStatus(value ?? extractionDraftValue)
         : activeExtractionField === YEAR_OF_BIRTH_FIELD_KEY
           ? (value ?? extractionDraftValue).replace(/\D/g, "").slice(0, 4)
-          : (value ?? extractionDraftValue).trim();
+          : (value ?? extractionDraftValue),
+    );
 
     setExtractionCorrectionFields((current) => {
       const nextFields = normalizeExtractionCorrectionFields({
