@@ -39,7 +39,7 @@ export const ALL_CV_EXTRACTION_FIELD_ROWS = [
   { key: "current_title_equivalence", label: "Current Title Equivalence" },
   {
     key: "current_country_of_employment",
-    label: "Current Employment Country/Region",
+    label: "Current workplace Country/region of employment",
   },
   { key: "current_employment_nature", label: "Current Employment Nature" },
   {
@@ -95,7 +95,7 @@ export const INITIAL_CV_REVIEW_FIELD_ROWS = [
   { key: "current_title_equivalence", label: "Current Title Equivalence" },
   {
     key: "current_country_of_employment",
-    label: "Current Employment Country/Region",
+    label: "Current workplace Country/region of employment",
   },
   {
     key: "work_experience_2020_present",
@@ -120,14 +120,17 @@ export const INITIAL_CV_REVIEW_EDITABLE_FIELD_KEYS = [
   "research_area",
 ] as const satisfies readonly InitialCvReviewFieldKey[];
 
+export const WORK_EXPERIENCE_2020_PRESENT_EDIT_PLACEHOLDER =
+  "Please list your professional experience according to the format below:\n2002-2003, Canada, University of Saskatchewan, Department of Chemistry, Senior researcher, full-time";
+
 /** Applicant-facing help for fields whose values combine multiple parts. */
 export const INITIAL_CV_REVIEW_FIELD_HELP = {
   year_of_birth:
-    "Enter the four-digit birth year shown on your official documents. If the system could not find an explicit birth year in your CV, this field is left blank for you to complete.",
+    "Enter the four-digit birth year shown on your official documents. If no explicit birth year is found in your CV, this field will be left blank for you to complete.",
   doctoral_graduation_time:
     "If you have multiple doctoral degrees (or doctoral degree equivalents), input the graduation time for the first one (please use the time indicated on your degree certificate); Please include the month and day when possible.",
   current_title_equivalence:
-    "The system will automatically match an officially recognized, standardized equivalent job title based on the position you currently provide, using only the position most relevant to the qualification review procedure.",
+    "We will automatically match an officially recognized, standardized equivalent job title based on the position you currently hold, using only the position most relevant to the qualification review procedure.",
   current_country_of_employment:
     "The entry is presented as 'institution|region'.",
   work_experience_2020_present:

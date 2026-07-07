@@ -27,6 +27,7 @@ import {
   hasInitialCvReviewExtract,
   INITIAL_CV_REVIEW_EDITABLE_FIELD_KEYS,
   INITIAL_CV_REVIEW_FIELD_ROWS,
+  WORK_EXPERIENCE_2020_PRESENT_EDIT_PLACEHOLDER,
   type InitialCvReviewFieldKey,
 } from "@/features/analysis/initial-cv-review-extract";
 import {
@@ -921,6 +922,21 @@ function EditableExtractionReviewCard({
   const hasErrors = Object.keys(errors).length > 0;
   const doctoralGraduationLocked =
     fields.doctoral_degree_status === DOCTORAL_DEGREE_NO_STATUS;
+  const [
+    workExperiencePlaceholderDismissed,
+    setWorkExperiencePlaceholderDismissed,
+  ] = useState(false);
+
+  function handleStartFieldEdit(fieldKey: InitialCvReviewFieldKey) {
+    if (
+      fieldKey === "work_experience_2020_present" &&
+      isMissingExtractionValue(fields[fieldKey] ?? "")
+    ) {
+      setWorkExperiencePlaceholderDismissed(false);
+    }
+
+    onStartEdit(fieldKey);
+  }
 
   function renderEditor(row: (typeof INITIAL_CV_REVIEW_FIELD_ROWS)[number]) {
     const hasError = Boolean(errors[row.key]);
@@ -983,6 +999,11 @@ function EditableExtractionReviewCard({
     }
 
     if (EXTRACTION_MULTILINE_FIELD_KEYS.has(row.key)) {
+      const showWorkExperiencePlaceholder =
+        row.key === "work_experience_2020_present" &&
+        isMissingExtractionValue(draftValue) &&
+        !workExperiencePlaceholderDismissed;
+
       return (
         <textarea
           autoFocus
@@ -994,6 +1015,16 @@ function EditableExtractionReviewCard({
                 "border-[color:var(--accent)] ring-1 ring-[color:var(--ring)]",
             ),
           )}
+          placeholder={
+            showWorkExperiencePlaceholder
+              ? WORK_EXPERIENCE_2020_PRESENT_EDIT_PLACEHOLDER
+              : undefined
+          }
+          onFocus={() => {
+            if (row.key === "work_experience_2020_present") {
+              setWorkExperiencePlaceholderDismissed(true);
+            }
+          }}
           onKeyDown={(event: KeyboardEvent<HTMLTextAreaElement>) => {
             if (event.key === "Enter" && !event.shiftKey) {
               event.preventDefault();
@@ -1087,7 +1118,7 @@ function EditableExtractionReviewCard({
                         <button
                           type="button"
                           disabled={isConfirming}
-                          onClick={() => onStartEdit(row.key)}
+                          onClick={() => handleStartFieldEdit(row.key)}
                           className={cn(
                             "group -mx-2 -my-1 block w-full rounded-md px-2 py-1 text-left transition",
                             "hover:bg-amber-50 focus-visible:ring-2 focus-visible:ring-[color:var(--ring)] focus-visible:outline-none",

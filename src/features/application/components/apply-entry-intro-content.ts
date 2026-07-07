@@ -58,7 +58,9 @@ export const APPLICATION_PROCESS_INSTRUCTIONS = [
   {
     title: "Official Submission Window",
     description:
-      "The official submission window is tentatively scheduled from January to May each year, subject to annual adjustments. During this period, we will assist you in submitting the formal application to the official authorities.",
+      "The official submission window is tentatively scheduled from January to May each year, subject to annual adjustments.",
+    emphasis:
+      "During this period, we will assist you in submitting the formal application to the official authorities.",
   },
   {
     title: "Result Announcement",

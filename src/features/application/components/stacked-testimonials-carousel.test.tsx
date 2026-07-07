@@ -3,7 +3,14 @@
 import "@testing-library/jest-dom/vitest";
 
 import { afterEach, describe, expect, it } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
 import { TESTIMONIALS } from "@/features/application/components/apply-entry-intro-content";
@@ -25,6 +32,9 @@ describe("StackedTestimonialsCarousel", () => {
 
     await user.click(screen.getByTestId("background-testimonial-trigger"));
 
+    await waitFor(() => {
+      expect(screen.getAllByTestId("active-testimonial-role")).toHaveLength(1);
+    });
     expect(screen.getByTestId("active-testimonial-role")).toHaveTextContent(
       TESTIMONIALS[1].role,
     );
@@ -41,6 +51,9 @@ describe("StackedTestimonialsCarousel", () => {
       getByRole("button", { name: "Show previous testimonial" }),
     );
 
+    await waitFor(() => {
+      expect(screen.getAllByTestId("active-testimonial-role")).toHaveLength(1);
+    });
     expect(screen.getByTestId("active-testimonial-role")).toHaveTextContent(
       TESTIMONIALS[3].role,
     );
@@ -49,6 +62,9 @@ describe("StackedTestimonialsCarousel", () => {
       getByRole("button", { name: "Show next testimonial" }),
     );
 
+    await waitFor(() => {
+      expect(screen.getAllByTestId("active-testimonial-role")).toHaveLength(1);
+    });
     expect(screen.getByTestId("active-testimonial-role")).toHaveTextContent(
       TESTIMONIALS[0].role,
     );
@@ -62,8 +78,11 @@ describe("StackedTestimonialsCarousel", () => {
     expect(previewCard).toHaveTextContent(TESTIMONIALS[1].quote);
     expect(previewCard).toHaveTextContent(TESTIMONIALS[1].role);
     expect(previewCard).toHaveTextContent(TESTIMONIALS[1].affiliation);
-    const previewQuote = within(previewCard).getByText(TESTIMONIALS[1].quote);
+    const previewQuote = within(previewCard)
+      .getAllByText(TESTIMONIALS[1].quote)
+      .find((element) => !element.closest(".invisible"));
 
+    expect(previewQuote).toBeDefined();
     expect(previewQuote).not.toHaveClass("line-clamp-2");
   });
 
@@ -77,7 +96,7 @@ describe("StackedTestimonialsCarousel", () => {
     expect(quote).toHaveTextContent(TESTIMONIALS[0].quote);
   });
 
-  it("switches cards with horizontal swipe gestures", () => {
+  it("switches cards with horizontal swipe gestures", async () => {
     render(<StackedTestimonialsCarousel testimonials={TESTIMONIALS} />);
 
     const activeCard = screen.getByTestId("active-testimonial-card");
@@ -93,6 +112,9 @@ describe("StackedTestimonialsCarousel", () => {
       clientY: 210,
     });
 
+    await waitFor(() => {
+      expect(screen.getAllByTestId("active-testimonial-role")).toHaveLength(1);
+    });
     expect(screen.getByTestId("active-testimonial-role")).toHaveTextContent(
       TESTIMONIALS[1].role,
     );
@@ -108,6 +130,9 @@ describe("StackedTestimonialsCarousel", () => {
       clientY: 300,
     });
 
+    await waitFor(() => {
+      expect(screen.getAllByTestId("active-testimonial-role")).toHaveLength(1);
+    });
     expect(screen.getByTestId("active-testimonial-role")).toHaveTextContent(
       TESTIMONIALS[1].role,
     );

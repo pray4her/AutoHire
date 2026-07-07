@@ -5,6 +5,7 @@ import { useState } from "react";
 
 import {
   APPLY_ENTRY_ACCORDION_PANEL_CLASS,
+  APPLY_ENTRY_ACCORDION_TRIGGER_CLASS,
   QUALIFICATION_ITEMS,
   TALENT_CONSULTANT_EMAIL,
   TALENT_CONSULTANT_PHONE,
@@ -18,77 +19,73 @@ import {
 import { StackedTestimonialsCarousel } from "@/features/application/components/stacked-testimonials-carousel";
 import { cn } from "@/lib/utils";
 
-const TOP_INFO_PANEL_ID = "apply-top-info-panel";
-
 export function ApplyEntryTopInfo() {
   const [openSectionId, setOpenSectionId] = useState<TopInfoSectionId | null>(
     TOP_INFO_DEFAULT_SECTION_ID,
   );
-  const isPanelOpen = openSectionId !== null;
-  const activeSectionId = openSectionId ?? TOP_INFO_DEFAULT_SECTION_ID;
 
   return (
-    <div className="bg-white/72">
-      <div className="flex items-stretch divide-x divide-[color:var(--border)] overflow-x-auto">
-        {TOP_INFO_ITEMS.map((item) => {
-          const isActive = openSectionId === item.id;
+    <>
+      {TOP_INFO_ITEMS.map((item) => {
+        const isOpen = openSectionId === item.id;
+        const panelId = `apply-top-info-panel-${item.id}`;
 
-          return (
+        return (
+          <div key={item.id} className="bg-white/72">
             <button
-              key={item.id}
               type="button"
               id={`apply-top-info-trigger-${item.id}`}
-              className={cn(
-                "flex min-w-0 flex-1 items-center justify-between gap-2 px-3 py-4 text-left transition hover:bg-[color:var(--muted)]/55 sm:px-4 sm:py-5",
-                isActive && isPanelOpen ? "bg-[color:var(--muted)]/38" : "",
-              )}
-              aria-expanded={isActive && isPanelOpen}
-              aria-controls={TOP_INFO_PANEL_ID}
+              className={APPLY_ENTRY_ACCORDION_TRIGGER_CLASS}
+              aria-expanded={isOpen}
+              aria-controls={panelId}
               onClick={() => {
                 setOpenSectionId((currentSectionId) =>
                   currentSectionId === item.id ? null : item.id,
                 );
               }}
             >
-              <span className="min-w-0 text-sm font-semibold tracking-[-0.02em] text-[color:var(--primary)] sm:text-base">
-                {item.title}
-              </span>
-              <ChevronDown
-                className={cn(
-                  "hidden size-4 shrink-0 text-slate-400 transition-transform duration-200 ease-out motion-reduce:transition-none sm:inline",
-                  isActive && isPanelOpen
-                    ? "rotate-180 text-[color:var(--primary)]"
-                    : "",
-                )}
+              <div className="min-w-0">
+                <p className="text-lg font-semibold tracking-[-0.02em] text-[color:var(--primary)]">
+                  {item.title}
+                </p>
+              </div>
+              <span
+                className="flex size-10 items-center justify-center self-start"
                 aria-hidden
-              />
+              >
+                <ChevronDown
+                  className={cn(
+                    "size-5 text-slate-400 transition-transform duration-200 ease-out motion-reduce:transition-none",
+                    isOpen ? "rotate-180 text-[color:var(--primary)]" : "",
+                  )}
+                />
+              </span>
             </button>
-          );
-        })}
-      </div>
-
-      <div
-        id={TOP_INFO_PANEL_ID}
-        role="region"
-        aria-labelledby={`apply-top-info-trigger-${activeSectionId}`}
-        aria-hidden={!isPanelOpen}
-        className={cn(
-          "grid border-t border-[color:var(--border)] transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none",
-          isPanelOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
-        )}
-      >
-        <div
-          className="overflow-hidden"
-          inert={!isPanelOpen ? true : undefined}
-        >
-          <div className={APPLY_ENTRY_ACCORDION_PANEL_CLASS}>
-            <div className="w-full min-w-0 max-w-none">
-              {renderTopInfoContent(activeSectionId)}
+            <div
+              id={panelId}
+              role="region"
+              aria-labelledby={`apply-top-info-trigger-${item.id}`}
+              aria-hidden={!isOpen}
+              className={cn(
+                "grid transition-[grid-template-rows] duration-200 ease-out motion-reduce:transition-none",
+                isOpen ? "grid-rows-[1fr]" : "grid-rows-[0fr]",
+              )}
+            >
+              <div
+                className="overflow-hidden"
+                inert={!isOpen ? true : undefined}
+              >
+                <div className={APPLY_ENTRY_ACCORDION_PANEL_CLASS}>
+                  <div className="w-full min-w-0 max-w-none">
+                    {renderTopInfoContent(item.id)}
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+        );
+      })}
+    </>
   );
 }
 

@@ -60,6 +60,12 @@ describe("formatExtractionMarkdownFieldValue", () => {
 
 describe("getInitialCvReviewFieldHelp", () => {
   it("returns help text for composite extraction fields", () => {
+    expect(getInitialCvReviewFieldHelp("year_of_birth")).toContain(
+      "If no explicit birth year is found in your CV",
+    );
+    expect(getInitialCvReviewFieldHelp("current_title_equivalence")).toContain(
+      "position you currently hold",
+    );
     expect(getInitialCvReviewFieldHelp("work_experience_2020_present")).toContain(
       "Start–End",
     );
