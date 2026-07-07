@@ -1,6 +1,8 @@
 import type { CSSProperties, ReactNode } from "react";
 
 import { BrowserNavigationRecovery } from "@/components/navigation/browser-navigation-recovery";
+import { ApplyQaEntry } from "@/features/qa/components/apply-qa-entry";
+import { listPublishedQaFaqEntries } from "@/lib/qa/faq-store";
 
 const APPLY_FLOW_BACKDROP_STYLE: CSSProperties = {
   backgroundImage:
@@ -10,11 +12,13 @@ const APPLY_FLOW_BACKDROP_STYLE: CSSProperties = {
   backgroundRepeat: "no-repeat",
 };
 
-export default function ApplyLayout({
+export default async function ApplyLayout({
   children,
 }: Readonly<{
   children: ReactNode;
 }>) {
+  const qaEntries = await listPublishedQaFaqEntries();
+
   return (
     <div className="relative isolate min-h-screen w-full">
       <div
@@ -23,7 +27,10 @@ export default function ApplyLayout({
         style={APPLY_FLOW_BACKDROP_STYLE}
       />
       <div className="relative z-10">
-        <BrowserNavigationRecovery>{children}</BrowserNavigationRecovery>
+        <BrowserNavigationRecovery>
+          {children}
+          <ApplyQaEntry initialEntries={qaEntries} />
+        </BrowserNavigationRecovery>
       </div>
     </div>
   );

@@ -3,6 +3,7 @@ import type { MaterialCategory } from "@/features/application/types";
 
 type GuidanceBlock = {
   title?: string;
+  variant?: "list" | "paragraphs";
   items: readonly string[];
 };
 
@@ -30,11 +31,11 @@ const GUIDANCE: Record<MaterialCategory, readonly GuidanceBlock[]> = {
   ],
   EMPLOYMENT: [
     {
+      variant: "paragraphs",
       items: [
-        "Official employment document for the current position is required (at least one file in this category).",
-        "Employment contract, Employer Reference Letter, HR certifies employment attestation.",
-        "Employment record booklet where customary (e.g., in post-Soviet jurisdictions).",
-        "Resignation letter, promotion letters, or other comparable employment milestone documents.",
+        "Acceptable forms of employment documents include: an employment contract, an appointment letter, an HR verification letter (for citizens in post-Soviet jurisdictions (and other jurisdictions where customary), an employment record book is also acceptable).",
+        "In the absence of any of the employment contract, appointment letter or HR verification letter, please provide a promotion letter, a resignation letter, or other comparable employment milestone documents instead.",
+        "An employment document for your current position is the bare minimum.",
       ],
     },
   ],
@@ -113,16 +114,29 @@ export function MaterialCategoryGuidance({
               {block.title}
             </p>
           ) : null}
-          <ul
-            className={cn(
-              "list-disc space-y-1.5 pl-4 text-sm leading-6 text-slate-600 marker:text-slate-400",
-              block.title ? "mt-1.5" : "",
-            )}
-          >
-            {block.items.map((item) => (
-              <li key={item}>{item}</li>
-            ))}
-          </ul>
+          {block.variant === "paragraphs" ? (
+            <div
+              className={cn(
+                "space-y-3 text-sm leading-6 text-slate-600",
+                block.title ? "mt-1.5" : "",
+              )}
+            >
+              {block.items.map((item) => (
+                <p key={item}>{item}</p>
+              ))}
+            </div>
+          ) : (
+            <ul
+              className={cn(
+                "list-disc space-y-1.5 pl-4 text-sm leading-6 text-slate-600 marker:text-slate-400",
+                block.title ? "mt-1.5" : "",
+              )}
+            >
+              {block.items.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          )}
         </div>
       ))}
     </div>

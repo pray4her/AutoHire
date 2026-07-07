@@ -11,6 +11,59 @@ export const MATERIAL_CATEGORIES = [
   { key: "PRODUCT", label: "Product" },
 ] as const;
 
+export const MATERIAL_CATEGORY_SUMMARIES = {
+  IDENTITY: {
+    title: "Identification documents",
+    description: "Used for identification verification.",
+  },
+  EDUCATION: {
+    title: "Education documents",
+    description: "Used for educational background verification.",
+  },
+  EMPLOYMENT: {
+    title: "Employment documents",
+    description: "Used for professional experience verification.",
+  },
+  PROJECT: {
+    title: "Project documents",
+    description:
+      "Used for demonstration of academic competence and influence",
+  },
+  PAPER: {
+    title: "Paper publications",
+    description:
+      "Used for demonstration of academic output, innovation capacity and peer recognition.",
+  },
+  BOOK: {
+    title: "Authored books",
+    description:
+      "Used for demonstration of academic output and innovative capacity.",
+  },
+  CONFERENCE: {
+    title: "Conference materials",
+    description:
+      "Used for demonstration of academic output and innovative capacity",
+  },
+  PATENT: {
+    title: "Patent documents",
+    description:
+      "Used for demonstration of academic output and innovative capacity",
+  },
+  HONOR: {
+    title: "Honors awards",
+    description:
+      "Used for demonstration of academic output and innovative capacity",
+  },
+  PRODUCT: {
+    title: "Product",
+    description:
+      "Used for demonstration of academic output and innovative capacity",
+  },
+} as const satisfies Record<
+  (typeof MATERIAL_CATEGORIES)[number]["key"],
+  { title: string; description: string }
+>;
+
 export const APPLICATION_STATUSES = [
   "INIT",
   "INTRO_VIEWED",
@@ -89,7 +142,13 @@ export const INELIGIBLE_CLOSING_MESSAGE =
 
 /** Shown after automated eligibility judgment on `/apply/result`. */
 export const ELIGIBILITY_ASSESSMENT_ACCURACY_NOTE =
-  "As job titles vary across different regions and countries, the system's eligibility assessment may contain minor discrepancies. All CVs will undergo a secondary manual review to ensure the accuracy of eligibility determinations.";
+  "As job titles vary across different regions and countries, the system's eligibility assessment may contain minor discrepancies.";
+
+export const PRIVACY_STATEMENT_ITEMS = [
+  "Any personal information you provide will be used solely for eligibility evaluation, dossier preparation and supporting platform matching for this talent program, and will be treated with the strictest confidence.",
+  "Your personal information will not be abused, published or shared with any third party without your prior consent.",
+  "All information you submit can be permanently deleted upon your request.",
+] as const;
 
 export const ELIGIBLE_DISPLAY_SUMMARY = [
   ELIGIBLE_ASSESSMENT_HEADING,

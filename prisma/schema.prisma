@@ -647,6 +647,20 @@ model InitialMaterialReviewReportEmail {
   @@index([reviewRunId])
 }
 
+model ApplicationFaqEntry {
+  id          String   @id @default(cuid())
+  slug        String   @unique
+  question    String
+  answer      String   @db.Text
+  keywords    String[] @default([])
+  sortOrder   Int      @default(100)
+  isPublished Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([isPublished, sortOrder, createdAt])
+}
+
 model ApplicationEventLog {
   id            String       @id @default(cuid())
   applicationId String

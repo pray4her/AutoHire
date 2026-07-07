@@ -21,7 +21,8 @@ import {
 } from "@/components/ui/page-shell";
 import { MaterialCategoryGuidance } from "@/features/application/components/material-category-guidance";
 import { MaterialFileRow } from "@/features/application/components/material-file-row";
-import { MATERIAL_CATEGORIES } from "@/features/application/constants";
+import { PrivacyStatementDialog } from "@/features/application/components/privacy-statement-dialog";
+import { MATERIAL_CATEGORIES, MATERIAL_CATEGORY_SUMMARIES } from "@/features/application/constants";
 import {
   deleteMaterial,
   enterMaterialsStage,
@@ -270,8 +271,13 @@ function MaterialsPageContent() {
     <PageFrame>
       <PageShell
         title="Required Documents"
-        description="Please upload the required supporting documents by category. Ensure that all uploaded documents meet the requirements before submitting."
+        description=""
         headerVariant="centered"
+        headerSlot={
+          <div className="flex justify-center">
+            <PrivacyStatementDialog />
+          </div>
+        }
         steps={APPLICATION_FLOW_STEPS_WITH_INTRO}
         currentStep={2}
         stepIndexing="zero"
@@ -339,9 +345,21 @@ function MaterialsPageContent() {
                         : category.label
                     }
                     summary={
-                      isReadOnlyReview
-                        ? "Submitted files are available for review."
-                        : "Expand to review guidance and manage uploaded files."
+                      isReadOnlyReview ? (
+                        "Submitted files are available for review."
+                      ) : (
+                        <div className="flex flex-col gap-0.5">
+                          <p className="font-medium text-[color:var(--foreground)]">
+                            {MATERIAL_CATEGORY_SUMMARIES[category.key].title}
+                          </p>
+                          <p>
+                            {
+                              MATERIAL_CATEGORY_SUMMARIES[category.key]
+                                .description
+                            }
+                          </p>
+                        </div>
+                      )
                     }
                     defaultOpen={
                       isRequiredCategory && !requirementMet && !isReadOnlyReview

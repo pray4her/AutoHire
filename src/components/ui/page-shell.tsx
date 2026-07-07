@@ -241,7 +241,14 @@ export function PageShell({
               </p>
             ) : null}
             {headerSlot ? (
-              <div className="mt-5 w-full">{headerSlot}</div>
+              <div
+                className={cn(
+                  "w-full",
+                  trimmedDescription ? "mt-5" : "mt-2",
+                )}
+              >
+                {headerSlot}
+              </div>
             ) : null}
           </div>
         ) : (
