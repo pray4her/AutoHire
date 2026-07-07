@@ -139,6 +139,30 @@ describe("application server actions", () => {
         },
       });
     });
+
+    it("supports feedback from the ineligible resume result", async () => {
+      mockAuthorizedSession("app_secondary");
+      await updateApplication("app_secondary", {
+        applicationStatus: "INELIGIBLE",
+        eligibilityResult: "INELIGIBLE",
+      });
+
+      const feedback = await saveFeedbackDraftAction("app_secondary", {
+        comment: "Please show the mismatch reason earlier.",
+        context: {
+          currentUrl: "http://localhost/apply/resume",
+          pageTitle: "Resume review",
+          flowName: "resume review",
+          flowStep: "eligibility_result",
+          surface: "resume_ineligible",
+        },
+      });
+
+      expect(feedback).toMatchObject({
+        status: "DRAFT",
+        comment: "Please show the mismatch reason earlier.",
+      });
+    });
   });
 
   describe("submitFeedbackAction", () => {

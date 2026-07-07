@@ -61,13 +61,8 @@ import {
 import {
   APPLICATION_FLOW_STEPS_WITH_INTRO,
   CONTINUE_TO_UPLOAD_LABEL,
-  ELIGIBLE_ASSESSMENT_DOCUMENTS,
-  ELIGIBLE_ASSESSMENT_FOOTNOTE,
-  ELIGIBLE_ASSESSMENT_HEADING,
-  ELIGIBLE_ASSESSMENT_INTRO,
-  ELIGIBILITY_ASSESSMENT_ACCURACY_NOTE,
-  INELIGIBLE_CLOSING_MESSAGE,
 } from "@/features/application/constants";
+import { InitialCvReviewDeterminationCard } from "@/features/application/components/initial-cv-review-determination-card";
 import {
   ALLOWED_DOCUMENT_ACCEPT,
   ALLOWED_DOCUMENT_FORMATS_LABEL,
@@ -101,7 +96,6 @@ import {
 } from "@/lib/tracking/client";
 import type { TrackingPageName, TrackingStepName } from "@/lib/tracking/types";
 import { usePageDurationTracking } from "@/lib/tracking/use-page-duration-tracking";
-import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 type SupplementalFormValues = Record<string, string>;
@@ -1157,125 +1151,6 @@ function formatIneligibleReasonDetails(
   }
 
   return summary || null;
-}
-
-function EligibilityAssessmentAccuracyNote({
-  className,
-}: {
-  className?: string;
-}) {
-  return (
-    <p
-      className={cn(
-        "text-sm leading-6 text-[color:var(--foreground-soft)]",
-        className,
-      )}
-    >
-      <span className="font-semibold text-[color:var(--foreground)]">
-        Note:
-      </span>{" "}
-      {ELIGIBILITY_ASSESSMENT_ACCURACY_NOTE}
-    </p>
-  );
-}
-
-function IneligibleAssessmentResultBody({
-  reasonDetails,
-}: {
-  reasonDetails: string | null;
-}) {
-  return (
-    <div className="flex flex-col gap-4" role="status" aria-live="polite">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-[color:var(--foreground-soft)]">
-          Status:
-        </span>
-        <Badge variant="destructive">Not eligible</Badge>
-      </div>
-
-      {reasonDetails ? (
-        <p className="text-sm leading-6 whitespace-pre-wrap text-[color:var(--foreground-soft)]">
-          {reasonDetails}
-        </p>
-      ) : null}
-
-      <p className="text-sm leading-6 text-[color:var(--foreground-soft)]">
-        {INELIGIBLE_CLOSING_MESSAGE}
-      </p>
-    </div>
-  );
-}
-
-function EligibleAssessmentResultBody() {
-  return (
-    <div
-      className="rounded-xl border border-emerald-200 bg-white px-4 py-4 sm:px-5 sm:py-5"
-      role="status"
-      aria-live="polite"
-    >
-      <p className="text-sm font-semibold leading-6 text-emerald-950">
-        {ELIGIBLE_ASSESSMENT_HEADING}
-      </p>
-      <p className="mt-3 text-sm leading-6 text-emerald-950/90">
-        {ELIGIBLE_ASSESSMENT_INTRO}
-      </p>
-      <ul className="mt-3 list-disc space-y-1.5 pl-5 text-sm leading-6 text-emerald-950/90">
-        {ELIGIBLE_ASSESSMENT_DOCUMENTS.map((document) => (
-          <li key={document}>{document}</li>
-        ))}
-      </ul>
-      <p className="mt-4 text-xs italic leading-5 text-emerald-900/75">
-        {ELIGIBLE_ASSESSMENT_FOOTNOTE}
-      </p>
-    </div>
-  );
-}
-
-function InitialCvReviewDeterminationCard({
-  snapshot,
-}: {
-  snapshot: ApplicationSnapshot;
-}) {
-  const latest = snapshot.latestResult;
-  const displaySummary = latest?.displaySummary ?? null;
-  const reasonText = latest?.reasonText ?? null;
-  const { eligibilityResult } = snapshot;
-
-  if (eligibilityResult === "INELIGIBLE") {
-    const reasonDetails = formatIneligibleReasonDetails(
-      displaySummary,
-      reasonText,
-    );
-
-    return (
-      <SectionCard title="Preliminary assessment result">
-        <div className="flex flex-col gap-4">
-          <IneligibleAssessmentResultBody reasonDetails={reasonDetails} />
-          <EligibilityAssessmentAccuracyNote />
-        </div>
-      </SectionCard>
-    );
-  }
-
-  if (
-    eligibilityResult === "INSUFFICIENT_INFO" ||
-    snapshot.applicationStatus === "INFO_REQUIRED"
-  ) {
-    return null;
-  }
-
-  if (eligibilityResult === "ELIGIBLE") {
-    return (
-      <SectionCard className="border-emerald-200 bg-emerald-50">
-        <div className="flex flex-col gap-4">
-          <EligibleAssessmentResultBody />
-          <EligibilityAssessmentAccuracyNote className="text-emerald-950/85" />
-        </div>
-      </SectionCard>
-    );
-  }
-
-  return null;
 }
 
 const CV_UPLOAD_GUIDELINES = [

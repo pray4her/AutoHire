@@ -2021,9 +2021,9 @@ function toFeedbackSnapshot(
 export async function getApplicationFeedbackSnapshot(applicationId: string) {
   await requireApplicationStage({
     applicationId,
-    allowedStatuses: ["SUBMITTED"],
+    allowedStatuses: ["INELIGIBLE", "SUBMITTED"],
     message:
-      "Feedback is only available after the application has been submitted.",
+      "Feedback is only available after the application is submitted or marked not eligible.",
     code: "FEEDBACK_NOT_AVAILABLE",
   });
 
@@ -2039,9 +2039,9 @@ export async function saveApplicationFeedbackDraft(input: {
 }) {
   await requireApplicationStage({
     applicationId: input.applicationId,
-    allowedStatuses: ["SUBMITTED"],
+    allowedStatuses: ["INELIGIBLE", "SUBMITTED"],
     message:
-      "Feedback drafts are only available after the application has been submitted.",
+      "Feedback drafts are only available after the application is submitted or marked not eligible.",
     code: "FEEDBACK_NOT_AVAILABLE",
   });
 
@@ -2089,9 +2089,9 @@ export async function submitApplicationFeedback(input: {
 }) {
   await requireApplicationStage({
     applicationId: input.applicationId,
-    allowedStatuses: ["SUBMITTED"],
+    allowedStatuses: ["INELIGIBLE", "SUBMITTED"],
     message:
-      "Feedback can only be submitted after the application has been submitted.",
+      "Feedback can only be submitted after the application is submitted or marked not eligible.",
     code: "FEEDBACK_NOT_AVAILABLE",
   });
 

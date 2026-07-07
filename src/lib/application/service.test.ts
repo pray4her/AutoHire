@@ -541,6 +541,31 @@ describe("submission feedback service flow", () => {
     });
   });
 
+  it("allows feedback drafts after an application becomes ineligible", async () => {
+    await updateApplication("app_secondary", {
+      applicationStatus: "INELIGIBLE",
+      eligibilityResult: "INELIGIBLE",
+    });
+
+    const feedback = await saveApplicationFeedbackDraft({
+      applicationId: "app_secondary",
+      comment: "The result page should explain the reason more clearly.",
+      context: {
+        flowName: "resume review",
+        flowStep: "eligibility_result",
+        surface: "resume_ineligible",
+      },
+    });
+
+    expect(feedback).toMatchObject({
+      status: "DRAFT",
+      comment: "The result page should explain the reason more clearly.",
+    });
+
+    const application = await getSnapshot("app_secondary");
+    expect(application?.applicationStatus).toBe("INELIGIBLE");
+  });
+
   it("saves and overwrites feedback drafts while keeping the flow submitted", async () => {
     const firstDraft = await saveApplicationFeedbackDraft({
       applicationId: "app_submitted",

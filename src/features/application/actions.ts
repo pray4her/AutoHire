@@ -15,6 +15,14 @@ import {
 import { requireApplicationSessionFromAction } from "@/lib/auth/server-action";
 import { trackEventFromServerAction } from "@/lib/tracking/server-action";
 
+function resolveFeedbackTrackingPageName(surface?: string | null) {
+  if (surface === "resume_ineligible") {
+    return "apply_resume";
+  }
+
+  return "apply_submission_complete";
+}
+
 function handleServiceError(error: unknown): never {
   if (error instanceof ApplicationServiceError) {
     const err = new Error(error.message);
@@ -130,10 +138,12 @@ export async function saveFeedbackDraftAction(
       context: parsed.data.context,
     });
 
+    const pageName = resolveFeedbackTrackingPageName(parsed.data.context?.surface);
+
     await trackEventFromServerAction({
       eventType: "feedback_draft_saved",
       applicationId,
-      pageName: "apply_submission_complete",
+      pageName,
       stepName: "feedback",
       actionName: "button_click",
       eventStatus: "SUCCESS",
@@ -148,10 +158,12 @@ export async function saveFeedbackDraftAction(
 
     return feedback;
   } catch (error) {
+    const pageName = resolveFeedbackTrackingPageName(parsed.data.context?.surface);
+
     await trackEventFromServerAction({
       eventType: "feedback_submit_failed",
       applicationId,
-      pageName: "apply_submission_complete",
+      pageName,
       stepName: "feedback",
       actionName: "button_click",
       eventStatus: "FAIL",
@@ -192,10 +204,12 @@ export async function submitFeedbackAction(
     throw new Error("The feedback payload is invalid.");
   }
 
+  const pageName = resolveFeedbackTrackingPageName(parsed.data.context?.surface);
+
   await trackEventFromServerAction({
     eventType: "feedback_submit_clicked",
     applicationId,
-    pageName: "apply_submission_complete",
+    pageName,
     stepName: "feedback",
     actionName: "submit_confirm",
     eventStatus: "SUCCESS",
@@ -218,7 +232,7 @@ export async function submitFeedbackAction(
     await trackEventFromServerAction({
       eventType: "feedback_submitted",
       applicationId,
-      pageName: "apply_submission_complete",
+      pageName,
       stepName: "feedback",
       actionName: "submit_confirm",
       eventStatus: "SUCCESS",
@@ -236,7 +250,7 @@ export async function submitFeedbackAction(
     await trackEventFromServerAction({
       eventType: "feedback_submit_failed",
       applicationId,
-      pageName: "apply_submission_complete",
+      pageName,
       stepName: "feedback",
       actionName: "submit_confirm",
       eventStatus: "FAIL",
