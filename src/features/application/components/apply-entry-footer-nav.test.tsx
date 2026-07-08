@@ -3,11 +3,12 @@
 import "@testing-library/jest-dom/vitest";
 
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
-import userEvent from "@testing-library/user-event";
+import type { ImgHTMLAttributes } from "react";
+import { cleanup, render, screen, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApplyEntryClient } from "@/features/application/components/apply-entry-client";
+import { TESTIMONIAL_HIGHLIGHTS } from "@/features/application/components/apply-entry-intro-content";
 import type { ApplicationSnapshot } from "@/features/application/types";
 
 const postIntroConfirmMock = vi.fn();
@@ -20,6 +21,22 @@ const routerMock = {
 
 vi.mock("next/navigation", () => ({
   useRouter: () => routerMock,
+}));
+
+vi.mock("next/image", () => ({
+  default: (props: ImgHTMLAttributes<HTMLImageElement>) => {
+    const { fill, priority, unoptimized, alt = "", ...imgProps } = props;
+    void fill;
+    void priority;
+    void unoptimized;
+
+    // eslint-disable-next-line @next/next/no-img-element
+    return <img alt={alt} {...imgProps} />;
+  },
+}));
+
+vi.mock("yet-another-react-lightbox", () => ({
+  default: () => null,
 }));
 
 vi.mock("@/components/ui/page-shell", () => ({
@@ -123,23 +140,20 @@ const snapshot: ApplicationSnapshot = {
 };
 
 describe("ApplyEntryClient footer navigation", () => {
-  const scrollIntoViewMock = vi.fn();
-
   beforeEach(() => {
     vi.clearAllMocks();
+    window.localStorage.setItem("apply-invite-notice-seen:invite_001", "seen");
     postIntroConfirmMock.mockResolvedValue(undefined);
     trackClickMock.mockResolvedValue(undefined);
     trackPageViewMock.mockResolvedValue(undefined);
-    scrollIntoViewMock.mockReset();
-    HTMLElement.prototype.scrollIntoView = scrollIntoViewMock;
   });
 
   afterEach(() => {
-    vi.useRealTimers();
+    window.localStorage.clear();
     cleanup();
   });
 
-  it("renders footer navigation instead of top info accordions", () => {
+  it("renders footer information as static full-width sections", () => {
     render(
       <ApplyEntryClient
         initialSnapshot={snapshot}
@@ -149,7 +163,7 @@ describe("ApplyEntryClient footer navigation", () => {
 
     expect(screen.getByTestId("apply-entry-footer-nav")).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "who are we" }),
+      screen.getByRole("heading", { name: "who are we" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("navigation", { name: "Company information" }),
@@ -158,53 +172,10 @@ describe("ApplyEntryClient footer navigation", () => {
       screen.queryByRole("button", {
         name: "Why are we qualified to handle your application",
       }),
-    ).toHaveAttribute("aria-expanded", "false");
+    ).not.toBeInTheDocument();
   });
 
-  it("renders the footer after the primary action in document order", () => {
-    render(
-      <ApplyEntryClient
-        initialSnapshot={snapshot}
-        openedFromInviteLink={false}
-      />,
-    );
-
-    const continueButton = screen.getByRole("button", {
-      name: "Continue to CV Submission",
-    });
-    const footerNav = screen.getByTestId("apply-entry-footer-nav");
-    const documentPosition = continueButton.compareDocumentPosition(footerNav);
-
-    expect(documentPosition & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-  });
-
-  it("scrolls the opened footer section into view after expansion", async () => {
-    const user = userEvent.setup();
-
-    render(
-      <ApplyEntryClient
-        initialSnapshot={snapshot}
-        openedFromInviteLink={false}
-      />,
-    );
-
-    await user.click(
-      screen.getByRole("button", {
-        name: "Why are we qualified to handle your application",
-      }),
-    );
-
-    await waitFor(() => {
-      expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
-    });
-
-    expect(scrollIntoViewMock).toHaveBeenCalledWith({
-      behavior: "smooth",
-      block: "nearest",
-    });
-  });
-
-  it("renders five footer sections in the expected order", () => {
+  it("renders four footer sections in a horizontal row with vertical dividers", () => {
     render(
       <ApplyEntryClient
         initialSnapshot={snapshot}
@@ -213,20 +184,28 @@ describe("ApplyEntryClient footer navigation", () => {
     );
 
     const nav = screen.getByRole("navigation", { name: "Company information" });
-    const triggers = within(nav).getAllByRole("button");
+    const headings = within(nav).getAllByRole("heading", { level: 2 });
+    const sections = Array.from(nav.querySelectorAll("section"));
 
-    expect(triggers.map((trigger) => trigger.getAttribute("aria-label"))).toEqual([
+    expect(headings.map((heading) => heading.textContent)).toEqual([
       "who are we",
       "Why are we qualified to handle your application",
       "Testimonials & Appreciation Highlights",
       "Chat with a talent consultant",
-      "Correspondence record with a selected candidate",
     ]);
+    expect(nav).toHaveClass("flex", "flex-col", "lg:flex-row");
+    expect(nav).toHaveClass("divide-y", "lg:divide-x", "lg:divide-y-0");
+    expect(sections).toHaveLength(4);
+    for (const section of sections) {
+      expect(section).toHaveClass("flex-1", "flex-col");
+      expect(section).not.toHaveClass("border-t", "lg:grid-cols-[16rem_minmax(0,1fr)]");
+    }
+    expect(
+      screen.queryByTestId("apply-footer-section-correspondence-record"),
+    ).not.toBeInTheDocument();
   });
 
-  it("keeps the footer navigation single-open, collapsed by default, and exposes consultant links", async () => {
-    const user = userEvent.setup();
-
+  it("shows all non-testimonial footer content by default", () => {
     render(
       <ApplyEntryClient
         initialSnapshot={snapshot}
@@ -234,29 +213,17 @@ describe("ApplyEntryClient footer navigation", () => {
       />,
     );
 
-    const whoAreWeTrigger = screen.getByRole("button", { name: "who are we" });
-    const qualificationTrigger = screen.getByRole("button", {
-      name: "Why are we qualified to handle your application",
-    });
-    const consultantTrigger = screen.getByRole("button", {
-      name: "Chat with a talent consultant",
-    });
-
-    expect(whoAreWeTrigger).toHaveAttribute("aria-expanded", "false");
-    expect(qualificationTrigger).toHaveAttribute("aria-expanded", "false");
-    expect(
-      screen.queryByRole("region", { name: "who are we" }),
-    ).not.toBeInTheDocument();
-
-    await user.click(qualificationTrigger);
-
-    expect(whoAreWeTrigger).toHaveAttribute("aria-expanded", "false");
-    expect(qualificationTrigger).toHaveAttribute("aria-expanded", "true");
-
+    const whoAreWeRegion = screen.getByRole("region", { name: "who are we" });
     const qualificationRegion = screen.getByRole("region", {
       name: "Why are we qualified to handle your application",
     });
+    const consultantRegion = screen.getByRole("region", {
+      name: "Chat with a talent consultant",
+    });
 
+    expect(
+      within(whoAreWeRegion).getByText(/Meet Technology \(Wuhan\) Co\., Ltd\./),
+    ).toBeInTheDocument();
     expect(
       within(qualificationRegion).getByText("ISO 27001 certified"),
     ).toBeInTheDocument();
@@ -264,14 +231,6 @@ describe("ApplyEntryClient footer navigation", () => {
       within(qualificationRegion).getByText("5000+ overseas experts supported"),
     ).toBeInTheDocument();
 
-    await user.click(consultantTrigger);
-
-    expect(qualificationTrigger).toHaveAttribute("aria-expanded", "false");
-    expect(consultantTrigger).toHaveAttribute("aria-expanded", "true");
-
-    const consultantRegion = screen.getByRole("region", {
-      name: "Chat with a talent consultant",
-    });
     const emailLink = within(consultantRegion).getByRole("link", {
       name: /Email/i,
     });
@@ -280,16 +239,35 @@ describe("ApplyEntryClient footer navigation", () => {
     });
 
     expect(emailLink).toHaveAttribute("href", "mailto:lishijing@1000help.com");
-    expect(whatsappLink).toHaveAttribute(
-      "href",
-      "https://wa.me/8617363307362",
+    expect(whatsappLink).toHaveAttribute("href", "https://wa.me/8617363307362");
+  });
+
+  it("combines the correspondence image into the testimonial highlights", () => {
+    render(
+      <ApplyEntryClient
+        initialSnapshot={snapshot}
+        openedFromInviteLink={false}
+      />,
     );
 
-    await user.click(consultantTrigger);
+    const testimonialsRegion = screen.getByRole("region", {
+      name: "Testimonials & Appreciation Highlights",
+    });
 
-    expect(consultantTrigger).toHaveAttribute("aria-expanded", "false");
     expect(
-      screen.queryByRole("region", { name: "Chat with a talent consultant" }),
-    ).not.toBeInTheDocument();
+      within(testimonialsRegion).getByTestId("testimonial-gallery"),
+    ).toBeInTheDocument();
+    expect(screen.getByTestId("active-testimonial-image")).toHaveAttribute(
+      "src",
+      "/apply/testimonials/appreciation-letter-1.png",
+    );
+    expect(
+      within(testimonialsRegion).queryAllByTestId("testimonial-thumbnail"),
+    ).toHaveLength(0);
+    expect(TESTIMONIAL_HIGHLIGHTS).toHaveLength(6);
+    expect(TESTIMONIAL_HIGHLIGHTS.at(-1)).toMatchObject({
+      alt: "Correspondence record with a selected candidate",
+      src: "/apply/testimonials/appreciation-letter-6.png",
+    });
   });
 });

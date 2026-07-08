@@ -3,6 +3,7 @@ import { Inter } from "next/font/google";
 
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import "yet-another-react-lightbox/styles.css";
 import "./globals.css";
 
 const sans = Inter({

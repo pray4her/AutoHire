@@ -36,23 +36,23 @@ export function ApplyInviteNoticeDialog({
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
         showCloseButton={false}
-        className="overflow-hidden rounded-[1.1rem] border-none bg-transparent p-0 shadow-[0_28px_72px_rgba(15,23,42,0.28)] sm:max-w-[44rem]"
+        className="h-auto max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] overflow-y-auto rounded-[1.1rem] border-none bg-transparent p-0 shadow-[0_28px_72px_rgba(15,23,42,0.28)] sm:max-w-[44rem]"
       >
-        <div className="relative overflow-hidden rounded-[1.1rem] border border-[color:var(--border)] bg-[color:var(--background-elevated)]">
-          <div className="absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.12),transparent_72%)]" />
+        <div className="relative rounded-[1.1rem] border border-[color:var(--border)] bg-[color:var(--background-elevated)]">
+          <div className="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.12),transparent_72%)]" />
           <div className="relative flex flex-col">
-            <DialogHeader className="border-b border-[color:var(--border)] px-6 pt-6 pb-5 sm:px-8 sm:pt-7 sm:pb-6">
+            <DialogHeader className="shrink-0 border-b border-[color:var(--border)] px-6 pt-6 pb-5 sm:px-8 sm:pt-7 sm:pb-6">
               <DialogTitle className="flex max-w-[31rem] min-w-0 flex-col gap-2 text-left">
                 <span className="text-[0.72rem] font-semibold tracking-[0.22em] text-[color:var(--foreground-soft)] uppercase">
                   Important Notice
                 </span>
-                <span className="text-[1.28rem] leading-[1.14] font-semibold tracking-[-0.035em] text-[color:var(--primary)] sm:text-[1.72rem]">
+                <span className="text-[1.28rem] leading-snug font-semibold tracking-[-0.035em] text-[color:var(--primary)] sm:text-[1.72rem]">
                   Regarding Your Personalized Application Link
                 </span>
               </DialogTitle>
             </DialogHeader>
 
-            <div className="max-h-[min(27rem,56vh)] overflow-y-auto px-6 py-5 sm:px-8 sm:py-6">
+            <div className="px-6 py-5 sm:px-8 sm:py-6">
               <ol className="flex flex-col gap-5">
                 {PERSONALIZED_LINK_NOTICE_ITEMS.map((item, index) => {
                   const description = item.description.replace(
@@ -81,7 +81,7 @@ export function ApplyInviteNoticeDialog({
               </ol>
             </div>
 
-            <div className="flex flex-col gap-4 border-t border-[color:var(--border)] bg-white/82 px-6 py-5 sm:px-8 sm:py-6">
+            <div className="shrink-0 flex flex-col gap-4 border-t border-[color:var(--border)] bg-white/82 px-6 py-5 sm:px-8 sm:py-6">
               <p className="max-w-[32rem] text-sm leading-6 text-[color:var(--foreground-soft)]">
                 Keep the original email so you can reopen the same link if you
                 continue on another device or browser.

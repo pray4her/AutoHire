@@ -16,7 +16,7 @@ export function renderProgramIntroductionContent(sectionId: IntroSectionId) {
           <p>
             The Global Excellent Scientists Fund (GESF), also known as the{" "}
             <strong className="text-base font-semibold text-[color:var(--foreground)]">
-              china national talent Support program
+              CHINA national talent support program
             </strong>
             , is a prestigious national-level talent program initiated by
             relevant Chinese government departments. Its primary mission is to

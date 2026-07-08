@@ -173,11 +173,6 @@ export const TOP_INFO_ITEMS = [
     title: "Chat with a talent consultant",
     shortTitle: "Consultant",
   },
-  {
-    id: "correspondence-record",
-    title: "Correspondence record with a selected candidate",
-    shortTitle: "Correspondence",
-  },
 ] as const satisfies readonly TopInfoItem[];
 
 export type TopInfoSectionId = (typeof TOP_INFO_ITEMS)[number]["id"];
@@ -240,17 +235,11 @@ export const TESTIMONIAL_HIGHLIGHTS = [
     width: 1515,
     height: 563,
   },
-] as const satisfies readonly Testimonial[];
-
-export const CORRESPONDENCE_RECORD = {
-  id: "appreciation-letter-6",
-  src: "/apply/testimonials/appreciation-letter-6.png",
-  alt: "Correspondence record with a selected candidate",
-  width: 1515,
-  height: 691,
-} as const satisfies Testimonial;
-
-export const TESTIMONIALS = [
-  ...TESTIMONIAL_HIGHLIGHTS,
-  CORRESPONDENCE_RECORD,
+  {
+    id: "appreciation-letter-6",
+    src: "/apply/testimonials/appreciation-letter-6.png",
+    alt: "Correspondence record with a selected candidate",
+    width: 1515,
+    height: 691,
+  },
 ] as const satisfies readonly Testimonial[];
