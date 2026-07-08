@@ -15,6 +15,9 @@ const nextConfig: NextConfig = {
     "http://192.168.3.43:3001",
   ],
   typedRoutes: true,
+  images: {
+    qualities: [75, 100],
+  },
 };
 
 export default withSentryConfig(nextConfig, {

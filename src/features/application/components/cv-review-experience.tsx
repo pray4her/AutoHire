@@ -69,7 +69,7 @@ import {
 import { InitialCvReviewDeterminationCard } from "@/features/application/components/initial-cv-review-determination-card";
 import {
   ALLOWED_DOCUMENT_ACCEPT,
-  ALLOWED_DOCUMENT_FORMATS_LABEL,
+  ALLOWED_DOCUMENT_FORMATS_COMPACT_LABEL,
 } from "@/features/upload/constants";
 import {
   clearDraft,
@@ -1195,7 +1195,7 @@ const CV_UPLOAD_GUIDELINES = [
   {
     title: "Upload & Confirm",
     description:
-      `Upload your latest CV as ${ALLOWED_DOCUMENT_FORMATS_LABEL.toLowerCase()} and click "Confirm Upload". Keep this page open for processing.`,
+      'Upload your latest CV and click "Confirm Upload". Keep this page open for processing.',
   },
   {
     title: "Finality",
@@ -2238,7 +2238,8 @@ export function CvReviewExperience({
                               >
                                 +
                               </span>
-                              Upload CV file
+                              Upload CV file{" "}
+                              {ALLOWED_DOCUMENT_FORMATS_COMPACT_LABEL}
                             </>
                           )}
                         </p>

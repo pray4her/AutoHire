@@ -2,7 +2,8 @@
 
 import "@testing-library/jest-dom/vitest";
 
-import { afterEach, describe, expect, it } from "vitest";
+import type { ImgHTMLAttributes } from "react";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   cleanup,
   fireEvent,
@@ -13,8 +14,21 @@ import {
 } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
-import { TESTIMONIALS } from "@/features/application/components/apply-entry-intro-content";
+import { TESTIMONIAL_HIGHLIGHTS } from "@/features/application/components/apply-entry-intro-content";
 import { StackedTestimonialsCarousel } from "@/features/application/components/stacked-testimonials-carousel";
+
+vi.mock("next/image", () => ({
+  default: (props: ImgHTMLAttributes<HTMLImageElement>) => {
+    const {
+      fill: _fill,
+      priority: _priority,
+      unoptimized: _unoptimized,
+      ...imgProps
+    } = props;
+
+    return <img {...imgProps} />;
+  },
+}));
 
 describe("StackedTestimonialsCarousel", () => {
   afterEach(() => {
@@ -24,19 +38,21 @@ describe("StackedTestimonialsCarousel", () => {
   it("advances when the background card is clicked", async () => {
     const user = userEvent.setup();
 
-    render(<StackedTestimonialsCarousel testimonials={TESTIMONIALS} />);
+    render(<StackedTestimonialsCarousel testimonials={TESTIMONIAL_HIGHLIGHTS} />);
 
-    expect(screen.getByTestId("active-testimonial-role")).toHaveTextContent(
-      TESTIMONIALS[0].role,
+    expect(screen.getByTestId("active-testimonial-image")).toHaveAttribute(
+      "src",
+      TESTIMONIAL_HIGHLIGHTS[0].src,
     );
 
     await user.click(screen.getByTestId("background-testimonial-trigger"));
 
     await waitFor(() => {
-      expect(screen.getAllByTestId("active-testimonial-role")).toHaveLength(1);
+      expect(screen.getAllByTestId("active-testimonial-image")).toHaveLength(1);
     });
-    expect(screen.getByTestId("active-testimonial-role")).toHaveTextContent(
-      TESTIMONIALS[1].role,
+    expect(screen.getByTestId("active-testimonial-image")).toHaveAttribute(
+      "src",
+      TESTIMONIAL_HIGHLIGHTS[1].src,
     );
   });
 
@@ -44,7 +60,7 @@ describe("StackedTestimonialsCarousel", () => {
     const user = userEvent.setup();
 
     const { getByRole } = render(
-      <StackedTestimonialsCarousel testimonials={TESTIMONIALS} />,
+      <StackedTestimonialsCarousel testimonials={TESTIMONIAL_HIGHLIGHTS} />,
     );
 
     await user.click(
@@ -52,10 +68,11 @@ describe("StackedTestimonialsCarousel", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getAllByTestId("active-testimonial-role")).toHaveLength(1);
+      expect(screen.getAllByTestId("active-testimonial-image")).toHaveLength(1);
     });
-    expect(screen.getByTestId("active-testimonial-role")).toHaveTextContent(
-      TESTIMONIALS[3].role,
+    expect(screen.getByTestId("active-testimonial-image")).toHaveAttribute(
+      "src",
+      TESTIMONIAL_HIGHLIGHTS[TESTIMONIAL_HIGHLIGHTS.length - 1].src,
     );
 
     await user.click(
@@ -63,41 +80,42 @@ describe("StackedTestimonialsCarousel", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getAllByTestId("active-testimonial-role")).toHaveLength(1);
+      expect(screen.getAllByTestId("active-testimonial-image")).toHaveLength(1);
     });
-    expect(screen.getByTestId("active-testimonial-role")).toHaveTextContent(
-      TESTIMONIALS[0].role,
+    expect(screen.getByTestId("active-testimonial-image")).toHaveAttribute(
+      "src",
+      TESTIMONIAL_HIGHLIGHTS[0].src,
     );
   });
 
-  it("renders the preview card with the same body structure as the active card", () => {
-    render(<StackedTestimonialsCarousel testimonials={TESTIMONIALS} />);
+  it("renders the preview card with the same image body structure as the active card", () => {
+    render(<StackedTestimonialsCarousel testimonials={TESTIMONIAL_HIGHLIGHTS} />);
 
     const previewCard = screen.getByTestId("background-testimonial-trigger");
+    const previewImage = within(previewCard).getByRole("img", {
+      name: TESTIMONIAL_HIGHLIGHTS[1].alt,
+    });
 
-    expect(previewCard).toHaveTextContent(TESTIMONIALS[1].quote);
-    expect(previewCard).toHaveTextContent(TESTIMONIALS[1].role);
-    expect(previewCard).toHaveTextContent(TESTIMONIALS[1].affiliation);
-    const previewQuote = within(previewCard)
-      .getAllByText(TESTIMONIALS[1].quote)
-      .find((element) => !element.closest(".invisible"));
-
-    expect(previewQuote).toBeDefined();
-    expect(previewQuote).not.toHaveClass("line-clamp-2");
+    expect(previewImage).toHaveAttribute("src", TESTIMONIAL_HIGHLIGHTS[1].src);
+    expect(previewImage).toHaveAttribute("width", String(TESTIMONIAL_HIGHLIGHTS[1].width));
+    expect(previewImage).toHaveAttribute("height", String(TESTIMONIAL_HIGHLIGHTS[1].height));
   });
 
-  it("renders the full quote without an internal scroll container", () => {
-    render(<StackedTestimonialsCarousel testimonials={TESTIMONIALS} />);
+  it("renders the image at its intrinsic aspect ratio without a fixed-height container", () => {
+    render(<StackedTestimonialsCarousel testimonials={TESTIMONIAL_HIGHLIGHTS} />);
 
-    const quote = screen.getByTestId("active-testimonial-quote");
+    const image = screen.getByTestId("active-testimonial-image");
 
-    expect(quote).not.toHaveClass("overflow-y-auto");
-    expect(quote.closest("[class*='overflow-y-auto']")).toBeNull();
-    expect(quote).toHaveTextContent(TESTIMONIALS[0].quote);
+    expect(image).not.toHaveClass("overflow-y-auto");
+    expect(image.closest("[class*='aspect-']")).toBeNull();
+    expect(image).toHaveAttribute("alt", TESTIMONIAL_HIGHLIGHTS[0].alt);
+    expect(image).toHaveAttribute("width", String(TESTIMONIAL_HIGHLIGHTS[0].width));
+    expect(image).toHaveAttribute("height", String(TESTIMONIAL_HIGHLIGHTS[0].height));
+    expect(image).toHaveClass("h-auto", "w-full");
   });
 
   it("switches cards with horizontal swipe gestures", async () => {
-    render(<StackedTestimonialsCarousel testimonials={TESTIMONIALS} />);
+    render(<StackedTestimonialsCarousel testimonials={TESTIMONIAL_HIGHLIGHTS} />);
 
     const activeCard = screen.getByTestId("active-testimonial-card");
 
@@ -113,10 +131,11 @@ describe("StackedTestimonialsCarousel", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getAllByTestId("active-testimonial-role")).toHaveLength(1);
+      expect(screen.getAllByTestId("active-testimonial-image")).toHaveLength(1);
     });
-    expect(screen.getByTestId("active-testimonial-role")).toHaveTextContent(
-      TESTIMONIALS[1].role,
+    expect(screen.getByTestId("active-testimonial-image")).toHaveAttribute(
+      "src",
+      TESTIMONIAL_HIGHLIGHTS[1].src,
     );
 
     fireEvent.pointerDown(activeCard, {
@@ -131,15 +150,16 @@ describe("StackedTestimonialsCarousel", () => {
     });
 
     await waitFor(() => {
-      expect(screen.getAllByTestId("active-testimonial-role")).toHaveLength(1);
+      expect(screen.getAllByTestId("active-testimonial-image")).toHaveLength(1);
     });
-    expect(screen.getByTestId("active-testimonial-role")).toHaveTextContent(
-      TESTIMONIALS[1].role,
+    expect(screen.getByTestId("active-testimonial-image")).toHaveAttribute(
+      "src",
+      TESTIMONIAL_HIGHLIGHTS[1].src,
     );
   });
 
   it("ignores vertical swipe gestures", () => {
-    render(<StackedTestimonialsCarousel testimonials={TESTIMONIALS} />);
+    render(<StackedTestimonialsCarousel testimonials={TESTIMONIAL_HIGHLIGHTS} />);
 
     const activeCard = screen.getByTestId("active-testimonial-card");
 
@@ -154,8 +174,9 @@ describe("StackedTestimonialsCarousel", () => {
       clientY: 300,
     });
 
-    expect(screen.getByTestId("active-testimonial-role")).toHaveTextContent(
-      TESTIMONIALS[0].role,
+    expect(screen.getByTestId("active-testimonial-image")).toHaveAttribute(
+      "src",
+      TESTIMONIAL_HIGHLIGHTS[0].src,
     );
   });
 });

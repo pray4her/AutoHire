@@ -3,7 +3,7 @@
 import "@testing-library/jest-dom/vitest";
 
 import type { ButtonHTMLAttributes, ReactNode } from "react";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -56,7 +56,7 @@ vi.mock("@/components/ui/page-shell", () => ({
     children,
   }: {
     title: string;
-    description?: string;
+    description?: string | null;
     children?: ReactNode;
   }) => (
     <div>
@@ -122,19 +122,24 @@ const snapshot: ApplicationSnapshot = {
   invitationLinkExpiresAt: "2027-03-15T00:00:00.000Z",
 };
 
-describe("ApplyEntryClient top info accordion", () => {
+describe("ApplyEntryClient footer navigation", () => {
+  const scrollIntoViewMock = vi.fn();
+
   beforeEach(() => {
     vi.clearAllMocks();
     postIntroConfirmMock.mockResolvedValue(undefined);
     trackClickMock.mockResolvedValue(undefined);
     trackPageViewMock.mockResolvedValue(undefined);
+    scrollIntoViewMock.mockReset();
+    HTMLElement.prototype.scrollIntoView = scrollIntoViewMock;
   });
 
   afterEach(() => {
+    vi.useRealTimers();
     cleanup();
   });
 
-  it("renders the top information accordion before the program introduction", () => {
+  it("renders footer navigation instead of top info accordions", () => {
     render(
       <ApplyEntryClient
         initialSnapshot={snapshot}
@@ -142,16 +147,84 @@ describe("ApplyEntryClient top info accordion", () => {
       />,
     );
 
-    const topInfoTrigger = screen.getByRole("button", { name: "who are we" });
-    const gesfTrigger = screen.getByRole("button", {
-      name: /Global Excellent Scientists Fund \(GESF\)/,
+    expect(screen.getByTestId("apply-entry-footer-nav")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "who are we" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("navigation", { name: "Company information" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", {
+        name: "Why are we qualified to handle your application",
+      }),
+    ).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("renders the footer after the primary action in document order", () => {
+    render(
+      <ApplyEntryClient
+        initialSnapshot={snapshot}
+        openedFromInviteLink={false}
+      />,
+    );
+
+    const continueButton = screen.getByRole("button", {
+      name: "Continue to CV Submission",
     });
-    const documentPosition = topInfoTrigger.compareDocumentPosition(gesfTrigger);
+    const footerNav = screen.getByTestId("apply-entry-footer-nav");
+    const documentPosition = continueButton.compareDocumentPosition(footerNav);
 
     expect(documentPosition & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it("keeps the top information accordion single-open and exposes consultant links", async () => {
+  it("scrolls the opened footer section into view after expansion", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ApplyEntryClient
+        initialSnapshot={snapshot}
+        openedFromInviteLink={false}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole("button", {
+        name: "Why are we qualified to handle your application",
+      }),
+    );
+
+    await waitFor(() => {
+      expect(scrollIntoViewMock).toHaveBeenCalledTimes(1);
+    });
+
+    expect(scrollIntoViewMock).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "nearest",
+    });
+  });
+
+  it("renders five footer sections in the expected order", () => {
+    render(
+      <ApplyEntryClient
+        initialSnapshot={snapshot}
+        openedFromInviteLink={false}
+      />,
+    );
+
+    const nav = screen.getByRole("navigation", { name: "Company information" });
+    const triggers = within(nav).getAllByRole("button");
+
+    expect(triggers.map((trigger) => trigger.getAttribute("aria-label"))).toEqual([
+      "who are we",
+      "Why are we qualified to handle your application",
+      "Testimonials & Appreciation Highlights",
+      "Chat with a talent consultant",
+      "Correspondence record with a selected candidate",
+    ]);
+  });
+
+  it("keeps the footer navigation single-open, collapsed by default, and exposes consultant links", async () => {
     const user = userEvent.setup();
 
     render(
@@ -169,8 +242,11 @@ describe("ApplyEntryClient top info accordion", () => {
       name: "Chat with a talent consultant",
     });
 
-    expect(whoAreWeTrigger).toHaveAttribute("aria-expanded", "true");
+    expect(whoAreWeTrigger).toHaveAttribute("aria-expanded", "false");
     expect(qualificationTrigger).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.queryByRole("region", { name: "who are we" }),
+    ).not.toBeInTheDocument();
 
     await user.click(qualificationTrigger);
 
@@ -208,5 +284,12 @@ describe("ApplyEntryClient top info accordion", () => {
       "href",
       "https://wa.me/8617363307362",
     );
+
+    await user.click(consultantTrigger);
+
+    expect(consultantTrigger).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.queryByRole("region", { name: "Chat with a talent consultant" }),
+    ).not.toBeInTheDocument();
   });
 });

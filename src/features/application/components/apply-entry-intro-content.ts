@@ -149,30 +149,38 @@ export const PERSONALIZED_LINK_NOTICE_ITEMS = [
 export type TopInfoItem = {
   readonly id: string;
   readonly title: string;
+  readonly shortTitle: string;
 };
 
 export const TOP_INFO_ITEMS = [
   {
     id: "who-are-we",
     title: "who are we",
+    shortTitle: "Who we are",
   },
   {
     id: "qualification",
     title: "Why are we qualified to handle your application",
-  },
-  {
-    id: "consultant",
-    title: "Chat with a talent consultant",
+    shortTitle: "Qualified",
   },
   {
     id: "testimonials",
     title: "Testimonials & Appreciation Highlights",
+    shortTitle: "Testimonials",
+  },
+  {
+    id: "consultant",
+    title: "Chat with a talent consultant",
+    shortTitle: "Consultant",
+  },
+  {
+    id: "correspondence-record",
+    title: "Correspondence record with a selected candidate",
+    shortTitle: "Correspondence",
   },
 ] as const satisfies readonly TopInfoItem[];
 
 export type TopInfoSectionId = (typeof TOP_INFO_ITEMS)[number]["id"];
-
-export const TOP_INFO_DEFAULT_SECTION_ID: TopInfoSectionId = "who-are-we";
 
 export const WHO_ARE_WE_COPY =
   "Meet Technology (Wuhan) Co., Ltd. Is a talent consulting company which integrates global top talents, technology projects, venture capital, industrial parks, research institutes and listed companies and other elements of science and technology innovation to promote high-quality urban development.";
@@ -190,41 +198,59 @@ export const TALENT_CONSULTANT_WHATSAPP_URL = "https://wa.me/8617363307362";
 
 export type Testimonial = {
   readonly id: string;
-  readonly role: string;
-  readonly affiliation: string;
-  readonly quote: string;
+  readonly src: string;
+  readonly alt: string;
+  readonly width: number;
+  readonly height: number;
 };
 
+export const TESTIMONIAL_HIGHLIGHTS = [
+  {
+    id: "appreciation-letter-1",
+    src: "/apply/testimonials/appreciation-letter-1.png",
+    alt: "Appreciation letter from an expert in Biomedical Sciences, Member of the Cuban Academy of Sciences",
+    width: 1005,
+    height: 549,
+  },
+  {
+    id: "appreciation-letter-2",
+    src: "/apply/testimonials/appreciation-letter-2.png",
+    alt: "Appreciation letter from an expert in the scientific application of machine learning and computer vision, currently working at one of the 17 U.S. National Laboratories",
+    width: 850,
+    height: 314,
+  },
+  {
+    id: "appreciation-letter-3",
+    src: "/apply/testimonials/appreciation-letter-3.png",
+    alt: "Appreciation letter from an expert in the field of plant science, currently a tenured associate professor at a university ranked among the top 150 worldwide by QS",
+    width: 838,
+    height: 214,
+  },
+  {
+    id: "appreciation-letter-4",
+    src: "/apply/testimonials/appreciation-letter-4.png",
+    alt: "Appreciation letter from an expert in the field of biological sciences, currently a tenured full professor at a university ranked among the top 120 worldwide by QS",
+    width: 1515,
+    height: 527,
+  },
+  {
+    id: "appreciation-letter-5",
+    src: "/apply/testimonials/appreciation-letter-5.png",
+    alt: "Appreciation letter from a program participant",
+    width: 1515,
+    height: 563,
+  },
+] as const satisfies readonly Testimonial[];
+
+export const CORRESPONDENCE_RECORD = {
+  id: "appreciation-letter-6",
+  src: "/apply/testimonials/appreciation-letter-6.png",
+  alt: "Correspondence record with a selected candidate",
+  width: 1515,
+  height: 691,
+} as const satisfies Testimonial;
+
 export const TESTIMONIALS = [
-  {
-    id: "biomedical-sciences",
-    role: "An expert in Biomedical Sciences",
-    affiliation: "Member of the Cuban Academy of Sciences",
-    quote:
-      "Dear Dr. Li. Thank you very much for your heart touching message. Thank you very much!!! I take advantages of this opportunity to express to my appreciation and gratitude for all your efforts on my behalf. l Be you, your family, and your wonderful homeland blessed. Kindest regards",
-  },
-  {
-    id: "machine-learning-and-computer-vision",
-    role:
-      "An expert in the scientific application of machine learning and computer vision",
-    affiliation: "Currently working at one of the 17 U.S. National Laboratories.",
-    quote:
-      "Thank you so much again for all your hard work on my behalf. I truly appreciate the effort you have put into finding this match and putting together the application dossier.",
-  },
-  {
-    id: "plant-science",
-    role: "An expert in the field of plant science.",
-    affiliation:
-      "Currently a tenured associate professor at a university ranked among the top 150 worldwide by QS.",
-    quote:
-      "I want to express my heartfelt gratitude for the efforts made by you and your team in recommending me as a candidate for this talent program . Your dedication to assisting applicants in navigating this competitive landscape is commendable, and I am truly thankful for the opportunity to be a part of this process.",
-  },
-  {
-    id: "biological-sciences",
-    role: "An expert in the field of biological sciences.",
-    affiliation:
-      "Currently a tenured full professor at a university ranked among the top 120 worldwide by QS.",
-    quote:
-      "Thank you for such a detailed and supportive message. I truly appreciate the incredible effort you and your organization are putting into empowering professionals in their fields. l have no doubt your hard work will lead to great results.",
-  },
+  ...TESTIMONIAL_HIGHLIGHTS,
+  CORRESPONDENCE_RECORD,
 ] as const satisfies readonly Testimonial[];

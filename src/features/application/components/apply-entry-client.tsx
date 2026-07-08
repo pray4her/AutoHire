@@ -22,7 +22,7 @@ import {
   hasSeenInviteNotice,
   rememberInviteNotice,
 } from "@/features/application/components/apply-entry-client-storage";
-import { ApplyEntryTopInfo } from "@/features/application/components/apply-entry-top-info";
+import { ApplyEntryFooterNav } from "@/features/application/components/apply-entry-footer-nav";
 import { ApplyInviteNoticeDialog } from "@/features/application/components/apply-invite-notice-dialog";
 import { postIntroConfirm } from "@/features/application/client";
 import { APPLICATION_FLOW_STEPS_WITH_INTRO } from "@/features/application/constants";
@@ -215,6 +215,7 @@ export function ApplyEntryClient({
         description={INTRO_DESCRIPTION}
         headerTitleClassName="font-normal"
         headerVariant="centered"
+        className="pb-0"
         steps={APPLICATION_FLOW_STEPS_WITH_INTRO}
         currentStep={0}
         stepIndexing="zero"
@@ -250,17 +251,14 @@ export function ApplyEntryClient({
             className={APPLY_ENTRY_ACCORDION_SECTION_CLASS}
             aria-label="Application information"
           >
-            <div className="divide-y divide-[color:var(--border)]">
-              <ApplyEntryTopInfo />
-              <ApplyEntryProgramIntroduction
-                openSections={openSections}
-                onToggleSection={(sectionId) => {
-                  setOpenSections((currentOpenSections) =>
-                    toggleIntroSection(currentOpenSections, sectionId),
-                  );
-                }}
-              />
-            </div>
+            <ApplyEntryProgramIntroduction
+              openSections={openSections}
+              onToggleSection={(sectionId) => {
+                setOpenSections((currentOpenSections) =>
+                  toggleIntroSection(currentOpenSections, sectionId),
+                );
+              }}
+            />
           </section>
 
           <div className="flex justify-center py-4">
@@ -276,6 +274,8 @@ export function ApplyEntryClient({
           </div>
         </div>
       </PageShell>
+
+      <ApplyEntryFooterNav />
     </PageFrame>
   );
 }

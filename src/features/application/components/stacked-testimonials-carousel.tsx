@@ -5,6 +5,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import type { PointerEvent as ReactPointerEvent } from "react";
 import { useRef, useState } from "react";
 
+import { ApplyEntryTestimonialImage } from "@/features/application/components/apply-entry-testimonial-image";
 import type { Testimonial } from "@/features/application/components/apply-entry-intro-content";
 
 type StackedTestimonialsCarouselProps = {
@@ -18,20 +19,15 @@ const SLIDE_OFFSET_PX = 28;
 
 const STACK_CARD_WIDTH_CLASS = "w-[88%]";
 
-const PREVIEW_CARD_CLASS = `pointer-events-auto relative z-0 col-start-1 row-start-1 ml-auto flex min-h-full flex-col self-stretch ${STACK_CARD_WIDTH_CLASS} rounded-[1.5rem] border border-[color:var(--border)] bg-white/60 p-6 text-left shadow-[0_18px_48px_rgba(15,23,42,0.08)] blur-[1px] saturate-90 motion-reduce:blur-none sm:p-7`;
+const PREVIEW_CARD_CLASS = `pointer-events-auto relative z-0 col-start-1 row-start-1 ml-auto flex flex-col self-start ${STACK_CARD_WIDTH_CLASS} overflow-hidden rounded-[1.5rem] border border-[color:var(--border)] bg-white/60 text-left shadow-[0_18px_48px_rgba(15,23,42,0.08)] blur-[1px] saturate-90 motion-reduce:blur-none`;
 
-const ACTIVE_CARD_CLASS = `flex flex-col ${STACK_CARD_WIDTH_CLASS} rounded-[1.65rem] border border-[color:var(--border)] bg-white/95 p-6 shadow-[0_24px_64px_rgba(15,23,42,0.14)] sm:p-7`;
+const ACTIVE_CARD_CLASS = `flex flex-col overflow-hidden ${STACK_CARD_WIDTH_CLASS} rounded-[1.65rem] border border-[color:var(--border)] bg-white/95 shadow-[0_24px_64px_rgba(15,23,42,0.14)]`;
 
 const CARD_FOOTER_CLASS =
-  "mt-6 flex shrink-0 items-center justify-between gap-4 border-t border-[color:var(--border)] pt-4";
+  "flex shrink-0 items-center justify-between gap-4 border-t border-[color:var(--border)] px-3 py-4 sm:px-4";
 
 const CARD_TRANSITION = {
   duration: 0.32,
-  ease: [0.22, 1, 0.36, 1] as const,
-};
-
-const PREVIEW_CONTENT_TRANSITION = {
-  duration: 0.22,
   ease: [0.22, 1, 0.36, 1] as const,
 };
 
@@ -39,45 +35,21 @@ function getWrappedIndex(index: number, total: number) {
   return (index + total) % total;
 }
 
-function TestimonialCardBody({
+function TestimonialImageBody({
   testimonial,
-  quoteTestId,
-  roleTestId,
-  affiliationTestId,
+  imageTestId,
+  priority = false,
 }: {
   readonly testimonial: Testimonial;
-  readonly quoteTestId?: string;
-  readonly roleTestId?: string;
-  readonly affiliationTestId?: string;
+  readonly imageTestId?: string;
+  readonly priority?: boolean;
 }) {
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4">
-      <span className="inline-flex size-11 shrink-0 items-center justify-center rounded-full bg-[color:var(--muted)] text-[1.65rem] leading-none text-[color:var(--primary)] shadow-[inset_0_1px_0_rgba(255,255,255,0.85)]">
-        “
-      </span>
-      <div className="flex flex-col gap-3">
-        <p
-          className="text-base leading-7 text-[color:var(--foreground)] sm:text-[1.03rem]"
-          data-testid={quoteTestId}
-        >
-          {testimonial.quote}
-        </p>
-        <div className="flex flex-col gap-1">
-          <p
-            className="text-sm font-semibold leading-6 text-[color:var(--primary)]"
-            data-testid={roleTestId}
-          >
-            {testimonial.role}
-          </p>
-          <p
-            className="text-sm leading-6 text-[color:var(--foreground-soft)]"
-            data-testid={affiliationTestId}
-          >
-            {testimonial.affiliation}
-          </p>
-        </div>
-      </div>
-    </div>
+    <ApplyEntryTestimonialImage
+      testimonial={testimonial}
+      imageTestId={imageTestId}
+      priority={priority}
+    />
   );
 }
 
@@ -98,7 +70,7 @@ function ActiveCardLayoutAnchor({
   return (
     <div className="invisible" aria-hidden="true">
       <article className={ACTIVE_CARD_CLASS}>
-        <TestimonialCardBody testimonial={testimonial} />
+        <TestimonialImageBody testimonial={testimonial} />
         <TestimonialCardFooterPlaceholder />
       </article>
     </div>
@@ -152,9 +124,6 @@ export function StackedTestimonialsCarousel({
   const cardTransition = shouldReduceMotion
     ? { duration: 0 }
     : CARD_TRANSITION;
-  const previewContentTransition = shouldReduceMotion
-    ? { duration: 0 }
-    : PREVIEW_CONTENT_TRANSITION;
 
   function showPrevious() {
     setDirection(-1);
@@ -235,11 +204,10 @@ export function StackedTestimonialsCarousel({
                 transition={cardTransition}
                 className={`${ACTIVE_CARD_CLASS} pointer-events-auto`}
               >
-                <TestimonialCardBody
+                <TestimonialImageBody
                   testimonial={activeTestimonial}
-                  quoteTestId="active-testimonial-quote"
-                  roleTestId="active-testimonial-role"
-                  affiliationTestId="active-testimonial-affiliation"
+                  imageTestId="active-testimonial-image"
+                  priority={activeIndex === 0}
                 />
 
                 <div className={CARD_FOOTER_CLASS}>
@@ -269,9 +237,10 @@ export function StackedTestimonialsCarousel({
 
         <motion.button
           type="button"
+          key={previewTestimonial.id}
           className={PREVIEW_CARD_CLASS}
           onClick={showNext}
-          aria-label={`Show testimonial from ${previewTestimonial.role}`}
+          aria-label={`Show testimonial: ${previewTestimonial.alt}`}
           data-testid="background-testimonial-trigger"
           animate={{ y: 32, scale: 0.98, opacity: 0.8 }}
           whileHover={
@@ -281,20 +250,7 @@ export function StackedTestimonialsCarousel({
           }
           transition={cardTransition}
         >
-          <div className="relative flex-1">
-            <div className="invisible" aria-hidden="true">
-              <TestimonialCardBody testimonial={previewTestimonial} />
-            </div>
-            <motion.div
-              key={previewTestimonial.id}
-              className="absolute inset-0 flex flex-col"
-              initial={shouldReduceMotion ? false : { opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={previewContentTransition}
-            >
-              <TestimonialCardBody testimonial={previewTestimonial} />
-            </motion.div>
-          </div>
+          <TestimonialImageBody testimonial={previewTestimonial} />
           <TestimonialCardFooterPlaceholder />
         </motion.button>
       </div>
