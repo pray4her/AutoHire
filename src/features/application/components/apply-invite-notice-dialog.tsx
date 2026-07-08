@@ -1,3 +1,5 @@
+import { useEffect, useState } from "react";
+
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -7,11 +9,13 @@ import {
 } from "@/components/ui/dialog";
 import { PERSONALIZED_LINK_NOTICE_ITEMS } from "@/features/application/components/apply-entry-intro-content";
 
+const DONT_SHOW_AGAIN_LABEL = "Don't show this again";
+
 type ApplyInviteNoticeDialogProps = {
   readonly invitationExpirationLabel: string;
   readonly isOpen: boolean;
   readonly onOpenChange: (nextOpen: boolean) => void;
-  readonly onDismiss: () => void;
+  readonly onDismiss: (dontShowAgain: boolean) => void;
 };
 
 export function ApplyInviteNoticeDialog({
@@ -20,6 +24,14 @@ export function ApplyInviteNoticeDialog({
   onOpenChange,
   onDismiss,
 }: ApplyInviteNoticeDialogProps) {
+  const [dontShowAgain, setDontShowAgain] = useState(false);
+
+  useEffect(() => {
+    if (isOpen) {
+      setDontShowAgain(false);
+    }
+  }, [isOpen]);
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent
@@ -69,19 +81,34 @@ export function ApplyInviteNoticeDialog({
               </ol>
             </div>
 
-            <div className="flex flex-col gap-4 border-t border-[color:var(--border)] bg-white/82 px-6 py-5 sm:flex-row sm:items-center sm:justify-between sm:px-8 sm:py-6">
+            <div className="flex flex-col gap-4 border-t border-[color:var(--border)] bg-white/82 px-6 py-5 sm:px-8 sm:py-6">
               <p className="max-w-[32rem] text-sm leading-6 text-[color:var(--foreground-soft)]">
                 Keep the original email so you can reopen the same link if you
                 continue on another device or browser.
               </p>
-              <Button
-                type="button"
-                size="lg"
-                onClick={onDismiss}
-                className="min-h-12 min-w-36 self-end rounded-md px-6 sm:self-auto"
-              >
-                I understand
-              </Button>
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <label className="flex cursor-pointer items-center gap-2.5 text-sm text-[color:var(--foreground-soft)]">
+                  <input
+                    type="checkbox"
+                    checked={dontShowAgain}
+                    onChange={(event) => {
+                      setDontShowAgain(event.target.checked);
+                    }}
+                    className="size-4 shrink-0 rounded border-[color:var(--border)] text-[color:var(--primary)] focus-visible:ring-2 focus-visible:ring-[color:var(--primary)]/30"
+                  />
+                  <span>{DONT_SHOW_AGAIN_LABEL}</span>
+                </label>
+                <Button
+                  type="button"
+                  size="lg"
+                  onClick={() => {
+                    onDismiss(dontShowAgain);
+                  }}
+                  className="min-h-12 min-w-36 self-end rounded-md px-6 sm:self-auto"
+                >
+                  I understand
+                </Button>
+              </div>
             </div>
           </div>
         </div>

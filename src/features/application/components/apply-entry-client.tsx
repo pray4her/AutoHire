@@ -140,7 +140,7 @@ export function ApplyEntryClient({
   }, [snapshot]);
 
   useEffect(() => {
-    if (!openedFromInviteLink || !snapshot || error) {
+    if (!snapshot || error) {
       return;
     }
 
@@ -151,7 +151,7 @@ export function ApplyEntryClient({
     }
 
     setIsInviteNoticeOpen(true);
-  }, [error, openedFromInviteLink, snapshot]);
+  }, [error, snapshot]);
 
   function handleStart() {
     if (!snapshot || isFlowStepReadOnly(snapshot.applicationStatus, 0)) {
@@ -186,7 +186,11 @@ export function ApplyEntryClient({
   );
 
   function handleInviteNoticeOpenChange(nextOpen: boolean) {
-    if (!nextOpen) {
+    setIsInviteNoticeOpen(nextOpen);
+  }
+
+  function handleInviteNoticeDismiss(dontShowAgain: boolean) {
+    if (dontShowAgain) {
       const storageKey = buildInviteNoticeStorageKey(snapshot, null);
 
       if (storageKey) {
@@ -194,11 +198,7 @@ export function ApplyEntryClient({
       }
     }
 
-    setIsInviteNoticeOpen(nextOpen);
-  }
-
-  function handleInviteNoticeDismiss() {
-    handleInviteNoticeOpenChange(false);
+    setIsInviteNoticeOpen(false);
   }
 
   return (

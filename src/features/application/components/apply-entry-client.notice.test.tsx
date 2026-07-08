@@ -122,6 +122,23 @@ const snapshot: ApplicationSnapshot = {
   invitationLinkExpiresAt: "2027-03-15T00:00:00.000Z",
 };
 
+function renderApplyEntryClient(openedFromInviteLink = false) {
+  return render(
+    <ApplyEntryClient
+      initialSnapshot={snapshot}
+      openedFromInviteLink={openedFromInviteLink}
+    />,
+  );
+}
+
+async function waitForInviteNotice() {
+  await waitFor(() => {
+    expect(
+      screen.getByText("Regarding Your Personalized Application Link"),
+    ).toBeInTheDocument();
+  });
+}
+
 describe("ApplyEntryClient invite notice", () => {
   beforeEach(() => {
     window.localStorage.clear();
@@ -135,23 +152,43 @@ describe("ApplyEntryClient invite notice", () => {
     cleanup();
   });
 
-  it("opens the invitation notice once for an invite-link visit", async () => {
+  it("opens the invitation notice on every apply visit until dismissed with opt-out", async () => {
     const user = userEvent.setup();
 
-    render(
-      <ApplyEntryClient
-        initialSnapshot={snapshot}
-        openedFromInviteLink={true}
-      />,
-    );
+    renderApplyEntryClient();
+
+    await waitForInviteNotice();
+    expect(screen.getByText("Don't show this again")).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Don't show this again" }))
+      .not.toBeChecked();
+
+    await user.click(screen.getByRole("button", { name: "I understand" }));
 
     await waitFor(() => {
       expect(
-        screen.getByText("Regarding Your Personalized Application Link"),
-      ).toBeInTheDocument();
-      expect(screen.getByText("Important Notice")).toBeInTheDocument();
+        screen.queryByText("Regarding Your Personalized Application Link"),
+      ).not.toBeInTheDocument();
     });
 
+    expect(
+      window.localStorage.getItem("apply-invite-notice-seen:invite_001"),
+    ).toBeNull();
+
+    cleanup();
+    renderApplyEntryClient();
+
+    await waitForInviteNotice();
+  });
+
+  it("suppresses the invitation notice after opting out", async () => {
+    const user = userEvent.setup();
+
+    renderApplyEntryClient();
+
+    await waitForInviteNotice();
+    await user.click(
+      screen.getByRole("checkbox", { name: "Don't show this again" }),
+    );
     await user.click(screen.getByRole("button", { name: "I understand" }));
 
     await waitFor(() => {
@@ -165,12 +202,7 @@ describe("ApplyEntryClient invite notice", () => {
     ).toBe("seen");
 
     cleanup();
-    render(
-      <ApplyEntryClient
-        initialSnapshot={snapshot}
-        openedFromInviteLink={true}
-      />,
-    );
+    renderApplyEntryClient();
 
     await waitFor(() => {
       expect(
@@ -183,28 +215,48 @@ describe("ApplyEntryClient invite notice", () => {
     ).not.toBeInTheDocument();
   });
 
-  it("does not open the invitation notice without an invite token", () => {
-    render(
-      <ApplyEntryClient
-        initialSnapshot={snapshot}
-        openedFromInviteLink={false}
-      />,
+  it("opens the invitation notice for session visits as well as invite-link visits", async () => {
+    renderApplyEntryClient(false);
+    await waitForInviteNotice();
+
+    cleanup();
+    renderApplyEntryClient(true);
+    await waitForInviteNotice();
+  });
+
+  it("does not persist dismissal when the dialog is closed via backdrop click", async () => {
+    const user = userEvent.setup();
+
+    renderApplyEntryClient();
+
+    await waitForInviteNotice();
+    await user.click(
+      screen.getByRole("checkbox", { name: "Don't show this again" }),
     );
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => {
+      expect(
+        screen.queryByText("Regarding Your Personalized Application Link"),
+      ).not.toBeInTheDocument();
+    });
 
     expect(
-      screen.queryByText("Regarding Your Personalized Application Link"),
-    ).not.toBeInTheDocument();
+      window.localStorage.getItem("apply-invite-notice-seen:invite_001"),
+    ).toBeNull();
+
+    cleanup();
+    renderApplyEntryClient();
+
+    await waitForInviteNotice();
+    expect(screen.getByRole("checkbox", { name: "Don't show this again" }))
+      .not.toBeChecked();
   });
 
   it("cleans the invite bootstrap query param after rendering", async () => {
     window.history.replaceState({}, "", "/apply?invite=1");
 
-    render(
-      <ApplyEntryClient
-        initialSnapshot={snapshot}
-        openedFromInviteLink={true}
-      />,
-    );
+    renderApplyEntryClient(true);
 
     await waitFor(() => {
       expect(window.location.search).toBe("");
