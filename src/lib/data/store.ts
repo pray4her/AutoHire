@@ -117,6 +117,8 @@ export type InvitationGenerationBatchRecord = {
   requestedCount: number;
   createdCount: number;
   expiredDays: number;
+  expiredHours: number;
+  expiredMinutes: number;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -1066,6 +1068,8 @@ export async function createInvitationGenerationBatch(input: {
   hashAlgorithm: InviteHashAlgorithm;
   requestedCount: number;
   expiredDays: number;
+  expiredHours: number;
+  expiredMinutes: number;
   invitations: readonly {
     expertId: string;
     plaintextToken: string;
@@ -1097,6 +1101,8 @@ export async function createInvitationGenerationBatch(input: {
       requestedCount: input.requestedCount,
       createdCount: input.invitations.length,
       expiredDays: input.expiredDays,
+      expiredHours: input.expiredHours,
+      expiredMinutes: input.expiredMinutes,
       createdAt: now,
       updatedAt: now,
     };
@@ -1146,6 +1152,8 @@ export async function createInvitationGenerationBatch(input: {
         requestedCount: input.requestedCount,
         createdCount: 0,
         expiredDays: input.expiredDays,
+        expiredHours: input.expiredHours,
+        expiredMinutes: input.expiredMinutes,
       },
     });
     const items = [];

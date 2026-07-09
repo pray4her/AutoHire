@@ -15,48 +15,81 @@ import {
   type InvitationGenerationBatchWithItems,
 } from "@/lib/data/store";
 import { getEnv } from "@/lib/env";
+import {
+  INVITATION_GENERATION_DEFAULT_EXPIRED_DAYS,
+  INVITATION_GENERATION_MAX_COUNT,
+  INVITATION_GENERATION_MAX_EXPIRED_DAYS,
+  INVITATION_GENERATION_MAX_EXPIRED_HOURS,
+  INVITATION_GENERATION_MAX_EXPIRED_MINUTES,
+} from "@/lib/invitations/constants";
+import type {
+  InvitationGenerationBatchSummary,
+  InvitationGenerationItemSummary,
+} from "@/lib/invitations/types";
 
-export const INVITATION_GENERATION_MAX_COUNT = 1000;
-export const INVITATION_GENERATION_DEFAULT_EXPIRED_DAYS = 90;
+export { formatInvitationExpiryLabel } from "@/lib/invitations/expiry-label";
+export {
+  INVITATION_GENERATION_DEFAULT_EXPIRED_DAYS,
+  INVITATION_GENERATION_MAX_COUNT,
+  INVITATION_GENERATION_MAX_EXPIRED_DAYS,
+  INVITATION_GENERATION_MAX_EXPIRED_HOURS,
+  INVITATION_GENERATION_MAX_EXPIRED_MINUTES,
+} from "@/lib/invitations/constants";
+export type {
+  InvitationGenerationBatchSummary,
+  InvitationGenerationItemSummary,
+} from "@/lib/invitations/types";
 
-export const invitationGenerationRequestSchema = z.object({
-  algorithm: z.enum(INVITE_HASH_ALGORITHMS),
-  count: z.coerce.number().int().min(1).max(INVITATION_GENERATION_MAX_COUNT),
-  idempotencyKey: z.string().trim().min(8).max(120),
-  expiredDays: z.coerce
-    .number()
-    .int()
-    .min(1)
-    .max(3650)
-    .default(INVITATION_GENERATION_DEFAULT_EXPIRED_DAYS),
-});
+export const invitationGenerationRequestSchema = z
+  .object({
+    algorithm: z.enum(INVITE_HASH_ALGORITHMS),
+    count: z.coerce.number().int().min(1).max(INVITATION_GENERATION_MAX_COUNT),
+    idempotencyKey: z.string().trim().min(8).max(120),
+    expiredDays: z.coerce
+      .number()
+      .int()
+      .min(0)
+      .max(INVITATION_GENERATION_MAX_EXPIRED_DAYS)
+      .default(INVITATION_GENERATION_DEFAULT_EXPIRED_DAYS),
+    expiredHours: z.coerce
+      .number()
+      .int()
+      .min(0)
+      .max(INVITATION_GENERATION_MAX_EXPIRED_HOURS)
+      .default(0),
+    expiredMinutes: z.coerce
+      .number()
+      .int()
+      .min(0)
+      .max(INVITATION_GENERATION_MAX_EXPIRED_MINUTES)
+      .default(0),
+  })
+  .superRefine((value, ctx) => {
+    if (value.expiredDays > 0) {
+      if (value.expiredHours !== 0 || value.expiredMinutes !== 0) {
+        ctx.addIssue({
+          code: "custom",
+          message:
+            "Hours and minutes must be 0 when expiry days is greater than 0.",
+          path: ["expiredHours"],
+        });
+      }
+      return;
+    }
+
+    if (value.expiredHours === 0 && value.expiredMinutes === 0) {
+      ctx.addIssue({
+        code: "custom",
+        message:
+          "When expiry days is 0, set at least 1 minute via hours or minutes.",
+        path: ["expiredMinutes"],
+      });
+    }
+  });
 
 export type InvitationGenerationRequest = z.infer<
   typeof invitationGenerationRequestSchema
 >;
-
-export type InvitationGenerationItemSummary = {
-  readonly sequence: number;
-  readonly invitationId: string;
-  readonly expertId: string;
-  readonly plaintextToken: string;
-  readonly tokenHash: string;
-  readonly inviteLink: string;
-  readonly hashAlgorithm: InviteHashAlgorithm;
-  readonly createdAt: string;
-};
-
-export type InvitationGenerationBatchSummary = {
-  readonly id: string;
-  readonly idempotencyKey: string;
-  readonly hashAlgorithm: InviteHashAlgorithm;
-  readonly requestedCount: number;
-  readonly createdCount: number;
-  readonly expiredDays: number;
-  readonly createdAt: string;
-  readonly updatedAt: string;
-  readonly items: readonly InvitationGenerationItemSummary[];
-};
 
 export class InvitationGenerationConflictError extends Error {
   constructor(message: string) {
@@ -65,8 +98,20 @@ export class InvitationGenerationConflictError extends Error {
   }
 }
 
-function addDays(date: Date, days: number) {
-  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+function addExpiryDuration(
+  date: Date,
+  input: {
+    readonly expiredDays: number;
+    readonly expiredHours: number;
+    readonly expiredMinutes: number;
+  },
+) {
+  const ms =
+    input.expiredDays * 24 * 60 * 60 * 1000 +
+    input.expiredHours * 60 * 60 * 1000 +
+    input.expiredMinutes * 60 * 1000;
+
+  return new Date(date.getTime() + ms);
 }
 
 function createBatchId() {
@@ -91,6 +136,8 @@ function toBatchSummary(
     requestedCount: batch.requestedCount,
     createdCount: batch.createdCount,
     expiredDays: batch.expiredDays,
+    expiredHours: batch.expiredHours,
+    expiredMinutes: batch.expiredMinutes,
     createdAt: batch.createdAt.toISOString(),
     updatedAt: batch.updatedAt.toISOString(),
     items: batch.items.map((item, index) => ({
@@ -123,7 +170,9 @@ export async function generateInvitationBatch(
     if (
       existing.hashAlgorithm !== input.algorithm ||
       existing.requestedCount !== input.count ||
-      existing.expiredDays !== input.expiredDays
+      existing.expiredDays !== input.expiredDays ||
+      existing.expiredHours !== input.expiredHours ||
+      existing.expiredMinutes !== input.expiredMinutes
     ) {
       throw new InvitationGenerationConflictError(
         "The idempotency key was already used with different generation settings.",
@@ -135,7 +184,7 @@ export async function generateInvitationBatch(
 
   const batchId = createBatchId();
   const now = new Date();
-  const expiredAt = addDays(now, input.expiredDays);
+  const expiredAt = addExpiryDuration(now, input);
   const invitations = Array.from({ length: input.count }, (_, index) => {
     const plaintextToken = generateInvitePlaintextToken();
 
@@ -154,6 +203,8 @@ export async function generateInvitationBatch(
     hashAlgorithm: input.algorithm,
     requestedCount: input.count,
     expiredDays: input.expiredDays,
+    expiredHours: input.expiredHours,
+    expiredMinutes: input.expiredMinutes,
     invitations,
   });
 
@@ -170,10 +221,11 @@ export function buildInvitationGenerationWorkbook(
     plaintextToken: item.plaintextToken,
     inviteLink: item.inviteLink,
     hashAlgorithm: item.hashAlgorithm,
-    expiredAt: addDays(
-      new Date(batch.createdAt),
-      batch.expiredDays,
-    ).toISOString(),
+    expiredAt: addExpiryDuration(new Date(batch.createdAt), {
+      expiredDays: batch.expiredDays,
+      expiredHours: batch.expiredHours,
+      expiredMinutes: batch.expiredMinutes,
+    }).toISOString(),
     createdAt: item.createdAt,
   }));
   const worksheet = XLSX.utils.json_to_sheet(rows, {

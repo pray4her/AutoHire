@@ -82,7 +82,7 @@ describe("ops invitation generation routes", () => {
     const response = await generateBatch(
       createGenerateRequest({
         algorithm: "MD5",
-        count: 1001,
+        count: 100_001,
         idempotencyKey: "bad",
       }),
     );

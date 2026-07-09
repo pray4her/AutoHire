@@ -204,6 +204,8 @@ model InvitationGenerationBatch {
   requestedCount Int
   createdCount   Int                 @default(0)
   expiredDays    Int                 @default(90)
+  expiredHours   Int                 @default(0)
+  expiredMinutes Int                 @default(0)
   createdAt      DateTime            @default(now())
   updatedAt      DateTime            @updatedAt
 

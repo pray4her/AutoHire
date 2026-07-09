@@ -11,7 +11,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Spinner } from "@/components/ui/spinner";
-import type { InvitationGenerationBatchSummary } from "@/lib/invitations/generation";
+import { formatInvitationExpiryLabel } from "@/lib/invitations/expiry-label";
+import type { InvitationGenerationBatchSummary } from "@/lib/invitations/types";
 
 import { formatDateTime } from "./invitation-generator-options";
 import { InvitationPreviewRows } from "./invitation-preview-rows";
@@ -28,7 +29,7 @@ export function InvitationBatchResultCard({
   onExport,
 }: InvitationBatchResultCardProps) {
   return (
-    <Card className="border-foreground/10 bg-background/90 shadow-xl backdrop-blur">
+    <Card className="border-foreground/10 bg-background/90 w-full shadow-xl backdrop-blur">
       <CardHeader>
         <CardTitle>Generated batch</CardTitle>
         <CardDescription>
@@ -47,19 +48,15 @@ export function InvitationBatchResultCard({
         </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
-        <div className="grid gap-3 md:grid-cols-4">
+        <div className="flex flex-wrap gap-2">
           <Badge variant="outline">Batch: {batch.id}</Badge>
           <Badge variant="outline">Key: {batch.idempotencyKey}</Badge>
           <Badge variant="outline">Count: {batch.createdCount}</Badge>
-          <Badge variant="outline">Expiry: {batch.expiredDays} days</Badge>
+          <Badge variant="outline">
+            Expiry: {formatInvitationExpiryLabel(batch)}
+          </Badge>
         </div>
         <InvitationPreviewRows items={batch.items} />
-        {batch.items.length > 8 ? (
-          <p className="text-muted-foreground text-sm">
-            Showing first 8 rows. Export Excel to use all {batch.items.length}{" "}
-            tokens.
-          </p>
-        ) : null}
       </CardContent>
     </Card>
   );

@@ -1,4 +1,4 @@
-import type { InvitationGenerationBatchSummary } from "@/lib/invitations/generation";
+import type { InvitationGenerationBatchSummary } from "@/lib/invitations/types";
 
 type GenerateResponse = {
   readonly batch: InvitationGenerationBatchSummary;

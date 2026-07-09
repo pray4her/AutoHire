@@ -14,9 +14,8 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { InviteHashAlgorithm } from "@/lib/auth/token";
-import type { InvitationGenerationBatchSummary } from "@/lib/invitations/generation";
+import type { InvitationGenerationBatchSummary } from "@/lib/invitations/types";
 
-import { InvitationBatchGuaranteesCard } from "./invitation-batch-guarantees-card";
 import { InvitationBatchResultCard } from "./invitation-batch-result-card";
 import { InvitationGeneratorForm } from "./invitation-generator-form";
 import {
@@ -29,6 +28,8 @@ export function InvitationGeneratorPanel() {
   const [algorithm, setAlgorithm] = useState<InviteHashAlgorithm>("SHA256");
   const [count, setCount] = useState("100");
   const [expiredDays, setExpiredDays] = useState("90");
+  const [expiredHours, setExpiredHours] = useState("0");
+  const [expiredMinutes, setExpiredMinutes] = useState("0");
   const [idempotencyKey, setIdempotencyKey] = useState(
     createDefaultIdempotencyKey,
   );
@@ -46,6 +47,15 @@ export function InvitationGeneratorPanel() {
     ? `invitation-tokens-${batch.id}.xlsx`
     : "invitation-tokens.xlsx";
 
+  function handleExpiredDaysChange(nextDays: string) {
+    setExpiredDays(nextDays);
+    const daysValue = Number(nextDays);
+    if (Number.isFinite(daysValue) && daysValue > 0) {
+      setExpiredHours("0");
+      setExpiredMinutes("0");
+    }
+  }
+
   async function generateBatch() {
     setIsGenerating(true);
 
@@ -58,6 +68,8 @@ export function InvitationGeneratorPanel() {
           algorithm,
           count: Number(count),
           expiredDays: Number(expiredDays),
+          expiredHours: Number(expiredHours),
+          expiredMinutes: Number(expiredMinutes),
           idempotencyKey,
         }),
       });
@@ -112,41 +124,41 @@ export function InvitationGeneratorPanel() {
 
   return (
     <main className="text-foreground min-h-screen bg-[radial-gradient(circle_at_top_left,var(--muted),transparent_32rem),linear-gradient(135deg,var(--background),var(--secondary))] px-6 py-8">
-      <div className="mx-auto flex max-w-6xl flex-col gap-6">
-        <section className="grid gap-4 md:grid-cols-[1.2fr_0.8fr]">
-          <Card className="border-foreground/10 bg-background/85 overflow-hidden shadow-xl backdrop-blur">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2 text-2xl">
-                <KeyRound data-icon="inline-start" />
-                Invitation Token Forge
-              </CardTitle>
-              <CardDescription>
-                Generate idempotent invitation batches for email operations. Raw
-                tokens are retained only inside protected generation batches.
-              </CardDescription>
-              <CardAction>
-                <Badge variant="secondary">ops protected</Badge>
-              </CardAction>
-            </CardHeader>
-            <CardContent>
-              <InvitationGeneratorForm
-                algorithm={algorithm}
-                count={count}
-                expiredDays={expiredDays}
-                idempotencyKey={idempotencyKey}
-                isGenerating={isGenerating}
-                selectedDescription={selectedDescription}
-                onAlgorithmChange={setAlgorithm}
-                onCountChange={setCount}
-                onExpiredDaysChange={setExpiredDays}
-                onGenerate={() => void generateBatch()}
-                onIdempotencyKeyChange={setIdempotencyKey}
-              />
-            </CardContent>
-          </Card>
-
-          <InvitationBatchGuaranteesCard />
-        </section>
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+        <Card className="border-foreground/10 bg-background/85 w-full overflow-hidden shadow-xl backdrop-blur">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-2xl">
+              <KeyRound data-icon="inline-start" />
+              Invitation Token Forge
+            </CardTitle>
+            <CardDescription>
+              Generate idempotent invitation batches for email operations. Raw
+              tokens are retained only inside protected generation batches.
+            </CardDescription>
+            <CardAction>
+              <Badge variant="secondary">ops protected</Badge>
+            </CardAction>
+          </CardHeader>
+          <CardContent>
+            <InvitationGeneratorForm
+              algorithm={algorithm}
+              count={count}
+              expiredDays={expiredDays}
+              expiredHours={expiredHours}
+              expiredMinutes={expiredMinutes}
+              idempotencyKey={idempotencyKey}
+              isGenerating={isGenerating}
+              selectedDescription={selectedDescription}
+              onAlgorithmChange={setAlgorithm}
+              onCountChange={setCount}
+              onExpiredDaysChange={handleExpiredDaysChange}
+              onExpiredHoursChange={setExpiredHours}
+              onExpiredMinutesChange={setExpiredMinutes}
+              onGenerate={() => void generateBatch()}
+              onIdempotencyKeyChange={setIdempotencyKey}
+            />
+          </CardContent>
+        </Card>
 
         {batch ? (
           <InvitationBatchResultCard
