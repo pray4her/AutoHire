@@ -163,7 +163,7 @@ describe("ApplyEntryClient footer navigation", () => {
 
     expect(screen.getByTestId("apply-entry-footer-nav")).toBeInTheDocument();
     expect(
-      screen.getByRole("heading", { name: "who are we" }),
+      screen.getByRole("heading", { name: "Who are we" }),
     ).toBeInTheDocument();
     expect(
       screen.getByRole("navigation", { name: "Company information" }),
@@ -188,7 +188,7 @@ describe("ApplyEntryClient footer navigation", () => {
     const sections = Array.from(nav.querySelectorAll("section"));
 
     expect(headings.map((heading) => heading.textContent)).toEqual([
-      "who are we",
+      "Who are we",
       "Why are we qualified to handle your application",
       "Testimonials & Appreciation Highlights",
       "Chat with a talent consultant",
@@ -213,7 +213,7 @@ describe("ApplyEntryClient footer navigation", () => {
       />,
     );
 
-    const whoAreWeRegion = screen.getByRole("region", { name: "who are we" });
+    const whoAreWeRegion = screen.getByRole("region", { name: "Who are we" });
     const qualificationRegion = screen.getByRole("region", {
       name: "Why are we qualified to handle your application",
     });

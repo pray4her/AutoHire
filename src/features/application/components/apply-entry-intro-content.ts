@@ -155,7 +155,7 @@ export type TopInfoItem = {
 export const TOP_INFO_ITEMS = [
   {
     id: "who-are-we",
-    title: "who are we",
+    title: "Who are we",
     shortTitle: "Who we are",
   },
   {
@@ -178,7 +178,7 @@ export const TOP_INFO_ITEMS = [
 export type TopInfoSectionId = (typeof TOP_INFO_ITEMS)[number]["id"];
 
 export const WHO_ARE_WE_COPY =
-  "Meet Technology (Wuhan) Co., Ltd. Is a talent consulting company which integrates global top talents, technology projects, venture capital, industrial parks, research institutes and listed companies and other elements of science and technology innovation to promote high-quality urban development.";
+  "Meet Technology (Wuhan) Co., Ltd. is a talent consulting company which integrates global top talents, technology projects, venture capital, industrial parks, research institutes and listed companies and other elements of science and technology innovation to promote high-quality urban development.";
 
 export const QUALIFICATION_ITEMS = [
   "10+ years experience",
