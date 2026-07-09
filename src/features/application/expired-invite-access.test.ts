@@ -31,7 +31,7 @@ describe("expired invite access helpers", () => {
   });
 
   it("routes expired access into the read-only apply entry", () => {
-    const replace = vi.fn();
+    const replace = vi.fn<(href: typeof EXPIRED_INVITE_APPLY_PATH) => void>();
 
     redirectToExpiredInviteReadOnly({ replace });
 

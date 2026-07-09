@@ -10,7 +10,8 @@ export function isExpiredInviteAccessError(error: unknown) {
 }
 
 export function redirectToExpiredInviteReadOnly(router: {
-  replace: (href: string) => void;
+  // Narrower than `string` so AppRouterInstance.replace (typed routes) is assignable.
+  replace: (href: typeof EXPIRED_INVITE_APPLY_PATH) => void;
 }) {
   router.replace(EXPIRED_INVITE_APPLY_PATH);
 }
