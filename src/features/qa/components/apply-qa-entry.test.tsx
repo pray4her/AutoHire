@@ -58,9 +58,7 @@ describe("ApplyQaEntry", () => {
   it("shows published FAQ content and filters it in the drawer", async () => {
     render(<ApplyQaEntry initialEntries={FAQ_FIXTURES} />);
 
-    await userEvent.click(
-      screen.getByRole("button", { name: "Open general inquiries" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "Q&A" }));
 
     expect(
       screen.getByRole("heading", { name: "General Inquiries" }),
@@ -113,9 +111,7 @@ describe("ApplyQaEntry", () => {
   it("shows an empty-state hint when no FAQ entries are available", async () => {
     render(<ApplyQaEntry initialEntries={[]} />);
 
-    await userEvent.click(
-      screen.getByRole("button", { name: "Open general inquiries" }),
-    );
+    await userEvent.click(screen.getByRole("button", { name: "Q&A" }));
 
     expect(
       screen.getByText(

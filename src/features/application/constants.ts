@@ -13,55 +13,45 @@ export const MATERIAL_CATEGORIES = [
 
 export const MATERIAL_CATEGORY_SUMMARIES = {
   IDENTITY: {
-    title: "Identification documents",
     description: "Used for identification verification.",
   },
   EDUCATION: {
-    title: "Education documents",
     description: "Used for educational background verification.",
   },
   EMPLOYMENT: {
-    title: "Employment documents",
     description: "Used for professional experience verification.",
   },
   PROJECT: {
-    title: "Project documents",
     description:
       "Used for demonstration of academic competence and influence",
   },
   PAPER: {
-    title: "Paper publications",
     description:
       "Used for demonstration of academic output, innovation capacity and peer recognition.",
   },
   BOOK: {
-    title: "Authored books",
     description:
       "Used for demonstration of academic output and innovative capacity.",
   },
   CONFERENCE: {
-    title: "Conference materials",
     description:
       "Used for demonstration of academic output and innovative capacity",
   },
   PATENT: {
-    title: "Patent documents",
     description:
       "Used for demonstration of academic output and innovative capacity",
   },
   HONOR: {
-    title: "Honors awards",
     description:
       "Used for demonstration of academic output and innovative capacity",
   },
   PRODUCT: {
-    title: "Product",
     description:
       "Used for demonstration of academic output and innovative capacity",
   },
 } as const satisfies Record<
   (typeof MATERIAL_CATEGORIES)[number]["key"],
-  { title: string; description: string }
+  { description: string }
 >;
 
 export const APPLICATION_STATUSES = [

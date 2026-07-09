@@ -274,7 +274,7 @@ function MaterialsPageContent() {
         description=""
         headerVariant="centered"
         headerSlot={
-          <div className="flex justify-center">
+          <div className="mt-3.5 flex justify-center">
             <PrivacyStatementDialog />
           </div>
         }
@@ -345,21 +345,9 @@ function MaterialsPageContent() {
                         : category.label
                     }
                     summary={
-                      isReadOnlyReview ? (
-                        "Submitted files are available for review."
-                      ) : (
-                        <div className="flex flex-col gap-0.5">
-                          <p className="font-medium text-[color:var(--foreground)]">
-                            {MATERIAL_CATEGORY_SUMMARIES[category.key].title}
-                          </p>
-                          <p>
-                            {
-                              MATERIAL_CATEGORY_SUMMARIES[category.key]
-                                .description
-                            }
-                          </p>
-                        </div>
-                      )
+                      isReadOnlyReview
+                        ? "Submitted files are available for review."
+                        : MATERIAL_CATEGORY_SUMMARIES[category.key].description
                     }
                     defaultOpen={
                       isRequiredCategory && !requirementMet && !isReadOnlyReview

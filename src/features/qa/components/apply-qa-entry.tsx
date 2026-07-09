@@ -56,18 +56,20 @@ export function ApplyQaEntry({
       <Button
         type="button"
         variant="ghost"
-        size="icon-lg"
-        aria-label="Open general inquiries"
-        className="fixed right-4 bottom-4 z-40 size-16 overflow-visible rounded-full border border-white/75 bg-white/88 p-0 text-slate-950 shadow-[0_22px_55px_rgba(15,23,42,0.16),0_8px_22px_rgba(16,185,129,0.10),inset_0_1px_0_rgba(255,255,255,0.95)] backdrop-blur-xl hover:border-emerald-100 hover:bg-white hover:shadow-[0_26px_65px_rgba(15,23,42,0.18),0_10px_30px_rgba(16,185,129,0.14),inset_0_1px_0_rgba(255,255,255,1)] focus-visible:ring-emerald-500/30 md:right-6 md:bottom-6"
+        size="lg"
+        className="fixed right-4 bottom-4 z-40 h-14 gap-2 overflow-visible rounded-full border border-white/75 bg-white/88 px-4 text-sm font-semibold text-slate-950 shadow-[0_22px_55px_rgba(15,23,42,0.16),0_8px_22px_rgba(16,185,129,0.10),inset_0_1px_0_rgba(255,255,255,0.95)] backdrop-blur-xl hover:border-emerald-100 hover:bg-white hover:shadow-[0_26px_65px_rgba(15,23,42,0.18),0_10px_30px_rgba(16,185,129,0.14),inset_0_1px_0_rgba(255,255,255,1)] focus-visible:ring-emerald-500/30 md:right-6 md:bottom-6"
         onClick={() => setOpen(true)}
       >
         <span
           className="pointer-events-none absolute inset-[-3px] rounded-full bg-[radial-gradient(circle_at_50%_50%,rgba(16,185,129,0.18),rgba(16,185,129,0)_70%)]"
           aria-hidden
         />
-        <span className="relative flex size-11 items-center justify-center rounded-full bg-[linear-gradient(180deg,#f7fffc_0%,#ecfdf5_100%)] text-emerald-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.9)]">
-          <CircleHelp className="size-5" aria-hidden />
-        </span>
+        <CircleHelp
+          data-icon="inline-start"
+          className="relative size-5 text-emerald-700"
+          aria-hidden
+        />
+        <span className="relative">Q&A</span>
       </Button>
 
       <Sheet
