@@ -66,6 +66,10 @@ vi.mock("@/features/application/components/apply-entry-client", () => ({
   ),
 }));
 
+vi.mock("@/features/application/components/apply-expired-read-only-entry", () => ({
+  ApplyExpiredReadOnlyEntry: () => <div>expired-read-only-entry</div>,
+}));
+
 vi.mock("@/features/application/server/apply-entry-access", () => ({
   resolveApplyEntryAccessFromSessionCookie: (
     ...args: Parameters<typeof resolveApplyEntryAccessFromSessionCookieMock>
@@ -206,5 +210,38 @@ describe("ApplyEntryPage", () => {
 
     expect(screen.getByText("Invitation link invalid")).toBeInTheDocument();
     expect(resolveApplyEntryAccessFromSessionCookieMock).not.toHaveBeenCalled();
+  });
+
+  it("renders the expired read-only About GESF entry for EXPIRED_TOKEN", async () => {
+    render(
+      await ApplyEntryPage({
+        searchParams: Promise.resolve({ accessError: "EXPIRED_TOKEN" }),
+      }),
+    );
+
+    expect(screen.getByText("expired-read-only-entry")).toBeInTheDocument();
+    expect(resolveApplyEntryAccessFromSessionCookieMock).not.toHaveBeenCalled();
+  });
+
+  it("redirects expired session restores into the expired read-only entry", async () => {
+    resolveApplyEntryAccessFromSessionCookieMock.mockResolvedValue({
+      kind: "rejected",
+      code: "EXPIRED_TOKEN",
+      message: "This invitation link has expired.",
+      status: 410,
+    });
+    redirectMock.mockImplementation(() => {
+      throw new Error("redirect");
+    });
+
+    await expect(
+      ApplyEntryPage({
+        searchParams: Promise.resolve({}),
+      }),
+    ).rejects.toThrow("redirect");
+
+    expect(redirectMock).toHaveBeenCalledWith(
+      "/apply?accessError=EXPIRED_TOKEN",
+    );
   });
 });

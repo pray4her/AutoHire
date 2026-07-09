@@ -225,7 +225,7 @@ describe("ApplyEntryClient footer navigation", () => {
       within(whoAreWeRegion).getByText(/Meet Technology \(Wuhan\) Co\., Ltd\./),
     ).toBeInTheDocument();
     expect(
-      within(qualificationRegion).getByText("ISO 27001 certified"),
+      within(qualificationRegion).getByText("10+ years experience"),
     ).toBeInTheDocument();
     expect(
       within(qualificationRegion).getByText("5000+ overseas experts supported"),

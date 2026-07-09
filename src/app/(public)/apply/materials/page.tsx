@@ -30,6 +30,10 @@ import {
   fetchSession,
   type MaterialsResponse,
 } from "@/features/application/client";
+import {
+  isExpiredInviteAccessError,
+  redirectToExpiredInviteReadOnly,
+} from "@/features/application/expired-invite-access";
 import { submitApplicationAction } from "@/features/application/actions";
 import { APPLICATION_FLOW_STEPS_WITH_INTRO } from "@/features/application/constants";
 import {
@@ -166,13 +170,20 @@ function MaterialsPageContent() {
         setSnapshot(nextSnapshot);
         setMaterials(await fetchMaterials(nextSnapshot.applicationId));
       } catch (nextError) {
-        if (active) {
-          setError(
-            nextError instanceof Error
-              ? nextError.message
-              : "Unable to load the uploaded materials.",
-          );
+        if (!active) {
+          return;
         }
+
+        if (isExpiredInviteAccessError(nextError)) {
+          redirectToExpiredInviteReadOnly(router);
+          return;
+        }
+
+        setError(
+          nextError instanceof Error
+            ? nextError.message
+            : "Unable to load the uploaded materials.",
+        );
       } finally {
         if (active) {
           setIsLoading(false);

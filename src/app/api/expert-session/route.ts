@@ -26,13 +26,31 @@ function resolveRedirectTarget(
   return new URL(redirectTo, resolveClientFacingOrigin(request));
 }
 
+function clearSessionCookie(response: NextResponse, request: NextRequest) {
+  response.cookies.set({
+    name: getSessionCookieName(),
+    value: "",
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production" && isClientHttps(request),
+    path: "/",
+    maxAge: 0,
+  });
+}
+
 function buildApplyErrorRedirect(
   request: NextRequest,
   code: string,
 ) {
   const location = new URL("/apply", resolveClientFacingOrigin(request));
   location.searchParams.set("accessError", code);
-  return NextResponse.redirect(location, { status: 307 });
+  const response = NextResponse.redirect(location, { status: 307 });
+
+  if (code === "EXPIRED_TOKEN") {
+    clearSessionCookie(response, request);
+  }
+
+  return response;
 }
 
 export async function GET(request: NextRequest) {
@@ -57,9 +75,15 @@ export async function GET(request: NextRequest) {
         return buildApplyErrorRedirect(request, result.code);
       }
 
-      return jsonError(result.message, result.status, {
+      const response = jsonError(result.message, result.status, {
         code: result.code,
       });
+
+      if (result.code === "EXPIRED_TOKEN") {
+        clearSessionCookie(response, request);
+      }
+
+      return response;
     }
 
     await trackEventFromRequest(request, {
@@ -101,9 +125,15 @@ export async function GET(request: NextRequest) {
   );
 
   if (result.kind === "rejected") {
-    return jsonError(result.message, result.status, {
+    const response = jsonError(result.message, result.status, {
       code: result.code,
     });
+
+    if (result.code === "EXPIRED_TOKEN") {
+      clearSessionCookie(response, request);
+    }
+
+    return response;
   }
 
   await trackEventFromRequest(request, {

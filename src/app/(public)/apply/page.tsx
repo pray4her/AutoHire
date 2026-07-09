@@ -7,6 +7,8 @@ import {
   StatusBanner,
 } from "@/components/ui/page-shell";
 import { ApplyEntryClient } from "@/features/application/components/apply-entry-client";
+import { ApplyExpiredReadOnlyEntry } from "@/features/application/components/apply-expired-read-only-entry";
+import { EXPIRED_INVITE_APPLY_PATH } from "@/features/application/expired-invite-access";
 import {
   resolveInviteTokenFromNextSearchParams,
   type NextSearchParamValue,
@@ -25,8 +27,13 @@ type ApplyEntryPageProps = {
   searchParams: Promise<Record<string, NextSearchParamValue>>;
 };
 
-const ACCESS_ERROR_COPY: Record<
+type ApplyEntryBannerErrorCode = Exclude<
   ApplyEntryAccessErrorCode,
+  "EXPIRED_TOKEN"
+>;
+
+const ACCESS_ERROR_COPY: Record<
+  ApplyEntryBannerErrorCode,
   {
     readonly title: string;
     readonly description: string;
@@ -41,11 +48,6 @@ const ACCESS_ERROR_COPY: Record<
     title: "Invitation unavailable",
     description:
       "This invitation link has been disabled. Please contact the program team if you still need access.",
-  },
-  EXPIRED_TOKEN: {
-    title: "Invitation expired",
-    description:
-      "This invitation link has expired. Please contact the program team for a new invitation.",
   },
   INVALID_TOKEN: {
     title: "Invitation link invalid",
@@ -88,7 +90,7 @@ function buildExpertSessionRedirectUrl(token: string) {
 function ApplyEntryAccessError({
   code,
 }: {
-  code: ApplyEntryAccessErrorCode;
+  code: ApplyEntryBannerErrorCode;
 }) {
   const copy = ACCESS_ERROR_COPY[code];
 
@@ -112,6 +114,12 @@ function ApplyEntryAccessError({
   );
 }
 
+function isBannerAccessErrorCode(
+  value: string,
+): value is ApplyEntryBannerErrorCode {
+  return value in ACCESS_ERROR_COPY;
+}
+
 export default async function ApplyEntryPage({
   searchParams,
 }: ApplyEntryPageProps) {
@@ -127,13 +135,13 @@ export default async function ApplyEntryPage({
   const accessErrorParam = pickSearchParamValue(
     resolvedSearchParams.accessError,
   );
-  const accessError =
-    accessErrorParam && accessErrorParam in ACCESS_ERROR_COPY
-      ? (accessErrorParam as ApplyEntryAccessErrorCode)
-      : null;
 
-  if (accessError) {
-    return <ApplyEntryAccessError code={accessError} />;
+  if (accessErrorParam === "EXPIRED_TOKEN") {
+    return <ApplyExpiredReadOnlyEntry />;
+  }
+
+  if (accessErrorParam && isBannerAccessErrorCode(accessErrorParam)) {
+    return <ApplyEntryAccessError code={accessErrorParam} />;
   }
 
   const cookieStore = await cookies();
@@ -142,7 +150,15 @@ export default async function ApplyEntryPage({
   );
 
   if (access.kind === "rejected") {
-    return <ApplyEntryAccessError code={access.code} />;
+    if (access.code === "EXPIRED_TOKEN") {
+      redirect(EXPIRED_INVITE_APPLY_PATH);
+    }
+
+    if (isBannerAccessErrorCode(access.code)) {
+      return <ApplyEntryAccessError code={access.code} />;
+    }
+
+    return <ApplyEntryAccessError code="SESSION_REQUIRED" />;
   }
 
   if (openedFromInviteLink && shouldRedirectFromApply(access.snapshot)) {

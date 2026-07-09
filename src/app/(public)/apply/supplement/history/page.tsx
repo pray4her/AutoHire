@@ -12,6 +12,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { PageFrame, PageShell, StatusBanner } from "@/components/ui/page-shell";
 import { fetchSession } from "@/features/application/client";
+import {
+  isExpiredInviteAccessError,
+  redirectToExpiredInviteReadOnly,
+} from "@/features/application/expired-invite-access";
 import { APPLICATION_FLOW_STEPS_WITH_INTRO } from "@/features/application/constants";
 import {
   buildApplyFlowStepLinks,
@@ -182,11 +186,18 @@ function SupplementHistoryPageContent() {
         setSnapshot(nextSnapshot);
         await loadSupplementHistory(nextSnapshot.applicationId);
       } catch (nextError) {
-        if (active) {
-          setSnapshot(null);
-          setHistory(null);
-          setAccessError(classifySupplementAccessError(nextError));
+        if (!active) {
+          return;
         }
+
+        if (isExpiredInviteAccessError(nextError)) {
+          redirectToExpiredInviteReadOnly(router);
+          return;
+        }
+
+        setSnapshot(null);
+        setHistory(null);
+        setAccessError(classifySupplementAccessError(nextError));
       } finally {
         if (active) {
           setIsLoading(false);

@@ -6,6 +6,10 @@ import { usePathname, useRouter } from "next/navigation";
 import { PageFrame, PageShell, StatusBanner } from "@/components/ui/page-shell";
 import { fetchSession } from "@/features/application/client";
 import {
+  isExpiredInviteAccessError,
+  redirectToExpiredInviteReadOnly,
+} from "@/features/application/expired-invite-access";
+import {
   readInviteTokenFromSearchParams,
   removeInviteTokenFromUrl,
 } from "@/features/application/invite-url-token";
@@ -137,12 +141,19 @@ export default function SupplementPage() {
         setSnapshot(nextSnapshot);
         await loadSupplementSnapshot(nextSnapshot.applicationId);
       } catch (nextError) {
-        if (active) {
-          setSnapshot(null);
-          supplementSnapshotRef.current = null;
-          setSupplementSnapshot(null);
-          setAccessError(classifySupplementAccessError(nextError));
+        if (!active) {
+          return;
         }
+
+        if (isExpiredInviteAccessError(nextError)) {
+          redirectToExpiredInviteReadOnly(router);
+          return;
+        }
+
+        setSnapshot(null);
+        supplementSnapshotRef.current = null;
+        setSupplementSnapshot(null);
+        setAccessError(classifySupplementAccessError(nextError));
       } finally {
         if (active) {
           setIsLoading(false);

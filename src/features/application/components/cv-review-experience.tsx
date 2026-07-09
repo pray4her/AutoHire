@@ -63,6 +63,10 @@ import {
   uploadBinary,
 } from "@/features/application/client";
 import {
+  isExpiredInviteAccessError,
+  redirectToExpiredInviteReadOnly,
+} from "@/features/application/expired-invite-access";
+import {
   APPLICATION_FLOW_STEPS_WITH_INTRO,
   CONTINUE_TO_UPLOAD_LABEL,
 } from "@/features/application/constants";
@@ -1376,13 +1380,20 @@ export function CvReviewExperience({
 
         setSnapshot(nextSnapshot);
       } catch (nextError) {
-        if (active) {
-          setError(
-            nextError instanceof Error
-              ? nextError.message
-              : "Unable to load the CV review outcome.",
-          );
+        if (!active) {
+          return;
         }
+
+        if (isExpiredInviteAccessError(nextError)) {
+          redirectToExpiredInviteReadOnly(router);
+          return;
+        }
+
+        setError(
+          nextError instanceof Error
+            ? nextError.message
+            : "Unable to load the CV review outcome.",
+        );
       } finally {
         if (active) {
           setIsLoading(false);

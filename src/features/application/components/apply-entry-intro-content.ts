@@ -181,7 +181,6 @@ export const WHO_ARE_WE_COPY =
   "Meet Technology (Wuhan) Co., Ltd. Is a talent consulting company which integrates global top talents, technology projects, venture capital, industrial parks, research institutes and listed companies and other elements of science and technology innovation to promote high-quality urban development.";
 
 export const QUALIFICATION_ITEMS = [
-  "ISO 27001 certified",
   "10+ years experience",
   "200+ cities and industrial parks across 28 provinces served",
   "5000+ overseas experts supported",

@@ -19,6 +19,10 @@ import {
   SUBMISSION_COMPLETE_WHATSAPP_URL,
 } from "@/features/application/constants";
 import { fetchSession } from "@/features/application/client";
+import {
+  isExpiredInviteAccessError,
+  redirectToExpiredInviteReadOnly,
+} from "@/features/application/expired-invite-access";
 import { SubmissionFeedbackSection } from "@/features/application/components/submission-feedback-section";
 import {
   buildApplyFlowStepLinks,
@@ -84,13 +88,20 @@ export default function SubmissionCompletePage() {
 
         setSnapshot(nextSnapshot);
       } catch (nextError) {
-        if (active) {
-          setError(
-            nextError instanceof Error
-              ? nextError.message
-              : "Unable to load the submitted application.",
-          );
+        if (!active) {
+          return;
         }
+
+        if (isExpiredInviteAccessError(nextError)) {
+          redirectToExpiredInviteReadOnly(router);
+          return;
+        }
+
+        setError(
+          nextError instanceof Error
+            ? nextError.message
+            : "Unable to load the submitted application.",
+        );
         return;
       } finally {
         if (active) {

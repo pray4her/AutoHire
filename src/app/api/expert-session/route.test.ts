@@ -209,4 +209,99 @@ describe("GET /api/expert-session", () => {
       code: "DISABLED_TOKEN",
     });
   });
+
+  it("clears the session cookie when redirecting an expired invite bootstrap", async () => {
+    const initialResponse = await expertSessionGet(
+      new NextRequest(
+        "http://localhost/api/expert-session?token=sample-init-token",
+      ),
+    );
+
+    expect(initialResponse.status).toBe(200);
+
+    const store = (
+      globalThis as typeof globalThis & {
+        __autohireStore?: {
+          invitations: Array<{
+            id: string;
+            tokenStatus: "ACTIVE" | "EXPIRED" | "DISABLED";
+            expiredAt: Date | null;
+          }>;
+        };
+      }
+    ).__autohireStore;
+
+    const invitation = store?.invitations.find(
+      (item) => item.id === "invitation_init",
+    );
+    expect(invitation).toBeDefined();
+    invitation!.tokenStatus = "EXPIRED";
+    invitation!.expiredAt = new Date(Date.now() - 60_000);
+
+    const response = await expertSessionGet(
+      new NextRequest(
+        "http://localhost/api/expert-session?token=sample-init-token&redirectTo=%2Fapply%3Finvite%3D1",
+      ),
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/apply?accessError=EXPIRED_TOKEN",
+    );
+
+    const setCookie = response.headers.get("set-cookie") ?? "";
+    expect(setCookie).toContain(`${getSessionCookieName()}=`);
+    expect(setCookie.toLowerCase()).toMatch(/max-age=0/);
+  });
+
+  it("clears the session cookie when restoring an expired invitation session", async () => {
+    const initialResponse = await expertSessionGet(
+      new NextRequest(
+        "http://localhost/api/expert-session?token=sample-init-token",
+      ),
+    );
+
+    expect(initialResponse.status).toBe(200);
+
+    const cookieValue =
+      initialResponse.headers
+        .get("set-cookie")
+        ?.match(new RegExp(`${getSessionCookieName()}=([^;]+)`))?.[1] ?? "";
+
+    const store = (
+      globalThis as typeof globalThis & {
+        __autohireStore?: {
+          invitations: Array<{
+            id: string;
+            tokenStatus: "ACTIVE" | "EXPIRED" | "DISABLED";
+            expiredAt: Date | null;
+          }>;
+        };
+      }
+    ).__autohireStore;
+
+    const invitation = store?.invitations.find(
+      (item) => item.id === "invitation_init",
+    );
+    expect(invitation).toBeDefined();
+    invitation!.tokenStatus = "EXPIRED";
+    invitation!.expiredAt = new Date(Date.now() - 60_000);
+
+    const restoredResponse = await expertSessionGet(
+      new NextRequest("http://localhost/api/expert-session", {
+        headers: {
+          cookie: `${getSessionCookieName()}=${cookieValue}`,
+        },
+      }),
+    );
+
+    expect(restoredResponse.status).toBe(410);
+    await expect(restoredResponse.json()).resolves.toMatchObject({
+      code: "EXPIRED_TOKEN",
+    });
+
+    const setCookie = restoredResponse.headers.get("set-cookie") ?? "";
+    expect(setCookie).toContain(`${getSessionCookieName()}=`);
+    expect(setCookie.toLowerCase()).toMatch(/max-age=0/);
+  });
 });
