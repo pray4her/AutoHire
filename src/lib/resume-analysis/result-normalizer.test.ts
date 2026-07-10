@@ -33,9 +33,31 @@ describe("normalizeAnalysisResultPayload", () => {
     });
 
     expect(result.eligibilityResult).toBe("INELIGIBLE");
+    expect(result.displaySummary).toBe(
+      "Thank you for applying. Unfortunately, your profile does not currently meet the basic requirements for this talent program.",
+    );
     expect(result.reasonText).toBe(
       "The research area is not applicable to manufacturing or technology R&D",
     );
+  });
+
+  it("parses the reason-for-ineligibility-only contract without analysis process", () => {
+    const reason =
+      "For applicants born before Jan 1, 1987 and working outside mainland China, a current mid-to-senior-level position is required. This position must be equivalent to or higher than an Associate Professor or a comparable role in a university, research institution, or enterprise.";
+
+    const result = normalizeAnalysisResultPayload({
+      raw_response: `{{{Reason for ineligibility:
+
+${reason}}}}`,
+    });
+
+    expect(result.eligibilityResult).toBe("INELIGIBLE");
+    expect(result.displaySummary).toBe(
+      "Thank you for applying. Unfortunately, your profile does not currently meet the basic requirements for this talent program.",
+    );
+    expect(result.reasonText).toBe(reason);
+    expect(result.rawReasoning).toBeNull();
+    expect(result.missingFields).toEqual([]);
   });
 
   it("parses eligible results from the formal decision block", () => {
@@ -185,10 +207,12 @@ describe("normalizeAnalysisResultPayload", () => {
     expect(eligible.extractedFields.current_country_of_employment).toBe("UK");
 
     const ineligible = normalizeAnalysisResultPayload({
-      raw_response: `${base}{{{We regret to inform you that your qualifications do not meet the basic application requirements of this talent program. The specific reasons are: Area mismatch. If you have any questions, please feel free to contact us at any time by email, WeChat, phone, or WhatsApp}}}`,
+      raw_response: `${base}{{{Reason for ineligibility:
+
+Area mismatch.}}}`,
     });
     expect(ineligible.eligibilityResult).toBe("INELIGIBLE");
-    expect(ineligible.reasonText).toBe("Area mismatch");
+    expect(ineligible.reasonText).toBe("Area mismatch.");
 
     const bypass = normalizeAnalysisResultPayload({
       raw_response: `${base}{{{Only eligible to apply as an overseas postdoctoral researcher coming to work in China}}}`,

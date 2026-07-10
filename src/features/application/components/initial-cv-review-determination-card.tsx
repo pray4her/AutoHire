@@ -8,30 +8,29 @@ import {
   ELIGIBLE_ASSESSMENT_INTRO,
   ELIGIBILITY_ASSESSMENT_ACCURACY_NOTE,
   INELIGIBLE_CLOSING_MESSAGE,
+  INELIGIBLE_INTRO_MESSAGE,
+  INELIGIBLE_MANUAL_REVIEW_HEADING,
+  INELIGIBLE_MANUAL_REVIEW_MESSAGE,
+  INELIGIBLE_REASON_HEADING,
 } from "@/features/application/constants";
 import type { ApplicationSnapshot } from "@/features/application/types";
 import { cn } from "@/lib/utils";
 
-function formatIneligibleReasonDetails(
-  displaySummary: string | null,
-  reasonText: string | null,
-) {
-  const summary = displaySummary?.trim() ?? "";
+function resolveIneligibleReasonText(reasonText: string | null) {
   const reason = reasonText?.trim() ?? "";
 
-  if (!summary && !reason) {
+  if (!reason) {
     return null;
   }
 
-  if (!summary) {
-    return reason;
+  const marker = INELIGIBLE_REASON_HEADING.toLowerCase();
+
+  if (reason.toLowerCase().startsWith(marker)) {
+    const body = reason.slice(INELIGIBLE_REASON_HEADING.length).trim();
+    return body || null;
   }
 
-  if (!reason || summary === reason) {
-    return summary;
-  }
-
-  return `${summary}\n\n${reason}`;
+  return reason;
 }
 
 function EligibilityAssessmentAccuracyNote({
@@ -52,25 +51,51 @@ function EligibilityAssessmentAccuracyNote({
   );
 }
 
+function IneligibleManualReviewNote() {
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-sm font-semibold leading-6 text-[color:var(--foreground)]">
+        {INELIGIBLE_MANUAL_REVIEW_HEADING}
+      </p>
+      <p className="text-sm leading-6 text-[color:var(--foreground-soft)]">
+        {INELIGIBLE_MANUAL_REVIEW_MESSAGE}
+      </p>
+    </div>
+  );
+}
+
 function IneligibleAssessmentResultBody({
-  reasonDetails,
+  reasonText,
 }: {
-  readonly reasonDetails: string | null;
+  readonly reasonText: string | null;
 }) {
+  const reasonDetails = resolveIneligibleReasonText(reasonText);
+
   return (
     <div className="flex flex-col gap-4" role="status" aria-live="polite">
       <div className="flex flex-wrap items-center gap-2">
         <span className="text-sm text-[color:var(--foreground-soft)]">
           Status:
         </span>
-        <Badge variant="destructive">Not eligible</Badge>
+        <Badge variant="destructive">Not Eligible</Badge>
       </div>
 
+      <p className="text-sm leading-6 text-[color:var(--foreground-soft)]">
+        {INELIGIBLE_INTRO_MESSAGE}
+      </p>
+
       {reasonDetails ? (
-        <p className="text-sm leading-6 whitespace-pre-wrap text-[color:var(--foreground-soft)]">
-          {reasonDetails}
-        </p>
+        <div className="flex flex-col gap-2">
+          <p className="text-sm font-semibold leading-6 text-[color:var(--foreground)]">
+            {INELIGIBLE_REASON_HEADING}
+          </p>
+          <p className="text-sm leading-6 whitespace-pre-wrap text-[color:var(--foreground-soft)]">
+            {reasonDetails}
+          </p>
+        </div>
       ) : null}
+
+      <IneligibleManualReviewNote />
 
       <p className="text-sm leading-6 text-[color:var(--foreground-soft)]">
         {INELIGIBLE_CLOSING_MESSAGE}
@@ -110,22 +135,13 @@ export function InitialCvReviewDeterminationCard({
   readonly snapshot: ApplicationSnapshot;
 }) {
   const latest = snapshot.latestResult;
-  const displaySummary = latest?.displaySummary ?? null;
   const reasonText = latest?.reasonText ?? null;
 
   if (snapshot.eligibilityResult === "INELIGIBLE") {
     return (
       <>
         <SectionCard title="Preliminary assessment result">
-          <div className="flex flex-col gap-4">
-            <IneligibleAssessmentResultBody
-              reasonDetails={formatIneligibleReasonDetails(
-                displaySummary,
-                reasonText,
-              )}
-            />
-            <EligibilityAssessmentAccuracyNote />
-          </div>
+          <IneligibleAssessmentResultBody reasonText={reasonText} />
         </SectionCard>
         <ApplicationFeedbackSectionCard
           applicationId={snapshot.applicationId}

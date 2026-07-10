@@ -126,11 +126,24 @@ export const ELIGIBLE_ASSESSMENT_FOOTNOTE =
 
 export const CONTINUE_TO_UPLOAD_LABEL = "Continue to Upload";
 
+/** Ineligible CV review outcome — fixed intro on `/apply/result`. */
+export const INELIGIBLE_INTRO_MESSAGE =
+  "Thank you for applying. Unfortunately, your profile does not currently meet the basic requirements for this talent program.";
+
+/** Heading above the model-generated ineligibility reason. */
+export const INELIGIBLE_REASON_HEADING = "Reason for ineligibility:";
+
+/** Manual-review invitation shown instead of the generic accuracy note. */
+export const INELIGIBLE_MANUAL_REVIEW_HEADING = "Did we make a mistake?";
+
+export const INELIGIBLE_MANUAL_REVIEW_MESSAGE =
+  "Job titles vary across regions. If you believe your qualifications match the criteria despite this result, please contact us via email, WeChat, phone, or WhatsApp. We would be happy to review your case manually.";
+
 /** Ineligible CV review outcome — closing copy on `/apply/result`. */
 export const INELIGIBLE_CLOSING_MESSAGE =
   "Thank you for your interest. We look forward to serving you in the future.";
 
-/** Shown after automated eligibility judgment on `/apply/result`. */
+/** Shown after eligible automated judgment on `/apply/result`. */
 export const ELIGIBILITY_ASSESSMENT_ACCURACY_NOTE =
   "As job titles vary across different regions and countries, the system's eligibility assessment may contain minor discrepancies.";
 

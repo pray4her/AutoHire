@@ -3,7 +3,10 @@ import {
   ALL_CV_EXTRACTION_FIELD_ROWS,
   INITIAL_CV_REVIEW_CRITICAL_FIELD_KEYS,
 } from "@/features/analysis/initial-cv-review-extract";
-import { ELIGIBLE_DISPLAY_SUMMARY } from "@/features/application/constants";
+import {
+  ELIGIBLE_DISPLAY_SUMMARY,
+  INELIGIBLE_INTRO_MESSAGE,
+} from "@/features/application/constants";
 import type { EligibilityResult } from "@/features/application/types";
 import {
   buildMissingFieldsFromItemNames,
@@ -24,7 +27,13 @@ type ParsedDecision = {
 const ELIGIBLE_SENTENCE_EN =
   "After evaluation, your qualifications meet the basic application requirements of this talent program";
 
-/** Distinctive prefix inside `{{{ }}}` for ineligible (English prompt). */
+/**
+ * Current ineligible contract: `{{{Reason for ineligibility:\n\n...}}}`.
+ * Overrides the standard 2-step format for ordinary main-application ineligibility.
+ */
+const REASON_FOR_INELIGIBILITY_PREFIX = "Reason for ineligibility:";
+
+/** Legacy English ineligible marker (still accepted). */
 const INELIGIBLE_MARKER_EN =
   "We regret to inform you that your qualifications do not meet the basic application requirements of this talent program";
 
@@ -34,8 +43,7 @@ const INELIGIBLE_SENTENCE_CN =
   "很遗憾，您的资历不符合本次人才项目的基本申请要求";
 
 const ELIGIBLE_SUMMARY_EN = ELIGIBLE_DISPLAY_SUMMARY;
-const INELIGIBLE_SUMMARY_EN =
-  "Your profile does not currently meet the basic application requirements for this talent program.";
+const INELIGIBLE_SUMMARY_EN = INELIGIBLE_INTRO_MESSAGE;
 const INSUFFICIENT_INFO_SUMMARY_EN =
   "The system cannot make a final eligibility decision yet. Please provide the missing information below.";
 
@@ -212,6 +220,19 @@ function parseFormalDeterminationBlock(input: {
       eligibilityResult: "ELIGIBLE",
       displaySummary: ELIGIBLE_SUMMARY_EN,
       reasonText: null,
+      missingFields: [],
+      extractedFields,
+      rawReasoning,
+    };
+  }
+
+  const reasonForIneligibility = extractReasonForIneligibilityBody(trimmedFormal);
+
+  if (reasonForIneligibility !== null) {
+    return {
+      eligibilityResult: "INELIGIBLE",
+      displaySummary: INELIGIBLE_SUMMARY_EN,
+      reasonText: reasonForIneligibility,
       missingFields: [],
       extractedFields,
       rawReasoning,
@@ -462,8 +483,29 @@ function extractMissingItemNames(text: string) {
   return items;
 }
 
+/**
+ * Parses `{{{Reason for ineligibility:\n\n...}}}` from the current prompt contract.
+ * Returns the applicant-facing reason body, or null when the marker is absent.
+ */
+function extractReasonForIneligibilityBody(formalResult: string) {
+  const trimmed = formalResult.trim();
+  const marker = REASON_FOR_INELIGIBILITY_PREFIX.toLowerCase();
+
+  if (!trimmed.toLowerCase().startsWith(marker)) {
+    return null;
+  }
+
+  return trimmed.slice(REASON_FOR_INELIGIBILITY_PREFIX.length).trim() || null;
+}
+
 function extractIneligibleReason(formalResult: string) {
   const trimmed = formalResult.trim();
+
+  const reasonForIneligibility = extractReasonForIneligibilityBody(trimmed);
+
+  if (reasonForIneligibility) {
+    return reasonForIneligibility;
+  }
 
   const enFollowUp =
     ". If you have any questions, please feel free to contact us at any time by email, WeChat, phone, or WhatsApp";
