@@ -67,6 +67,7 @@ import type {
   UploadKind as PrismaUploadKind,
 } from "@prisma/client";
 import { getMaterialSupplementSampleFixtures } from "@/lib/material-supplement/fixtures";
+import type { ApplicationExtractionExportRecord } from "@/lib/extraction-export/constants";
 import type { InitialMaterialReviewReportEmailRecord } from "@/lib/initial-material-review-report-email/types";
 
 export type AccessResult =
@@ -147,6 +148,7 @@ type ApplicationRecord = {
   currentStep: string | null;
   eligibilityResult: EligibilityResult;
   latestAnalysisJobId: string | null;
+  customerNo?: string | null;
   firstAccessedAt: Date | null;
   lastAccessedAt: Date | null;
   introConfirmedAt: Date | null;
@@ -491,6 +493,7 @@ type PersistedStore = {
   supplementFiles: SupplementFileRecord[];
   feedbacks: FeedbackRecord[];
   initialMaterialReviewReportEmails: InitialMaterialReviewReportEmailRecord[];
+  extractionExports: ApplicationExtractionExportRecord[];
   events: EventRecord[];
   accessLogs: InviteAccessLogRecord[];
   fileUploadAttempts: FileUploadAttemptRecord[];
@@ -922,6 +925,7 @@ function buildSampleStore(): PersistedStore {
     supplementFiles: supplementFixtures.supplementFiles,
     feedbacks: [],
     initialMaterialReviewReportEmails: [],
+    extractionExports: [],
     events: [],
     accessLogs: [],
     fileUploadAttempts: [],
@@ -1290,6 +1294,7 @@ export async function updateApplication(
     currentStep?: string | null;
     eligibilityResult?: EligibilityResult;
     latestAnalysisJobId?: string | null;
+    customerNo?: string | null;
     firstAccessedAt?: Date | null;
     lastAccessedAt?: Date | null;
     introConfirmedAt?: Date | null;

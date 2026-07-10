@@ -224,7 +224,7 @@ describe("ApplyEntryClient invite notice", () => {
     await waitForInviteNotice();
   });
 
-  it("does not persist dismissal when the dialog is closed via backdrop click", async () => {
+  it("does not close the invitation notice via Escape or outside interaction", async () => {
     const user = userEvent.setup();
 
     renderApplyEntryClient();
@@ -235,22 +235,12 @@ describe("ApplyEntryClient invite notice", () => {
     );
     await user.keyboard("{Escape}");
 
-    await waitFor(() => {
-      expect(
-        screen.queryByText("Regarding Your Personalized Application Link"),
-      ).not.toBeInTheDocument();
-    });
-
+    expect(
+      screen.getByText("Regarding Your Personalized Application Link"),
+    ).toBeInTheDocument();
     expect(
       window.localStorage.getItem("apply-invite-notice-seen:invite_001"),
     ).toBeNull();
-
-    cleanup();
-    renderApplyEntryClient();
-
-    await waitForInviteNotice();
-    expect(screen.getByRole("checkbox", { name: "Don't show this again" }))
-      .not.toBeChecked();
   });
 
   it("cleans the invite bootstrap query param after rendering", async () => {

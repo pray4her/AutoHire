@@ -62,6 +62,7 @@ import {
   upsertSecondaryAnalysisFieldValues,
   upsertSecondaryAnalysisRun,
 } from "@/lib/data/store";
+import { scheduleConfirmedExtractionExport } from "@/lib/extraction-export/orchestrator";
 import {
   applyObjectiveExtractionPresentationRules,
   buildSupplementalExtractionPatch,
@@ -292,6 +293,42 @@ export async function createResumeUploadRecord(input: {
     code: "RESUME_UPLOAD_NOT_ALLOWED",
   });
 
+  const application = await getApplicationById(input.applicationId);
+  if (!application) {
+    throw new ApplicationServiceError(
+      "Application not found.",
+      404,
+      "APPLICATION_NOT_FOUND",
+    );
+  }
+
+  const now = new Date();
+  let customerNo = application.customerNo ?? null;
+  let resumeUploadedAt = application.resumeUploadedAt ?? null;
+
+  if (!customerNo) {
+    const { allocateCustomerNo } = await import(
+      "@/lib/ops-expert-files/customer-no"
+    );
+    const { CustomerNoQuotaExceededError } = await import(
+      "@/lib/ops-expert-files/time"
+    );
+
+    try {
+      customerNo = await allocateCustomerNo({ resumeUploadedAt: now });
+      resumeUploadedAt = resumeUploadedAt ?? now;
+    } catch (error) {
+      if (error instanceof CustomerNoQuotaExceededError) {
+        throw new ApplicationServiceError(
+          "Daily application quota for customer numbers has been reached. Please try again tomorrow.",
+          409,
+          "CUSTOMER_NO_DAILY_QUOTA_EXCEEDED",
+        );
+      }
+      throw error;
+    }
+  }
+
   const versionNo = (await getLatestResumeVersion(input.applicationId)) + 1;
   const record = await createResumeFile({
     applicationId: input.applicationId,
@@ -305,6 +342,8 @@ export async function createResumeUploadRecord(input: {
   await updateApplication(input.applicationId, {
     applicationStatus: "CV_UPLOADED",
     currentStep: "resume",
+    customerNo,
+    resumeUploadedAt,
     ...(typeof input.screeningPassportFullName === "string"
       ? { screeningPassportFullName: input.screeningPassportFullName }
       : {}),
@@ -619,6 +658,11 @@ export async function confirmExtractionAndStartEligibilityJudgment(
     applicationStatus: "CV_ANALYZING",
     currentStep: "result",
     latestAnalysisJobId: latestJob.id,
+  });
+
+  scheduleConfirmedExtractionExport({
+    applicationId,
+    trigger: "CONFIRM",
   });
 
   return {
@@ -979,6 +1023,11 @@ export async function refreshAnalysisState(applicationId: string) {
         applicationId,
         expertAnalysisJobId: job.id,
         externalJobId: job.externalJobId,
+      });
+
+      scheduleConfirmedExtractionExport({
+        applicationId,
+        trigger: "RESULT",
       });
     } catch (error) {
       if (isRetryableResumeAnalysisError(error)) {
@@ -2143,6 +2192,11 @@ export async function submitApplicationFeedback(input: {
       "FEEDBACK_ALREADY_SUBMITTED",
     );
   }
+
+  scheduleConfirmedExtractionExport({
+    applicationId: input.applicationId,
+    trigger: "FEEDBACK",
+  });
 
   return toFeedbackSnapshot(result.feedback);
 }

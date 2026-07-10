@@ -33,7 +33,19 @@ export function ApplyInviteNoticeDialog({
   }, [isOpen]);
 
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog
+      open={isOpen}
+      disablePointerDismissal
+      onOpenChange={(nextOpen, eventDetails) => {
+        // Only "I understand" may dismiss; ignore outside click / Escape.
+        if (!nextOpen) {
+          eventDetails.cancel();
+          return;
+        }
+
+        onOpenChange(nextOpen);
+      }}
+    >
       <DialogContent
         showCloseButton={false}
         className="h-auto max-h-[calc(100vh-2rem)] w-[calc(100vw-2rem)] overflow-y-auto rounded-[1.1rem] border-none bg-transparent p-0 shadow-[0_28px_72px_rgba(15,23,42,0.28)] sm:max-w-[44rem]"

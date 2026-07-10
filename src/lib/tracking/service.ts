@@ -280,7 +280,7 @@ async function applyMilestones(input: {
   }
 
   if (input.eventType === "resume_upload_confirmed") {
-    patch.resumeUploadedAt = input.eventTime;
+    patch.resumeUploadedAt = application.resumeUploadedAt ?? input.eventTime;
   }
 
   if (input.eventType === "analysis_started") {

@@ -23,6 +23,7 @@
     "db:deploy": "bunx --bun prisma migrate deploy",
     "db:seed": "bun prisma/seed.ts",
     "oss:latest-expert-material": "bun scripts/latest-expert-material-oss.ts",
+    "db:backfill-customer-no": "bun scripts/backfill-customer-no.ts",
     "prepare": "husky"
   },
   "lint-staged": {

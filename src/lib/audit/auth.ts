@@ -63,6 +63,42 @@ export function createAuditTokenDigest(token: string) {
   return createHash("sha256").update(token).digest("base64url");
 }
 
+export function getAuditDashboardOperatorDigest(
+  cookieValue: string | undefined | null,
+) {
+  if (!cookieValue) {
+    return null;
+  }
+
+  const [encodedPayload, signature] = cookieValue.split(".");
+
+  if (!encodedPayload || !signature) {
+    return null;
+  }
+
+  const expectedSignature = sign(encodedPayload);
+
+  if (!timingSafeStringEqual(signature, expectedSignature)) {
+    return null;
+  }
+
+  try {
+    const payload = JSON.parse(decode(encodedPayload)) as AuditCookiePayload;
+
+    if (isCookiePayloadExpired(payload.issuedAt)) {
+      return null;
+    }
+
+    const allowed = getAllowedTokenDigests().some((allowedDigest) =>
+      timingSafeStringEqual(payload.digest, allowedDigest),
+    );
+
+    return allowed ? payload.digest : null;
+  } catch {
+    return null;
+  }
+}
+
 export function verifyAuditDashboardToken(token: string | null | undefined) {
   if (!token) {
     return false;

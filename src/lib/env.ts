@@ -66,6 +66,14 @@ const envSchema = z.object({
     .int()
     .positive()
     .default(28800),
+  OPS_EXPORT_FC_ENDPOINT: z.string().url().optional(),
+  OPS_EXPORT_FC_SERVICE_NAME: z.string().optional(),
+  OPS_EXPORT_FC_FUNCTION_NAME: z.string().optional(),
+  OPS_EXPORT_FC_ACCESS_KEY_ID: z.string().optional(),
+  OPS_EXPORT_FC_ACCESS_KEY_SECRET: z.string().optional(),
+  OPS_EXPORT_FC_REGION: z.string().optional(),
+  OPS_EXPORT_CALLBACK_SECRET: z.string().optional(),
+  OPS_EXPORT_ESTIMATE_SECRET: z.string().optional(),
   SENTRY_DSN: z.string().optional().default(""),
   NEXT_PUBLIC_SENTRY_DSN: z.string().optional().default(""),
   SMTP_HOST: z.string().optional(),

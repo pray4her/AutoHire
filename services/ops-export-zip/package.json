@@ -1,0 +1,17 @@
+{
+  "name": "ops-export-zip",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "handler.mjs",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "pack": "node ./scripts/pack.mjs"
+  },
+  "dependencies": {
+    "ali-oss": "^6.23.0",
+    "archiver": "^7.0.1"
+  }
+}

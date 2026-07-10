@@ -168,6 +168,32 @@ enum InitialMaterialReviewReportEmailStatus {
   FAILED
 }
 
+enum ApplicationExtractionExportStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+enum ApplicationExtractionExportTrigger {
+  CONFIRM
+  RESULT
+  FEEDBACK
+}
+
+enum OpsExportJobStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  SUCCEEDED_WITH_GAPS
+  FAILED
+}
+
+enum OpsExportMode {
+  FILTER
+  IDS
+}
+
 enum AskAiFeedbackRating {
   UP
   DOWN
@@ -236,6 +262,7 @@ model Application {
   currentStep                  String?
   eligibilityResult            EligibilityResult @default(UNKNOWN)
   latestAnalysisJobId          String?
+  customerNo                   String?           @unique
   firstAccessedAt              DateTime?
   lastAccessedAt               DateTime?
   introConfirmedAt             DateTime?
@@ -269,6 +296,7 @@ model Application {
   supplementFiles              SupplementFile[]
   feedback                     ApplicationFeedback?
   initialMaterialReviewReportEmail InitialMaterialReviewReportEmail?
+  extractionExport             ApplicationExtractionExport?
   events                       ApplicationEventLog[]
   accessLogs                   InviteAccessLog[]
   fileUploadAttempts           FileUploadAttempt[]
@@ -283,6 +311,40 @@ model Application {
   @@index([analysisCompletedAt])
   @@index([materialsEnteredAt])
   @@index([submittedAt])
+  @@index([customerNo])
+}
+
+model CustomerNoDailyCounter {
+  dateKey   String   @id
+  lastSeq   Int      @default(0)
+  updatedAt DateTime @updatedAt
+}
+
+model OpsExportJob {
+  id                   String             @id @default(cuid())
+  status               OpsExportJobStatus @default(PENDING)
+  mode                 OpsExportMode
+  operatorDigest       String
+  filterSnapshot       Json?
+  applicationIds       String[]
+  exportableCount      Int                @default(0)
+  excludedEmptyCount   Int                @default(0)
+  estimatedBytes       Int                @default(0)
+  entriesObjectKey     String?
+  outputObjectKey      String?
+  zipFileSize          Int?
+  missingCount         Int                @default(0)
+  missingSummary       Json?
+  errorMessage         String?            @db.Text
+  leaseExpiresAt       DateTime?
+  startedAt            DateTime?
+  finishedAt           DateTime?
+  createdAt            DateTime           @default(now())
+  updatedAt            DateTime           @updatedAt
+
+  @@index([status, createdAt])
+  @@index([operatorDigest, status])
+  @@index([leaseExpiresAt])
 }
 
 model ResumeFile {
@@ -647,6 +709,29 @@ model InitialMaterialReviewReportEmail {
 
   @@index([status, nextRetryAt])
   @@index([reviewRunId])
+}
+
+model ApplicationExtractionExport {
+  id              String                             @id @default(cuid())
+  applicationId   String                             @unique
+  objectKey       String
+  status          ApplicationExtractionExportStatus  @default(PENDING)
+  contentSha256   String?
+  fileSize        Int?
+  dirty           Boolean                            @default(false)
+  leaseExpiresAt  DateTime?
+  lastAttemptAt   DateTime?
+  exportedAt      DateTime?
+  errorMessage    String?                            @db.Text
+  lastTrigger     ApplicationExtractionExportTrigger?
+  attemptCount    Int                                @default(0)
+  createdAt       DateTime                           @default(now())
+  updatedAt       DateTime                           @updatedAt
+
+  application Application @relation(fields: [applicationId], references: [id])
+
+  @@index([status, leaseExpiresAt])
+  @@index([status, dirty])
 }
 
 model ApplicationFaqEntry {
