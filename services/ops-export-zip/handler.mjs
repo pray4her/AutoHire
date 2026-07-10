@@ -9,6 +9,11 @@
  *
  * Credentials: FC instance role injects
  *   ALIBABA_CLOUD_ACCESS_KEY_ID / ALIBABA_CLOUD_ACCESS_KEY_SECRET / ALIBABA_CLOUD_SECURITY_TOKEN
+ *
+ * FC 3.0 Node.js HTTP trigger event shape (official):
+ *   event is a Buffer/string JSON with { version, headers, body, isBase64Encoded, requestContext }
+ *   See: https://help.aliyun.com/zh/functioncompute/fc/user-guide/request-handlers
+ *   See: https://help.aliyun.com/zh/functioncompute/fc/user-guide/http-trigger-invoking-function
  */
 import { createWriteStream } from "node:fs";
 import { mkdir, readFile, rm, stat } from "node:fs/promises";
@@ -23,8 +28,130 @@ const DEFAULT_BUCKET = "hirebucket";
 const DEFAULT_ENDPOINT = "https://oss-cn-wuhan-lr.aliyuncs.com";
 const DEFAULT_REGION = "cn-wuhan-lr";
 
-export async function handler(event, context) {
-  const request = normalizeRequest(event);
+/**
+ * Coerce FC runtime `event` (Buffer | string | object) into a plain object.
+ * Official Node.js docs: event is Buffer and must be JSON.parsed.
+ */
+export function coerceFcEventObject(event) {
+  if (event == null) {
+    return null;
+  }
+
+  if (Buffer.isBuffer(event)) {
+    const text = event.toString("utf8");
+    if (!text) {
+      return null;
+    }
+    return JSON.parse(text);
+  }
+
+  if (typeof event === "string") {
+    if (!event) {
+      return null;
+    }
+    return JSON.parse(event);
+  }
+
+  if (event instanceof Uint8Array) {
+    const text = Buffer.from(event).toString("utf8");
+    if (!text) {
+      return null;
+    }
+    return JSON.parse(text);
+  }
+
+  if (typeof event === "object") {
+    return event;
+  }
+
+  throw new Error(`Unsupported FC event type: ${typeof event}`);
+}
+
+/**
+ * Normalize an FC HTTP-trigger event into headers + raw body fields.
+ * Distinguishes official HTTP event envelopes from a direct business payload.
+ */
+export function parseFcHttpEvent(event) {
+  const eventObj = coerceFcEventObject(event);
+
+  if (!eventObj || typeof eventObj !== "object") {
+    return {
+      headers: {},
+      body: null,
+      isBase64Encoded: false,
+      requestId: undefined,
+    };
+  }
+
+  const looksLikeHttpEnvelope =
+    "body" in eventObj ||
+    "requestContext" in eventObj ||
+    eventObj.version === "v1" ||
+    "rawPath" in eventObj ||
+    "isBase64Encoded" in eventObj;
+
+  if (looksLikeHttpEnvelope) {
+    return {
+      headers: eventObj.headers || eventObj.header || {},
+      body: eventObj.body ?? "",
+      isBase64Encoded: Boolean(eventObj.isBase64Encoded),
+      requestId: eventObj.requestContext?.requestId,
+    };
+  }
+
+  // Direct invoke / local smoke: the object itself is the business payload.
+  if (eventObj.jobId || eventObj.entriesObjectKey) {
+    return {
+      headers: {},
+      body: JSON.stringify(eventObj),
+      isBase64Encoded: false,
+      requestId: undefined,
+    };
+  }
+
+  return {
+    headers: {},
+    body: null,
+    isBase64Encoded: false,
+    requestId: undefined,
+  };
+}
+
+/**
+ * Parse the HTTP body string/object into a JSON business payload.
+ * Honors isBase64Encoded per FC HTTP trigger mapping rules.
+ */
+export function parseRequestJsonBody(body, isBase64Encoded = false) {
+  if (body == null || body === "") {
+    throw new Error("Request body is empty.");
+  }
+
+  if (typeof body === "object" && !Buffer.isBuffer(body)) {
+    return body;
+  }
+
+  let text = Buffer.isBuffer(body) ? body.toString("utf8") : String(body);
+  if (isBase64Encoded) {
+    text = Buffer.from(text, "base64").toString("utf8");
+  }
+
+  return JSON.parse(text);
+}
+
+export async function handler(event, context, deps = {}) {
+  const packAndUploadImpl = deps.packAndUpload ?? packAndUpload;
+  const postCallbackImpl = deps.postCallback ?? postCallback;
+
+  let request;
+  try {
+    request = parseFcHttpEvent(event);
+  } catch (error) {
+    return httpResponse(400, {
+      error: error instanceof Error ? error.message : "Invalid FC event",
+      code: "OPS_EXPORT_FC_BAD_REQUEST",
+    });
+  }
+
   const authHeader =
     getHeader(request.headers, "authorization") ||
     getHeader(request.headers, "Authorization");
@@ -39,7 +166,7 @@ export async function handler(event, context) {
 
   let body;
   try {
-    body = parseJsonBody(request.body, request.isBase64Encoded);
+    body = parseRequestJsonBody(request.body, request.isBase64Encoded);
   } catch (error) {
     return httpResponse(400, {
       error: error instanceof Error ? error.message : "Invalid JSON body",
@@ -62,13 +189,14 @@ export async function handler(event, context) {
 
   const requestId =
     context?.requestId ||
+    request.requestId ||
     getHeader(request.headers, "x-fc-request-id") ||
     jobId;
 
   // For Async HTTP invoke, FC returns 202 to the caller; this handler still
   // runs to completion and must finish packing + callback before exiting.
   try {
-    const result = await packAndUpload({
+    const result = await packAndUploadImpl({
       jobId,
       bucket,
       entriesObjectKey,
@@ -76,7 +204,7 @@ export async function handler(event, context) {
       requestId,
     });
 
-    await postCallback(callbackUrl, expectedSecret, {
+    await postCallbackImpl(callbackUrl, expectedSecret, {
       status: result.missing.length ? "SUCCEEDED_WITH_GAPS" : "SUCCEEDED",
       outputObjectKey,
       zipFileSize: result.zipFileSize,
@@ -95,7 +223,7 @@ export async function handler(event, context) {
     const message = error instanceof Error ? error.message : String(error);
     console.error(JSON.stringify({ jobId, requestId, error: message }));
 
-    await postCallback(callbackUrl, expectedSecret, {
+    await postCallbackImpl(callbackUrl, expectedSecret, {
       status: "FAILED",
       errorMessage: message,
     }).catch((callbackError) => {
@@ -302,54 +430,6 @@ async function postCallback(url, secret, body) {
       `Callback failed with status ${response.status}: ${text.slice(0, 300)}`,
     );
   }
-}
-
-function normalizeRequest(event) {
-  if (event == null) {
-    return { headers: {}, body: null, isBase64Encoded: false };
-  }
-
-  if (typeof event === "string") {
-    return { headers: {}, body: event, isBase64Encoded: false };
-  }
-
-  // FC HTTP / Web function style
-  if (typeof event === "object") {
-    const headers = event.headers || event.header || {};
-    let body = event.body ?? event;
-    if (
-      body &&
-      typeof body === "object" &&
-      !Buffer.isBuffer(body) &&
-      (body.jobId || body.entriesObjectKey)
-    ) {
-      body = JSON.stringify(body);
-    }
-    return {
-      headers,
-      body,
-      isBase64Encoded: Boolean(event.isBase64Encoded),
-    };
-  }
-
-  return { headers: {}, body: null, isBase64Encoded: false };
-}
-
-function parseJsonBody(body, isBase64Encoded) {
-  if (body == null || body === "") {
-    throw new Error("Request body is empty.");
-  }
-
-  if (typeof body === "object") {
-    return body;
-  }
-
-  let text = String(body);
-  if (isBase64Encoded) {
-    text = Buffer.from(text, "base64").toString("utf8");
-  }
-
-  return JSON.parse(text);
 }
 
 function getHeader(headers, name) {

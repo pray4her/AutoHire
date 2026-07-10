@@ -37,3 +37,18 @@ npm run pack
 ## 调用约定
 
 见仓库内 AutoHire `src/lib/ops-expert-files/fc-client.ts`：异步 HTTP + Bearer。
+
+## FC 3.0 event 解析
+
+内置运行时 HTTP 触发器传入的 `event` 是 **Buffer**（JSON 字符串），需先 `JSON.parse`，再读 `body` / `isBase64Encoded` / `headers`。  
+参考官方文档：
+
+- [Node.js 请求处理程序](https://help.aliyun.com/zh/functioncompute/fc/user-guide/request-handlers)
+- [HTTP 触发器请求与响应结构](https://help.aliyun.com/zh/functioncompute/fc/user-guide/http-trigger-invoking-function)
+
+本地单测：
+
+```bash
+# 在仓库根目录
+bun run vitest run services/ops-export-zip/handler.test.mjs
+```
