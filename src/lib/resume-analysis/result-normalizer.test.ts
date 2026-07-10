@@ -60,6 +60,44 @@ ${reason}}}}`,
     expect(result.missingFields).toEqual([]);
   });
 
+  it("parses two-step Analysis Process + Reason for ineligibility determination", () => {
+    const reason =
+      "For applicants born before Jan 1, 1987 and working outside mainland China, a current mid-to-senior level position is required. This position must be equivalent to an **Associate Professor** or a comparable role in a university, research institution, or enterprise.";
+
+    const result = normalizeAnalysisResultPayload({
+      raw_response: `### 1. Analysis Process
+[[[已知出生年份为1984（明确提及），不属于临界推断问题。最高学位为博士，故不触发“仅硕士及以下不符合”。
+
+当前工作地点为巴基斯坦（中国大陆以外）。因此适用“3.目前在中国大陆以外地区工作”的规则。
+
+申请人出生于1987年1月1日之前（1984年）。在中国大陆以外地区“目前”岗位为：
+- 2024/11-Present，Pakistan，Quaid-I-Azam University，Assistant Professor (Visiting)，且“Current Employment Formality Judgment: Visiting”。
+
+规则3针对1987年前出生者，要求“目前在中国大陆以外的高校、科研机构或企业担任中级及以上职务/职称”；但访问类岗位只有在“明确标注为全职”的情况下才可计入。目前材料仅表明 Visiting，未表明全职；且“Current Title Equivalence: Lecturer/Teaching/Research Assistant”也不支持将其稳妥认定为符合所要求的中级及以上正式岗位。因此可判断其目前未满足该项要求，落入3.1：1987年前出生，目前未在中国大陆以外担任中级及以上职务/职称。
+
+研究领域为biofuel/bioenergy等，具有明确产业应用相关性，不触发研究领域排除条款5。
+年龄未达到1947年前出生，不触发条款4。
+条件A不适用：虽出生于1947-1987之间且研究领域不属排除，但无证据表明其“在海外企业工作累计10年，且目前是企业研发或者技术条线高级职称”，故不能按A判定符合。
+
+工作经历日期不模糊，且不存在关键字段!!!null!!!影响最终主资格判断；姓名、邮箱、电话为空与否本就不影响资格判断。
+
+因此可直接得出主申请资格为不符合。由于触发的是3.1，而不是3.3或3.4，不进入第二轮、第三轮博士后专项评估。]]]
+
+###2. Determination Result
+{{{Reason for ineligibility:
+
+${reason}}}}`,
+    });
+
+    expect(result.eligibilityResult).toBe("INELIGIBLE");
+    expect(result.displaySummary).toBe(
+      "Thank you for applying. Unfortunately, your profile does not currently meet the basic requirements for this talent program.",
+    );
+    expect(result.reasonText).toBe(reason);
+    expect(result.missingFields).toEqual([]);
+    expect(result.rawReasoning).toContain("落入3.1");
+  });
+
   it("parses eligible results from the formal decision block", () => {
     const result = normalizeAnalysisResultPayload({
       raw_response:

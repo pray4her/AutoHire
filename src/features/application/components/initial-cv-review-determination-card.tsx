@@ -1,4 +1,3 @@
-import { Badge } from "@/components/ui/badge";
 import { SectionCard } from "@/components/ui/page-shell";
 import { ApplicationFeedbackSectionCard } from "@/features/application/components/application-feedback-section-card";
 import {
@@ -31,6 +30,32 @@ function resolveIneligibleReasonText(reasonText: string | null) {
   }
 
   return reason;
+}
+
+/** Renders applicant-facing reason copy, preserving `**bold**` emphasis from the model. */
+function IneligibleReasonBodyText({ text }: { readonly text: string }) {
+  const segments = text.split(/(\*\*[^*]+?\*\*)/g);
+
+  return (
+    <p className="text-sm leading-6 whitespace-pre-wrap text-[color:var(--foreground-soft)]">
+      {segments.map((segment, index) => {
+        const boldMatch = /^\*\*([^*]+)\*\*$/.exec(segment);
+
+        if (boldMatch) {
+          return (
+            <strong
+              key={`bold-${index}`}
+              className="font-semibold text-[color:var(--foreground)]"
+            >
+              {boldMatch[1]}
+            </strong>
+          );
+        }
+
+        return <span key={`text-${index}`}>{segment}</span>;
+      })}
+    </p>
+  );
 }
 
 function EligibilityAssessmentAccuracyNote({
@@ -73,12 +98,9 @@ function IneligibleAssessmentResultBody({
 
   return (
     <div className="flex flex-col gap-4" role="status" aria-live="polite">
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="text-sm text-[color:var(--foreground-soft)]">
-          Status:
-        </span>
-        <Badge variant="destructive">Not Eligible</Badge>
-      </div>
+      <p className="text-sm font-semibold leading-6 text-[color:var(--foreground)]">
+        Status: Not Eligible
+      </p>
 
       <p className="text-sm leading-6 text-[color:var(--foreground-soft)]">
         {INELIGIBLE_INTRO_MESSAGE}
@@ -89,9 +111,7 @@ function IneligibleAssessmentResultBody({
           <p className="text-sm font-semibold leading-6 text-[color:var(--foreground)]">
             {INELIGIBLE_REASON_HEADING}
           </p>
-          <p className="text-sm leading-6 whitespace-pre-wrap text-[color:var(--foreground-soft)]">
-            {reasonDetails}
-          </p>
+          <IneligibleReasonBodyText text={reasonDetails} />
         </div>
       ) : null}
 
@@ -140,7 +160,7 @@ export function InitialCvReviewDeterminationCard({
   if (snapshot.eligibilityResult === "INELIGIBLE") {
     return (
       <>
-        <SectionCard title="Preliminary assessment result">
+        <SectionCard title="Preliminary Assessment Result">
           <IneligibleAssessmentResultBody reasonText={reasonText} />
         </SectionCard>
         <ApplicationFeedbackSectionCard
