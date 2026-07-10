@@ -1,5 +1,8 @@
 # dependencies
-/node_modules
+node_modules/
+
+# FC packager local install + built upload zip
+services/ops-export-zip/dist/
 
 # next.js
 /.next
