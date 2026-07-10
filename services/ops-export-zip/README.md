@@ -28,6 +28,14 @@ cd services/ops-export-zip
 npm run pack
 ```
 
+`pack` 会先 `npm install --omit=dev`，再打 zip（无需事先手动 install）。
+若旧版脚本报找不到 `archiver`，先拉最新代码，或临时执行：
+
+```bash
+npm install --omit=dev
+npm run pack
+```
+
 生成：`dist/ops-export-zip.zip`，在 FC 控制台「代码」页上传。
 
 入口：`handler.handler`  

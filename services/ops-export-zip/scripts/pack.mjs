@@ -5,8 +5,6 @@ import path from "node:path";
 import { pipeline } from "node:stream/promises";
 import { fileURLToPath } from "node:url";
 
-import archiver from "archiver";
-
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const distDir = path.join(root, "dist");
 const zipPath = path.join(distDir, "ops-export-zip.zip");
@@ -14,6 +12,8 @@ const zipPath = path.join(distDir, "ops-export-zip.zip");
 await mkdir(distDir, { recursive: true });
 await rm(zipPath, { force: true });
 
+// Install first — pack.mjs itself needs archiver, and the upload zip must
+// include production node_modules for the FC runtime.
 const install = spawnSync(
   process.platform === "win32" ? "npm.cmd" : "npm",
   ["install", "--omit=dev"],
@@ -23,6 +23,8 @@ const install = spawnSync(
 if (install.status !== 0) {
   process.exit(install.status ?? 1);
 }
+
+const { default: archiver } = await import("archiver");
 
 const output = createWriteStream(zipPath);
 const archive = archiver("zip", { zlib: { level: 9 } });
