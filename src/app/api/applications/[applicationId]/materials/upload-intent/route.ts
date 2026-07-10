@@ -22,15 +22,12 @@ export async function POST(request: NextRequest, { params }: Params) {
     );
   }
 
-  if (
-    access.application.applicationStatus !== "MATERIALS_IN_PROGRESS" &&
-    access.application.applicationStatus !== "SUBMITTED"
-  ) {
+  if (access.application.applicationStatus !== "MATERIALS_IN_PROGRESS") {
     return jsonError(
-      "Supporting materials can only be uploaded once your application is in the materials stage.",
+      "Supporting materials can only be uploaded before final submission.",
       409,
       {
-        code: "MATERIALS_STAGE_NOT_READY",
+        code: "MATERIALS_STAGE_NOT_EDITABLE",
       },
     );
   }

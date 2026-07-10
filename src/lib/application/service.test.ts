@@ -415,7 +415,7 @@ describe("secondary analysis editable service flow", () => {
     } satisfies Partial<ApplicationServiceError>);
   });
 
-  it("keeps submitted status while allowing materials edits and product description updates", async () => {
+  it("blocks material upload and delete after final submission while allowing product description updates", async () => {
     await updateApplication("app_secondary", {
       applicationStatus: "SUBMITTED",
     });
@@ -425,22 +425,30 @@ describe("secondary analysis editable service flow", () => {
       description: "Refined product positioning after submission.",
     });
 
-    await addMaterialRecord({
-      applicationId: "app_secondary",
-      category: "IDENTITY",
-      fileName: "passport-final.pdf",
-      fileType: "application/pdf",
-      fileSize: 1024,
-      objectKey: "applications/app_secondary/materials/identity/passport-final.pdf",
-    });
+    await expect(
+      addMaterialRecord({
+        applicationId: "app_secondary",
+        category: "IDENTITY",
+        fileName: "passport-final.pdf",
+        fileType: "application/pdf",
+        fileSize: 1024,
+        objectKey:
+          "applications/app_secondary/materials/identity/passport-final.pdf",
+      }),
+    ).rejects.toMatchObject({
+      status: 409,
+      code: "MATERIALS_STAGE_NOT_EDITABLE",
+    } satisfies Partial<ApplicationServiceError>);
 
-    const afterAdd = await getMaterialsByCategory("app_secondary");
-    expect(afterAdd.identity).toHaveLength(1);
+    await expect(
+      removeMaterialRecord("app_secondary", "material_missing"),
+    ).rejects.toMatchObject({
+      status: 409,
+      code: "MATERIALS_STAGE_NOT_EDITABLE",
+    } satisfies Partial<ApplicationServiceError>);
 
-    await removeMaterialRecord("app_secondary", afterAdd.identity[0].id);
-
-    const afterDelete = await getMaterialsByCategory("app_secondary");
-    expect(afterDelete.identity).toHaveLength(0);
+    const materials = await getMaterialsByCategory("app_secondary");
+    expect(materials.identity).toHaveLength(0);
 
     const snapshot = await getSnapshot("app_secondary");
     expect(snapshot?.applicationStatus).toBe("SUBMITTED");

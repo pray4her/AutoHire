@@ -103,7 +103,8 @@ export function isFlowStepReadOnly(
  * Step 2 ("Upload Required Documents") opens materials upload except while
  * supplemental fields are required (`INFO_REQUIRED`), when it stays on the
  * unified CV Review route. After final submission, Step 2 opens materials in
- * review mode. Step 3 is always the submission-complete route.
+ * read-only review mode (no upload/delete). Step 3 is always the
+ * submission-complete route.
  */
 export function buildApplyFlowStepLinks(
   applicationStatus?: ApplicationStatus | null,

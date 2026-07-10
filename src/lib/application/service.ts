@@ -1886,10 +1886,10 @@ export async function addMaterialRecord(input: {
 }) {
   await requireApplicationStage({
     applicationId: input.applicationId,
-    allowedStatuses: ["MATERIALS_IN_PROGRESS", "SUBMITTED"],
+    allowedStatuses: ["MATERIALS_IN_PROGRESS"],
     message:
-      "Supporting materials can only be uploaded once your application is in the materials stage.",
-    code: "MATERIALS_STAGE_NOT_READY",
+      "Supporting materials can only be uploaded before final submission.",
+    code: "MATERIALS_STAGE_NOT_EDITABLE",
   });
 
   const material = await createMaterial(input);
@@ -1903,9 +1903,9 @@ export async function removeMaterialRecord(
 ) {
   await requireApplicationStage({
     applicationId,
-    allowedStatuses: ["MATERIALS_IN_PROGRESS", "SUBMITTED"],
+    allowedStatuses: ["MATERIALS_IN_PROGRESS"],
     message:
-      "Supporting materials can only be edited while the materials stage is active.",
+      "Supporting materials can only be edited before final submission.",
     code: "MATERIALS_STAGE_NOT_EDITABLE",
   });
 

@@ -98,13 +98,10 @@ function MaterialsPageContent() {
     applicationId: snapshot?.applicationId,
   });
 
-  const isFlowReadOnlyReview = snapshot
+  // After Confirm Submission, materials are view-only even via ?view=review.
+  const isReadOnlyReview = snapshot
     ? isFlowStepReadOnly(snapshot.applicationStatus, 2)
     : false;
-  const canEditSubmittedReview = Boolean(
-    snapshot?.applicationStatus === "SUBMITTED" && isReviewRequest,
-  );
-  const isReadOnlyReview = isFlowReadOnlyReview && !canEditSubmittedReview;
 
   const {
     optimisticMaterials,
