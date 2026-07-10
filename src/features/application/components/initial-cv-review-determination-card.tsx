@@ -1,3 +1,4 @@
+import { Badge } from "@/components/ui/badge";
 import { SectionCard } from "@/components/ui/page-shell";
 import { ApplicationFeedbackSectionCard } from "@/features/application/components/application-feedback-section-card";
 import {
@@ -98,9 +99,12 @@ function IneligibleAssessmentResultBody({
 
   return (
     <div className="flex flex-col gap-4" role="status" aria-live="polite">
-      <p className="text-sm font-semibold leading-6 text-[color:var(--foreground)]">
-        Status: Not Eligible
-      </p>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="text-sm text-[color:var(--foreground-soft)]">
+          Status:
+        </span>
+        <Badge variant="destructive">Not Eligible</Badge>
+      </div>
 
       <p className="text-sm leading-6 text-[color:var(--foreground-soft)]">
         {INELIGIBLE_INTRO_MESSAGE}
