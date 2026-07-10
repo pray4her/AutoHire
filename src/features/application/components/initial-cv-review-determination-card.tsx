@@ -97,7 +97,7 @@ function IneligibleAssessmentResultBody({
 
       <IneligibleManualReviewNote />
 
-      <p className="text-sm leading-6 text-[color:var(--foreground-soft)]">
+      <p className="text-sm font-semibold leading-6 text-[color:var(--foreground)]">
         {INELIGIBLE_CLOSING_MESSAGE}
       </p>
     </div>
