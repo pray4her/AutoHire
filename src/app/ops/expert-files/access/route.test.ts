@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
 
-import { GET } from "@/app/ops/invitations/access/route";
+import { GET } from "@/app/ops/expert-files/access/route";
 import {
   getAuditDashboardCookieName,
   verifyAuditDashboardCookie,
@@ -10,7 +10,7 @@ import { resetEnvForTests } from "@/lib/env";
 
 const originalEnv = { ...process.env };
 
-describe("GET /ops/invitations/access", () => {
+describe("GET /ops/expert-files/access", () => {
   beforeEach(() => {
     process.env = {
       ...originalEnv,
@@ -31,13 +31,13 @@ describe("GET /ops/invitations/access", () => {
   it("sets a shared /ops audit cookie and redirects for valid tokens", async () => {
     const response = await GET(
       new NextRequest(
-        "http://localhost/ops/invitations/access?token=ops-token",
+        "http://localhost/ops/expert-files/access?token=ops-token",
       ),
     );
 
     expect(response.status).toBe(307);
     expect(response.headers.get("location")).toBe(
-      "https://example.test/ops/invitations",
+      "https://example.test/ops/expert-files",
     );
 
     const setCookie = response.headers.get("set-cookie") ?? "";
@@ -53,9 +53,28 @@ describe("GET /ops/invitations/access", () => {
     expect(verifyAuditDashboardCookie(cookieValue)).toBe(true);
   });
 
+  it("prefers x-forwarded-host over the internal request URL", async () => {
+    const response = await GET(
+      new NextRequest(
+        "http://localhost:3000/ops/expert-files/access?token=ops-token",
+        {
+          headers: {
+            "x-forwarded-host": "talent.1000help.com",
+            "x-forwarded-proto": "https",
+          },
+        },
+      ),
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "https://talent.1000help.com/ops/expert-files",
+    );
+  });
+
   it("returns 404 without a cookie for invalid tokens", async () => {
     const response = await GET(
-      new NextRequest("http://localhost/ops/invitations/access?token=wrong"),
+      new NextRequest("http://localhost/ops/expert-files/access?token=wrong"),
     );
 
     expect(response.status).toBe(404);

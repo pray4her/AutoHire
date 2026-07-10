@@ -10,6 +10,7 @@ import { resetEnvForTests } from "@/lib/env";
 
 describe("GET /ops/audit/access", () => {
   beforeEach(() => {
+    process.env.APP_BASE_URL = "https://example.test";
     process.env.AUDIT_DASHBOARD_TOKENS = "audit-token";
     process.env.AUDIT_DASHBOARD_COOKIE_NAME = "audit_test_cookie";
     process.env.AUDIT_DASHBOARD_COOKIE_MAX_AGE_SECONDS = "300";
@@ -18,6 +19,7 @@ describe("GET /ops/audit/access", () => {
   });
 
   afterEach(() => {
+    delete process.env.APP_BASE_URL;
     delete process.env.AUDIT_DASHBOARD_TOKENS;
     delete process.env.AUDIT_DASHBOARD_COOKIE_NAME;
     delete process.env.AUDIT_DASHBOARD_COOKIE_MAX_AGE_SECONDS;
@@ -31,7 +33,9 @@ describe("GET /ops/audit/access", () => {
     );
 
     expect(response.status).toBe(307);
-    expect(response.headers.get("location")).toBe("http://localhost/ops/audit");
+    expect(response.headers.get("location")).toBe(
+      "https://example.test/ops/audit",
+    );
 
     const setCookie = response.headers.get("set-cookie") ?? "";
     expect(setCookie).toContain(`${getAuditDashboardCookieName()}=`);

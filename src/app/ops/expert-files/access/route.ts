@@ -6,7 +6,7 @@ import {
   getAuditDashboardCookieName,
   verifyAuditDashboardToken,
 } from "@/lib/audit/auth";
-import { isClientHttps } from "@/lib/http";
+import { isClientHttps, resolveClientFacingOrigin } from "@/lib/http";
 
 export async function GET(request: NextRequest) {
   const token = request.nextUrl.searchParams.get("token");
@@ -16,7 +16,7 @@ export async function GET(request: NextRequest) {
   }
 
   const response = NextResponse.redirect(
-    new URL("/ops/expert-files", request.url),
+    new URL("/ops/expert-files", resolveClientFacingOrigin(request)),
   );
   response.cookies.set({
     name: getAuditDashboardCookieName(),
