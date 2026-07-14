@@ -16,9 +16,10 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import type { OpsLoginRedirectTarget } from "@/lib/ops-expert-files/safe-next-path";
 
 type ExpertFilesLoginFormProps = {
-  redirectTo?: string;
+  redirectTo?: OpsLoginRedirectTarget;
   title?: string;
   subtitle?: string;
   description?: string;

@@ -1,16 +1,25 @@
-/** Allow only same-origin ops paths to avoid open redirects. */
+import type { Route } from "next";
+
+/** Allowed post-login destinations for shared ops password login. */
+export const OPS_LOGIN_REDIRECT_TARGETS = [
+  "/ops/expert-files",
+  "/ops/invitations",
+] as const satisfies ReadonlyArray<Route>;
+
+export type OpsLoginRedirectTarget =
+  (typeof OPS_LOGIN_REDIRECT_TARGETS)[number];
+
+/** Allow only known ops destinations to avoid open redirects. */
 export function resolveSafeOpsNextPath(
   candidate: string | null | undefined,
-  fallback: string,
-) {
+  fallback: OpsLoginRedirectTarget,
+): OpsLoginRedirectTarget {
   if (
-    !candidate ||
-    !candidate.startsWith("/ops/") ||
-    candidate.startsWith("//") ||
-    candidate.includes("\\")
+    candidate &&
+    (OPS_LOGIN_REDIRECT_TARGETS as readonly string[]).includes(candidate)
   ) {
-    return fallback;
+    return candidate as OpsLoginRedirectTarget;
   }
 
-  return candidate;
+  return fallback;
 }
