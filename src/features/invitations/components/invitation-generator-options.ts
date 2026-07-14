@@ -8,17 +8,17 @@ export const ALGORITHM_OPTIONS: ReadonlyArray<{
   {
     label: "SHA-256",
     value: "SHA256",
-    description: "64 hex hash，兼容现有邀请链接",
+    description: "64 位十六进制哈希，兼容现有邀请链接",
   },
   {
     label: "SHA-384",
     value: "SHA384",
-    description: "96 hex hash，更长摘要",
+    description: "96 位十六进制哈希，更长摘要",
   },
   {
     label: "SHA-512",
     value: "SHA512",
-    description: "128 hex hash，最长摘要",
+    description: "128 位十六进制哈希，最长摘要",
   },
 ];
 

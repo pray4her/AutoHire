@@ -75,7 +75,7 @@ export function InvitationGeneratorForm({
       }}
     >
       <label className="flex flex-col gap-2">
-        <span className="text-sm font-medium">Hash algorithm</span>
+        <span className="text-sm font-medium">哈希算法</span>
         <Select
           value={algorithm}
           onValueChange={(value) => {
@@ -103,7 +103,7 @@ export function InvitationGeneratorForm({
       </label>
 
       <label className="flex flex-col gap-2">
-        <span className="text-sm font-medium">Count</span>
+        <span className="text-sm font-medium">数量</span>
         <Input
           min={1}
           max={INVITATION_GENERATION_MAX_COUNT}
@@ -112,13 +112,13 @@ export function InvitationGeneratorForm({
           onChange={(event) => onCountChange(event.target.value)}
         />
         <span className="text-muted-foreground text-xs">
-          Maximum {INVITATION_GENERATION_MAX_COUNT.toLocaleString("en-US")} per
-          batch.
+          每批最多 {INVITATION_GENERATION_MAX_COUNT.toLocaleString("zh-CN")}{" "}
+          个。
         </span>
       </label>
 
       <label className="flex flex-col gap-2">
-        <span className="text-sm font-medium">Expiry days</span>
+        <span className="text-sm font-medium">有效期（天）</span>
         <Input
           min={0}
           max={3650}
@@ -127,19 +127,19 @@ export function InvitationGeneratorForm({
           onChange={(event) => onExpiredDaysChange(event.target.value)}
         />
         <span className="text-muted-foreground text-xs">
-          Default 90 days. Set 0 to use hours/minutes.
+          默认 90 天。设为 0 后可使用小时/分钟。
         </span>
       </label>
 
       <div className="flex items-end gap-2">
         <Button className="w-full" disabled={!canGenerate} type="submit">
           {isGenerating ? <Spinner data-icon="inline-start" /> : null}
-          Generate
+          生成
         </Button>
       </div>
 
       <label className="flex flex-col gap-2">
-        <span className="text-sm font-medium">Expiry hours</span>
+        <span className="text-sm font-medium">有效期（小时）</span>
         <Input
           min={0}
           max={23}
@@ -149,12 +149,12 @@ export function InvitationGeneratorForm({
           onChange={(event) => onExpiredHoursChange(event.target.value)}
         />
         <span className="text-muted-foreground text-xs">
-          0–23. Enabled only when days is 0.
+          0–23。仅在天数为 0 时启用。
         </span>
       </label>
 
       <label className="flex flex-col gap-2">
-        <span className="text-sm font-medium">Expiry minutes</span>
+        <span className="text-sm font-medium">有效期（分钟）</span>
         <Input
           min={0}
           max={59}
@@ -164,18 +164,18 @@ export function InvitationGeneratorForm({
           onChange={(event) => onExpiredMinutesChange(event.target.value)}
         />
         <span className="text-muted-foreground text-xs">
-          0–59. At least 1 minute total when days is 0.
+          0–59。天数为 0 时，总有效期至少为 1 分钟。
         </span>
       </label>
 
       <label className="flex flex-col gap-2 lg:col-span-2">
-        <span className="text-sm font-medium">Idempotency key</span>
+        <span className="text-sm font-medium">幂等键</span>
         <Input
           value={idempotencyKey}
           onChange={(event) => onIdempotencyKeyChange(event.target.value)}
         />
         <span className="text-muted-foreground text-xs">
-          Reusing this key returns the same batch instead of creating new tokens.
+          重复使用此键会返回同一批次，而不会创建新令牌。
         </span>
       </label>
 
@@ -187,7 +187,7 @@ export function InvitationGeneratorForm({
           onClick={() => onIdempotencyKeyChange(createDefaultIdempotencyKey())}
         >
           <RefreshCcw data-icon="inline-start" />
-          New key
+          新建幂等键
         </Button>
       </div>
     </form>

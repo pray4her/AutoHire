@@ -17,7 +17,19 @@ import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 
-export function ExpertFilesLoginForm() {
+type ExpertFilesLoginFormProps = {
+  redirectTo?: string;
+  title?: string;
+  subtitle?: string;
+  description?: string;
+};
+
+export function ExpertFilesLoginForm({
+  redirectTo = "/ops/expert-files",
+  title = "运营后台登录",
+  subtitle = "使用运营账号与密码进入后台。",
+  description = "同一账号可用于专家档案、邀请令牌生成器等运营页面。",
+}: ExpertFilesLoginFormProps) {
   const router = useRouter();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -38,7 +50,7 @@ export function ExpertFilesLoginForm() {
         throw new Error(payload.error ?? "登录失败。");
       }
       toast.success("登录成功。");
-      router.replace("/ops/expert-files");
+      router.replace(redirectTo);
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "登录失败。");
@@ -55,17 +67,15 @@ export function ExpertFilesLoginForm() {
           <span className="text-sm tracking-wide">运营后台</span>
         </div>
         <h1 className="font-heading text-2xl font-semibold tracking-tight">
-          专家档案登录
+          {title}
         </h1>
-        <p className="text-sm text-muted-foreground">
-          使用运营账号与密码进入专家档案。
-        </p>
+        <p className="text-sm text-muted-foreground">{subtitle}</p>
       </header>
 
       <Card>
         <CardHeader>
           <CardTitle>登录</CardTitle>
-          <CardDescription>仅用于专家档案页面，不影响其他运营入口。</CardDescription>
+          <CardDescription>{description}</CardDescription>
         </CardHeader>
         <CardContent>
           <form onSubmit={onSubmit}>

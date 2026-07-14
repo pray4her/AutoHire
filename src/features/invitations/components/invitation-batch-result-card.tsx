@@ -31,10 +31,10 @@ export function InvitationBatchResultCard({
   return (
     <Card className="border-foreground/10 bg-background/90 w-full shadow-xl backdrop-blur">
       <CardHeader>
-        <CardTitle>Generated batch</CardTitle>
+        <CardTitle>已生成批次</CardTitle>
         <CardDescription>
-          {batch.createdCount} tokens generated for {batch.hashAlgorithm} at{" "}
-          {formatDateTime(batch.createdAt)}.
+          已于 {formatDateTime(batch.createdAt)} 使用 {batch.hashAlgorithm} 生成{" "}
+          {batch.createdCount} 个令牌。
         </CardDescription>
         <CardAction>
           <Button disabled={isExporting} onClick={onExport}>
@@ -43,17 +43,17 @@ export function InvitationBatchResultCard({
             ) : (
               <Download data-icon="inline-start" />
             )}
-            Export Excel
+            导出 Excel
           </Button>
         </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-wrap gap-2">
-          <Badge variant="outline">Batch: {batch.id}</Badge>
-          <Badge variant="outline">Key: {batch.idempotencyKey}</Badge>
-          <Badge variant="outline">Count: {batch.createdCount}</Badge>
+          <Badge variant="outline">批次：{batch.id}</Badge>
+          <Badge variant="outline">幂等键：{batch.idempotencyKey}</Badge>
+          <Badge variant="outline">数量：{batch.createdCount}</Badge>
           <Badge variant="outline">
-            Expiry: {formatInvitationExpiryLabel(batch)}
+            有效期：{formatInvitationExpiryLabel(batch)}
           </Badge>
         </div>
         <InvitationPreviewRows items={batch.items} />

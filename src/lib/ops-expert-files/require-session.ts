@@ -12,7 +12,7 @@ export async function requireOpsExpertFilesSession(request: NextRequest) {
   if (!session) {
     return {
       session: null,
-      error: jsonError("需要有效的专家档案登录会话。", 401, {
+      error: jsonError("需要有效的运营后台登录会话。", 401, {
         code: "OPS_EXPERT_FILES_SESSION_REQUIRED",
       }),
     } as const;

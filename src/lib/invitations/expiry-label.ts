@@ -4,16 +4,16 @@ export function formatInvitationExpiryLabel(input: {
   readonly expiredMinutes: number;
 }) {
   if (input.expiredDays > 0) {
-    return `${input.expiredDays} days`;
+    return `${input.expiredDays} 天`;
   }
 
   const parts: string[] = [];
   if (input.expiredHours > 0) {
-    parts.push(`${input.expiredHours}h`);
+    parts.push(`${input.expiredHours} 小时`);
   }
   if (input.expiredMinutes > 0) {
-    parts.push(`${input.expiredMinutes}m`);
+    parts.push(`${input.expiredMinutes} 分钟`);
   }
 
-  return parts.join(" ") || "0m";
+  return parts.join(" ") || "0 分钟";
 }

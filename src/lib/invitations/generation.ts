@@ -215,34 +215,34 @@ export function buildInvitationGenerationWorkbook(
   batch: InvitationGenerationBatchSummary,
 ) {
   const rows = batch.items.map((item) => ({
-    sequence: item.sequence,
-    invitationId: item.invitationId,
-    expertId: item.expertId,
-    plaintextToken: item.plaintextToken,
-    inviteLink: item.inviteLink,
-    hashAlgorithm: item.hashAlgorithm,
-    expiredAt: addExpiryDuration(new Date(batch.createdAt), {
+    序号: item.sequence,
+    "邀请 ID": item.invitationId,
+    "专家 ID": item.expertId,
+    原始令牌: item.plaintextToken,
+    邀请链接: item.inviteLink,
+    哈希算法: item.hashAlgorithm,
+    失效时间: addExpiryDuration(new Date(batch.createdAt), {
       expiredDays: batch.expiredDays,
       expiredHours: batch.expiredHours,
       expiredMinutes: batch.expiredMinutes,
     }).toISOString(),
-    createdAt: item.createdAt,
+    创建时间: item.createdAt,
   }));
   const worksheet = XLSX.utils.json_to_sheet(rows, {
     header: [
-      "sequence",
-      "invitationId",
-      "expertId",
-      "plaintextToken",
-      "inviteLink",
-      "hashAlgorithm",
-      "expiredAt",
-      "createdAt",
+      "序号",
+      "邀请 ID",
+      "专家 ID",
+      "原始令牌",
+      "邀请链接",
+      "哈希算法",
+      "失效时间",
+      "创建时间",
     ],
   });
   const workbook = XLSX.utils.book_new();
 
-  XLSX.utils.book_append_sheet(workbook, worksheet, "Invitation Tokens");
+  XLSX.utils.book_append_sheet(workbook, worksheet, "邀请令牌");
 
   const workbookBuffer: Buffer = XLSX.write(workbook, {
     bookType: "xlsx",

@@ -1,27 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import {
-  getAuditDashboardCookieName,
-  verifyAuditDashboardCookie,
-} from "@/lib/audit/auth";
 import { jsonError, parseJsonBody } from "@/lib/http";
 import {
   generateInvitationBatch,
   InvitationGenerationConflictError,
   invitationGenerationRequestSchema,
 } from "@/lib/invitations/generation";
-
-function isAuthorized(request: NextRequest) {
-  return verifyAuditDashboardCookie(
-    request.cookies.get(getAuditDashboardCookieName())?.value,
-  );
-}
+import { requireOpsExpertFilesSession } from "@/lib/ops-expert-files/require-session";
 
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) {
-    return jsonError("A valid operations session is required.", 401, {
-      code: "OPS_SESSION_REQUIRED",
-    });
+  const auth = await requireOpsExpertFilesSession(request);
+  if (auth.error) {
+    return auth.error;
   }
 
   const body = await parseJsonBody<unknown>(request);

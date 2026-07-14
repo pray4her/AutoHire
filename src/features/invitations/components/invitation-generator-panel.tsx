@@ -1,10 +1,12 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { KeyRound } from "lucide-react";
+import { useRouter } from "next/navigation";
+import { KeyRound, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardAction,
@@ -25,6 +27,7 @@ import {
 import { readGenerateResponse } from "./invitation-generator-response";
 
 export function InvitationGeneratorPanel() {
+  const router = useRouter();
   const [algorithm, setAlgorithm] = useState<InviteHashAlgorithm>("SHA256");
   const [count, setCount] = useState("100");
   const [expiredDays, setExpiredDays] = useState("90");
@@ -43,9 +46,7 @@ export function InvitationGeneratorPanel() {
     () => getAlgorithmDescription(algorithm),
     [algorithm],
   );
-  const exportFilename = batch
-    ? `invitation-tokens-${batch.id}.xlsx`
-    : "invitation-tokens.xlsx";
+  const exportFilename = batch ? `邀请令牌-${batch.id}.xlsx` : "邀请令牌.xlsx";
 
   function handleExpiredDaysChange(nextDays: string) {
     setExpiredDays(nextDays);
@@ -53,6 +54,19 @@ export function InvitationGeneratorPanel() {
     if (Number.isFinite(daysValue) && daysValue > 0) {
       setExpiredHours("0");
       setExpiredMinutes("0");
+    }
+  }
+
+  async function logout() {
+    try {
+      await fetch("/api/ops/expert-files/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      router.replace("/ops/invitations/login");
+      router.refresh();
+    } catch {
+      toast.error("退出失败。");
     }
   }
 
@@ -76,12 +90,10 @@ export function InvitationGeneratorPanel() {
       const payload = await readGenerateResponse(response);
 
       setBatch(payload.batch);
-      toast.success("Invitation tokens are ready.");
+      toast.success("邀请令牌已准备就绪。");
     } catch (error) {
       const message =
-        error instanceof Error
-          ? error.message
-          : "Invitation generation failed.";
+        error instanceof Error ? error.message : "邀请令牌生成失败。";
       toast.error(message);
     } finally {
       setIsGenerating(false);
@@ -102,7 +114,7 @@ export function InvitationGeneratorPanel() {
       );
 
       if (!response.ok) {
-        throw new Error("Excel export failed.");
+        throw new Error("Excel 导出失败。");
       }
 
       const blob = await response.blob();
@@ -112,10 +124,10 @@ export function InvitationGeneratorPanel() {
       anchor.download = exportFilename;
       anchor.click();
       URL.revokeObjectURL(objectUrl);
-      toast.success("Excel export downloaded.");
+      toast.success("Excel 文件已下载。");
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "Excel export failed.";
+        error instanceof Error ? error.message : "Excel 导出失败。";
       toast.error(message);
     } finally {
       setIsExporting(false);
@@ -129,14 +141,23 @@ export function InvitationGeneratorPanel() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-2xl">
               <KeyRound data-icon="inline-start" />
-              Invitation Token Forge
+              邀请令牌生成器
             </CardTitle>
             <CardDescription>
-              Generate idempotent invitation batches for email operations. Raw
-              tokens are retained only inside protected generation batches.
+              为邮件运营生成具备幂等性的邀请批次。原始令牌仅保留在受保护的生成批次中。
             </CardDescription>
             <CardAction>
-              <Badge variant="secondary">ops protected</Badge>
+              <div className="flex items-center gap-2">
+                <Badge variant="secondary">运维受保护</Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void logout()}
+                >
+                  <LogOut data-icon="inline-start" />
+                  退出
+                </Button>
+              </div>
             </CardAction>
           </CardHeader>
           <CardContent>

@@ -1,27 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import {
-  getAuditDashboardCookieName,
-  verifyAuditDashboardCookie,
-} from "@/lib/audit/auth";
 import { jsonError } from "@/lib/http";
 import {
   buildInvitationGenerationWorkbook,
   getInvitationGenerationBatchSummary,
 } from "@/lib/invitations/generation";
+import { requireOpsExpertFilesSession } from "@/lib/ops-expert-files/require-session";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ batchId: string }> },
 ) {
-  const isAuthorized = verifyAuditDashboardCookie(
-    request.cookies.get(getAuditDashboardCookieName())?.value,
-  );
-
-  if (!isAuthorized) {
-    return jsonError("A valid operations session is required.", 401, {
-      code: "OPS_SESSION_REQUIRED",
-    });
+  const auth = await requireOpsExpertFilesSession(request);
+  if (auth.error) {
+    return auth.error;
   }
 
   const { batchId } = await params;
@@ -34,14 +26,15 @@ export async function GET(
   }
 
   const workbook = buildInvitationGenerationWorkbook(batch);
-  const filename = `invitation-tokens-${batch.id}.xlsx`;
+  const filename = `邀请令牌-${batch.id}.xlsx`;
+  const encodedFilename = encodeURIComponent(filename);
 
   return new NextResponse(new Uint8Array(workbook), {
     status: 200,
     headers: {
       "content-type":
         "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      "content-disposition": `attachment; filename="${filename}"`,
+      "content-disposition": `attachment; filename="${batch.id}.xlsx"; filename*=UTF-8''${encodedFilename}`,
       "cache-control": "no-store",
     },
   });

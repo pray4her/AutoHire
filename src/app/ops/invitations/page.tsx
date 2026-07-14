@@ -1,23 +1,21 @@
 import { cookies } from "next/headers";
-import { notFound } from "next/navigation";
+import { redirect } from "next/navigation";
 import { connection } from "next/server";
 
 import { InvitationGeneratorPanel } from "@/features/invitations/components/invitation-generator-panel";
-import {
-  getAuditDashboardCookieName,
-  verifyAuditDashboardCookie,
-} from "@/lib/audit/auth";
+import { verifyOpsExpertFilesSession } from "@/lib/ops-expert-files/account-auth";
+import { getOpsExpertFilesCookieName } from "@/lib/ops-expert-files/session";
 
 export default async function InvitationsPage() {
   await connection();
 
   const cookieStore = await cookies();
-  const isAuthorized = verifyAuditDashboardCookie(
-    cookieStore.get(getAuditDashboardCookieName())?.value,
+  const session = await verifyOpsExpertFilesSession(
+    cookieStore.get(getOpsExpertFilesCookieName())?.value,
   );
 
-  if (!isAuthorized) {
-    notFound();
+  if (!session) {
+    redirect("/ops/invitations/login");
   }
 
   return <InvitationGeneratorPanel />;

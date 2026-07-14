@@ -4,20 +4,10 @@ import { connection } from "next/server";
 
 import { ExpertFilesLoginForm } from "@/features/ops-expert-files/components/expert-files-login-form";
 import { verifyOpsExpertFilesSession } from "@/lib/ops-expert-files/account-auth";
-import { resolveSafeOpsNextPath } from "@/lib/ops-expert-files/safe-next-path";
 import { getOpsExpertFilesCookieName } from "@/lib/ops-expert-files/session";
 
-type ExpertFilesLoginPageProps = {
-  searchParams: Promise<{ next?: string }>;
-};
-
-export default async function ExpertFilesLoginPage({
-  searchParams,
-}: ExpertFilesLoginPageProps) {
+export default async function InvitationsLoginPage() {
   await connection();
-
-  const { next } = await searchParams;
-  const redirectTo = resolveSafeOpsNextPath(next, "/ops/expert-files");
 
   const cookieStore = await cookies();
   const session = await verifyOpsExpertFilesSession(
@@ -25,14 +15,14 @@ export default async function ExpertFilesLoginPage({
   );
 
   if (session) {
-    redirect(redirectTo);
+    redirect("/ops/invitations");
   }
 
   return (
     <ExpertFilesLoginForm
-      redirectTo={redirectTo}
-      title="专家档案登录"
-      subtitle="使用运营账号与密码进入专家档案。"
+      redirectTo="/ops/invitations"
+      title="邀请令牌登录"
+      subtitle="使用运营账号与密码进入邀请令牌生成器。"
     />
   );
 }

@@ -36,6 +36,16 @@ describe("invitation generation service", () => {
     resetMemoryStore();
   });
 
+  it("formats day-based expiry labels in Chinese", () => {
+    expect(
+      formatInvitationExpiryLabel({
+        expiredDays: 90,
+        expiredHours: 0,
+        expiredMinutes: 0,
+      }),
+    ).toBe("90 天");
+  });
+
   it("creates invitations that can be resolved by the selected hash algorithm", async () => {
     const input = invitationGenerationRequestSchema.parse({
       algorithm: "SHA512",
@@ -155,7 +165,7 @@ describe("invitation generation service", () => {
     expect(batch.expiredDays).toBe(0);
     expect(batch.expiredHours).toBe(2);
     expect(batch.expiredMinutes).toBe(30);
-    expect(formatInvitationExpiryLabel(batch)).toBe("2h 30m");
+    expect(formatInvitationExpiryLabel(batch)).toBe("2 小时 30 分钟");
     expect(invitation?.expiredAt).toBeInstanceOf(Date);
 
     const expiredAtMs = invitation?.expiredAt?.getTime() ?? 0;

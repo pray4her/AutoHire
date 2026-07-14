@@ -28,10 +28,10 @@ function CopyTokenButton({ token }: { readonly token: string }) {
     try {
       await navigator.clipboard.writeText(token);
       setCopied(true);
-      toast.success("Token copied.");
+      toast.success("令牌已复制。");
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
-      toast.error("Could not copy token.");
+      toast.error("无法复制令牌。");
     }
   }
 
@@ -44,14 +44,14 @@ function CopyTokenButton({ token }: { readonly token: string }) {
             variant="ghost"
             size="icon-xs"
             className="shrink-0"
-            aria-label="Copy token"
+            aria-label="复制令牌"
             onClick={() => void copyToken()}
           />
         }
       >
         {copied ? <Check /> : <Copy />}
       </TooltipTrigger>
-      <TooltipContent>{copied ? "Copied" : "Copy token"}</TooltipContent>
+      <TooltipContent>{copied ? "已复制" : "复制令牌"}</TooltipContent>
     </Tooltip>
   );
 }
@@ -67,15 +67,13 @@ export function InvitationPreviewRows({
   return (
     <div className="overflow-hidden rounded-lg border">
       <Table className="table-fixed">
-        <TableCaption className="sr-only">
-          Preview of generated invitation tokens
-        </TableCaption>
+        <TableCaption className="sr-only">生成的邀请令牌预览</TableCaption>
         <TableHeader>
           <TableRow className="bg-muted/40 hover:bg-muted/40">
             <TableHead className="w-14">#</TableHead>
-            <TableHead className="w-[18%]">Expert ID</TableHead>
-            <TableHead className="w-[42%]">Token</TableHead>
-            <TableHead>Link</TableHead>
+            <TableHead className="w-[18%]">专家 ID</TableHead>
+            <TableHead className="w-[42%]">令牌</TableHead>
+            <TableHead>链接</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -104,8 +102,8 @@ export function InvitationPreviewRows({
       </Table>
       {hiddenCount > 0 ? (
         <p className="text-muted-foreground border-t px-3 py-2 text-sm">
-          Showing first {visibleItems.length} rows. Export Excel for all{" "}
-          {items.length} tokens.
+          当前显示前 {visibleItems.length} 行。导出 Excel 可查看全部{" "}
+          {items.length} 个令牌。
         </p>
       ) : null}
     </div>

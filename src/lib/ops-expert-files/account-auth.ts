@@ -212,7 +212,7 @@ export async function changeOpsExpertFilesPassword(input: {
   const session = await verifyOpsExpertFilesSession(input.cookieValue);
   if (!session) {
     throw new OpsExpertFilesAuthError(
-      "需要有效的专家档案登录会话。",
+      "需要有效的运营后台登录会话。",
       401,
       "OPS_EXPERT_FILES_SESSION_REQUIRED",
     );
@@ -221,7 +221,7 @@ export async function changeOpsExpertFilesPassword(input: {
   const account = await findAccountByUsername(session.username);
   if (!account) {
     throw new OpsExpertFilesAuthError(
-      "需要有效的专家档案登录会话。",
+      "需要有效的运营后台登录会话。",
       401,
       "OPS_EXPERT_FILES_SESSION_REQUIRED",
     );
