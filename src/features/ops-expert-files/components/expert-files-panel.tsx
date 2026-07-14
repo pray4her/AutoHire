@@ -1,9 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Download,
   FolderArchive,
+  KeyRound,
+  LogOut,
   RefreshCw,
   Search,
   Eye,
@@ -156,6 +159,7 @@ function formatFileSource(source: string) {
 }
 
 export function ExpertFilesPanel() {
+  const router = useRouter();
   const [q, setQ] = useState("");
   const [status, setStatus] = useState<"all" | "submitted" | "unsubmitted">(
     "all",
@@ -173,6 +177,11 @@ export function ExpertFilesPanel() {
   const [detailOpen, setDetailOpen] = useState(false);
   const [detail, setDetail] = useState<Record<string, unknown> | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [changingPassword, setChangingPassword] = useState(false);
   const [pendingExport, setPendingExport] = useState<{
     mode: "filter" | "ids";
     estimateToken: string;
@@ -413,6 +422,56 @@ export function ExpertFilesPanel() {
     }
   }
 
+  async function logout() {
+    try {
+      await fetch("/api/ops/expert-files/auth/logout", {
+        method: "POST",
+        credentials: "include",
+      });
+      router.replace("/ops/expert-files/login");
+      router.refresh();
+    } catch {
+      toast.error("退出失败。");
+    }
+  }
+
+  async function submitChangePassword() {
+    if (newPassword.length < 8) {
+      toast.error("新密码至少 8 位。");
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      toast.error("两次输入的新密码不一致。");
+      return;
+    }
+
+    setChangingPassword(true);
+    try {
+      const response = await fetch(
+        "/api/ops/expert-files/auth/change-password",
+        {
+          method: "POST",
+          credentials: "include",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ currentPassword, newPassword }),
+        },
+      );
+      const payload = await response.json();
+      if (!response.ok) {
+        throw new Error(payload.error ?? "修改密码失败。");
+      }
+      toast.success("密码已更新。");
+      setPasswordOpen(false);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "修改密码失败。");
+    } finally {
+      setChangingPassword(false);
+    }
+  }
+
   const inventory = detail?.inventory as
     | {
         files?: Array<{
@@ -428,9 +487,25 @@ export function ExpertFilesPanel() {
   return (
     <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 md:px-8">
       <header className="flex flex-col gap-2">
-        <div className="flex items-center gap-2 text-muted-foreground">
-          <FolderArchive />
-          <span className="text-sm tracking-wide">运营后台</span>
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2 text-muted-foreground">
+            <FolderArchive />
+            <span className="text-sm tracking-wide">运营后台</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setPasswordOpen(true)}
+            >
+              <KeyRound data-icon="inline-start" />
+              修改密码
+            </Button>
+            <Button variant="outline" size="sm" onClick={() => void logout()}>
+              <LogOut data-icon="inline-start" />
+              退出
+            </Button>
+          </div>
         </div>
         <h1 className="font-heading text-3xl font-semibold tracking-tight">
           专家档案
@@ -796,6 +871,71 @@ export function ExpertFilesPanel() {
             <Button disabled={exporting} onClick={() => void confirmExport()}>
               {exporting ? <Spinner data-icon="inline-start" /> : null}
               开始导出
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={passwordOpen}
+        onOpenChange={(open) => {
+          setPasswordOpen(open);
+          if (!open) {
+            setCurrentPassword("");
+            setNewPassword("");
+            setConfirmPassword("");
+          }
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>修改密码</DialogTitle>
+            <DialogDescription>
+              修改成功后当前会话会刷新，其他已登录会话将失效。
+            </DialogDescription>
+          </DialogHeader>
+          <FieldGroup className="gap-4">
+            <Field>
+              <FieldLabel htmlFor="current-password">当前密码</FieldLabel>
+              <Input
+                id="current-password"
+                type="password"
+                autoComplete="current-password"
+                value={currentPassword}
+                onChange={(event) => setCurrentPassword(event.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="new-password">新密码</FieldLabel>
+              <Input
+                id="new-password"
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(event) => setNewPassword(event.target.value)}
+              />
+            </Field>
+            <Field>
+              <FieldLabel htmlFor="confirm-password">确认新密码</FieldLabel>
+              <Input
+                id="confirm-password"
+                type="password"
+                autoComplete="new-password"
+                value={confirmPassword}
+                onChange={(event) => setConfirmPassword(event.target.value)}
+              />
+            </Field>
+          </FieldGroup>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setPasswordOpen(false)}>
+              取消
+            </Button>
+            <Button
+              disabled={changingPassword}
+              onClick={() => void submitChangePassword()}
+            >
+              {changingPassword ? <Spinner data-icon="inline-start" /> : null}
+              保存
             </Button>
           </DialogFooter>
         </DialogContent>

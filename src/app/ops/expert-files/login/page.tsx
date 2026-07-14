@@ -2,11 +2,11 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 
-import { ExpertFilesPanel } from "@/features/ops-expert-files/components/expert-files-panel";
+import { ExpertFilesLoginForm } from "@/features/ops-expert-files/components/expert-files-login-form";
 import { verifyOpsExpertFilesSession } from "@/lib/ops-expert-files/account-auth";
 import { getOpsExpertFilesCookieName } from "@/lib/ops-expert-files/session";
 
-export default async function ExpertFilesPage() {
+export default async function ExpertFilesLoginPage() {
   await connection();
 
   const cookieStore = await cookies();
@@ -14,9 +14,9 @@ export default async function ExpertFilesPage() {
     cookieStore.get(getOpsExpertFilesCookieName())?.value,
   );
 
-  if (!session) {
-    redirect("/ops/expert-files/login");
+  if (session) {
+    redirect("/ops/expert-files");
   }
 
-  return <ExpertFilesPanel />;
+  return <ExpertFilesLoginForm />;
 }

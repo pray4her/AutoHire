@@ -1,30 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import {
-  getAuditDashboardCookieName,
-  verifyAuditDashboardCookie,
-} from "@/lib/audit/auth";
 import { jsonError } from "@/lib/http";
 import {
   OpsExportError,
   getExpertFileExportJob,
 } from "@/lib/ops-expert-files/export-service";
+import { requireOpsExpertFilesSession } from "@/lib/ops-expert-files/require-session";
 
 type RouteContext = {
   params: Promise<{ jobId: string }>;
 };
 
-function isAuthorized(request: NextRequest) {
-  return verifyAuditDashboardCookie(
-    request.cookies.get(getAuditDashboardCookieName())?.value,
-  );
-}
-
 export async function GET(request: NextRequest, context: RouteContext) {
-  if (!isAuthorized(request)) {
-    return jsonError("需要有效的运营后台登录会话。", 401, {
-      code: "OPS_SESSION_REQUIRED",
-    });
+  const { error } = await requireOpsExpertFilesSession(request);
+  if (error) {
+    return error;
   }
 
   const { jobId } = await context.params;

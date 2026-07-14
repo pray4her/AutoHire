@@ -1,4 +1,4 @@
-export const OPS_EXPORT_MAX_APPLICATIONS = 50;
+export const OPS_EXPORT_MAX_APPLICATIONS = 500;
 export const OPS_EXPORT_MAX_BYTES = 2 * 1024 * 1024 * 1024;
 export const OPS_EXPORT_ESTIMATE_TTL_SECONDS = 5 * 60;
 export const OPS_EXPORT_LEASE_MS = 60 * 60 * 1000;

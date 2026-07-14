@@ -1,29 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import {
-  getAuditDashboardCookieName,
-  getAuditDashboardOperatorDigest,
-  verifyAuditDashboardCookie,
-} from "@/lib/audit/auth";
 import { jsonError, parseJsonBody } from "@/lib/http";
 import {
   OpsExportError,
   createExpertFileExport,
   listExpertFileExportJobs,
 } from "@/lib/ops-expert-files/export-service";
+import { requireOpsExpertFilesSession } from "@/lib/ops-expert-files/require-session";
 import { exportCreateRequestSchema } from "@/lib/ops-expert-files/schemas";
 
-function isAuthorized(request: NextRequest) {
-  return verifyAuditDashboardCookie(
-    request.cookies.get(getAuditDashboardCookieName())?.value,
-  );
-}
-
 export async function GET(request: NextRequest) {
-  if (!isAuthorized(request)) {
-    return jsonError("需要有效的运营后台登录会话。", 401, {
-      code: "OPS_SESSION_REQUIRED",
-    });
+  const { error } = await requireOpsExpertFilesSession(request);
+  if (error) {
+    return error;
   }
 
   const jobs = await listExpertFileExportJobs();
@@ -31,20 +20,9 @@ export async function GET(request: NextRequest) {
 }
 
 export async function POST(request: NextRequest) {
-  if (!isAuthorized(request)) {
-    return jsonError("需要有效的运营后台登录会话。", 401, {
-      code: "OPS_SESSION_REQUIRED",
-    });
-  }
-
-  const operatorDigest = getAuditDashboardOperatorDigest(
-    request.cookies.get(getAuditDashboardCookieName())?.value,
-  );
-
-  if (!operatorDigest) {
-    return jsonError("需要有效的运营后台登录会话。", 401, {
-      code: "OPS_SESSION_REQUIRED",
-    });
+  const { session, error } = await requireOpsExpertFilesSession(request);
+  if (error || !session) {
+    return error;
   }
 
   const body = await parseJsonBody<unknown>(request);
@@ -60,7 +38,7 @@ export async function POST(request: NextRequest) {
   try {
     const job = await createExpertFileExport({
       ...parsed.data,
-      operatorDigest,
+      operatorDigest: session.operatorDigest,
     });
     return NextResponse.json({ job }, { status: 201 });
   } catch (error) {

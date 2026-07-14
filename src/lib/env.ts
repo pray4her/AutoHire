@@ -66,6 +66,17 @@ const envSchema = z.object({
     .int()
     .positive()
     .default(28800),
+  OPS_EXPERT_FILES_USERNAME: z.string().min(1).default("ops"),
+  OPS_EXPERT_FILES_INITIAL_PASSWORD: z.string().optional().default(""),
+  OPS_EXPERT_FILES_COOKIE_NAME: z
+    .string()
+    .min(1)
+    .default("autohire_ops_expert_files_session"),
+  OPS_EXPERT_FILES_COOKIE_MAX_AGE_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(28800),
   OPS_EXPORT_FC_ENDPOINT: z.string().url().optional(),
   OPS_EXPORT_FC_SERVICE_NAME: z.string().optional(),
   OPS_EXPORT_FC_FUNCTION_NAME: z.string().optional(),
