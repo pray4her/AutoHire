@@ -13,6 +13,7 @@ import {
 import { ApplyEntryProgramIntroduction } from "@/features/application/components/apply-entry-program-introduction";
 import {
   APPLICATION_DEADLINE_PILL,
+  FIXED_INVITATION_LINK_EXPIRATION_LABEL,
   INTRO_DESCRIPTION,
   APPLY_ENTRY_ACCORDION_SECTION_CLASS,
   type IntroSectionId,
@@ -39,22 +40,6 @@ type ApplyEntryClientProps = {
   initialSnapshot: ApplicationSnapshot;
   openedFromInviteLink: boolean;
 };
-
-function formatInvitationLinkExpiration(value: string | null | undefined) {
-  if (!value) {
-    return "the date specified in your invitation email";
-  }
-
-  const date = new Date(value);
-
-  if (Number.isNaN(date.getTime())) {
-    return "the date specified in your invitation email";
-  }
-
-  return new Intl.DateTimeFormat("en", {
-    dateStyle: "long",
-  }).format(date);
-}
 
 function toggleIntroSection(
   openSections: Set<IntroSectionId>,
@@ -181,9 +166,7 @@ export function ApplyEntryClient({
   const isReadOnlyReview = snapshot
     ? isFlowStepReadOnly(snapshot.applicationStatus, 0)
     : false;
-  const invitationExpirationLabel = formatInvitationLinkExpiration(
-    snapshot?.invitationLinkExpiresAt,
-  );
+  const invitationExpirationLabel = FIXED_INVITATION_LINK_EXPIRATION_LABEL;
 
   function handleInviteNoticeOpenChange(nextOpen: boolean) {
     setIsInviteNoticeOpen(nextOpen);

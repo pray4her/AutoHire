@@ -146,6 +146,9 @@ export const PERSONALIZED_LINK_NOTICE_ITEMS = [
   },
 ] as const;
 
+/** Fixed date shown in the personalized-link notice dialog (not per-invite expiry). */
+export const FIXED_INVITATION_LINK_EXPIRATION_LABEL = "October 15, 2026";
+
 export type TopInfoItem = {
   readonly id: string;
   readonly title: string;
