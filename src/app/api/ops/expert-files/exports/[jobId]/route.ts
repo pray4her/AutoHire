@@ -22,7 +22,7 @@ function isAuthorized(request: NextRequest) {
 
 export async function GET(request: NextRequest, context: RouteContext) {
   if (!isAuthorized(request)) {
-    return jsonError("A valid operations session is required.", 401, {
+    return jsonError("需要有效的运营后台登录会话。", 401, {
       code: "OPS_SESSION_REQUIRED",
     });
   }
@@ -32,7 +32,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   try {
     const job = await getExpertFileExportJob(jobId);
     if (!job) {
-      return jsonError("Export job not found.", 404, {
+      return jsonError("未找到导出任务。", 404, {
         code: "OPS_EXPORT_NOT_FOUND",
       });
     }

@@ -19,7 +19,7 @@ function isAuthorized(request: NextRequest) {
 
 export async function GET(request: NextRequest, context: RouteContext) {
   if (!isAuthorized(request)) {
-    return jsonError("A valid operations session is required.", 401, {
+    return jsonError("需要有效的运营后台登录会话。", 401, {
       code: "OPS_SESSION_REQUIRED",
     });
   }
@@ -28,7 +28,7 @@ export async function GET(request: NextRequest, context: RouteContext) {
   const detail = await getExpertFileDetail(applicationId);
 
   if (!detail) {
-    return jsonError("Expert application not found.", 404, {
+    return jsonError("未找到该专家申请。", 404, {
       code: "OPS_EXPERT_FILE_NOT_FOUND",
     });
   }

@@ -23,7 +23,7 @@ function isAuthorized(request: NextRequest) {
 
 export async function POST(request: NextRequest, context: RouteContext) {
   if (!isAuthorized(request)) {
-    return jsonError("A valid operations session is required.", 401, {
+    return jsonError("需要有效的运营后台登录会话。", 401, {
       code: "OPS_SESSION_REQUIRED",
     });
   }
@@ -33,7 +33,7 @@ export async function POST(request: NextRequest, context: RouteContext) {
   );
 
   if (!operatorDigest) {
-    return jsonError("A valid operations session is required.", 401, {
+    return jsonError("需要有效的运营后台登录会话。", 401, {
       code: "OPS_SESSION_REQUIRED",
     });
   }

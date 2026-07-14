@@ -16,7 +16,7 @@ function isAuthorized(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   if (!isAuthorized(request)) {
-    return jsonError("A valid operations session is required.", 401, {
+    return jsonError("需要有效的运营后台登录会话。", 401, {
       code: "OPS_SESSION_REQUIRED",
     });
   }
@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   const parsed = expertFilesListQuerySchema.safeParse(params);
 
   if (!parsed.success) {
-    return jsonError("Invalid expert files query.", 400, {
+    return jsonError("专家档案查询参数无效。", 400, {
       code: "OPS_EXPERT_FILES_INVALID_QUERY",
       details: parsed.error.flatten(),
     });

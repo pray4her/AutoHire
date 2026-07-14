@@ -40,7 +40,7 @@ export function signEstimateToken(payload: Omit<EstimateTokenPayload, "exp">) {
 export function verifyEstimateToken(token: string): EstimateTokenPayload {
   const [encoded, signature] = token.split(".");
   if (!encoded || !signature) {
-    throw new EstimateTokenError("Invalid estimate token.");
+    throw new EstimateTokenError("预估令牌无效。");
   }
 
   const expected = createHmac("sha256", getEstimateSecret())
@@ -50,7 +50,7 @@ export function verifyEstimateToken(token: string): EstimateTokenPayload {
   const left = Buffer.from(signature);
   const right = Buffer.from(expected);
   if (left.length !== right.length || !timingSafeEqual(left, right)) {
-    throw new EstimateTokenError("Invalid estimate token signature.");
+    throw new EstimateTokenError("预估令牌签名无效。");
   }
 
   const payload = JSON.parse(
@@ -58,7 +58,7 @@ export function verifyEstimateToken(token: string): EstimateTokenPayload {
   ) as EstimateTokenPayload;
 
   if (!payload.exp || Date.now() > payload.exp) {
-    throw new EstimateTokenError("Estimate token expired.");
+    throw new EstimateTokenError("预估令牌已过期。");
   }
 
   return payload;

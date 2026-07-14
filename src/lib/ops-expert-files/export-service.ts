@@ -79,7 +79,7 @@ function getMemoryJobs() {
 function assertOssMode() {
   if (getEnv().FILE_STORAGE_MODE !== "oss") {
     throw new OpsExportError(
-      "Expert file export is only available when FILE_STORAGE_MODE=oss.",
+      "专家档案导出仅在 FILE_STORAGE_MODE=oss 时可用。",
       400,
       "OPS_EXPORT_OSS_REQUIRED",
     );
@@ -102,7 +102,7 @@ export async function estimateExpertFileExport(input: {
 
   if (resolved.exportableIds.length === 0) {
     throw new OpsExportError(
-      "No exportable expert files matched the selection.",
+      "当前选择下没有可导出的专家档案。",
       400,
       "OPS_EXPORT_EMPTY",
     );
@@ -110,7 +110,7 @@ export async function estimateExpertFileExport(input: {
 
   if (resolved.exportableIds.length > OPS_EXPORT_MAX_APPLICATIONS) {
     throw new OpsExportError(
-      `Exportable experts (${resolved.exportableIds.length}) exceed the limit of ${OPS_EXPORT_MAX_APPLICATIONS}. Narrow the filter or use selection.`,
+      `可导出专家数（${resolved.exportableIds.length}）超过上限 ${OPS_EXPORT_MAX_APPLICATIONS}。请缩小筛选范围或改用勾选导出。`,
       400,
       "OPS_EXPORT_TOO_MANY",
     );
@@ -118,7 +118,7 @@ export async function estimateExpertFileExport(input: {
 
   if (resolved.estimatedBytes > OPS_EXPORT_MAX_BYTES) {
     throw new OpsExportError(
-      "Estimated source size exceeds the 2GB limit. Narrow the selection.",
+      "预估源文件大小超过 2GB 上限，请缩小选择范围。",
       400,
       "OPS_EXPORT_TOO_LARGE",
     );
@@ -198,7 +198,7 @@ export async function createExpertFileExport(input: {
 
   if (tokenPayload.mode !== input.mode) {
     throw new OpsExportError(
-      "Estimate token mode mismatch.",
+      "预估令牌模式不匹配。",
       400,
       "ESTIMATE_TOKEN_MISMATCH",
     );
@@ -207,14 +207,14 @@ export async function createExpertFileExport(input: {
   const running = await countRunningJobs(input.operatorDigest);
   if (running.operator >= OPS_EXPORT_MAX_RUNNING_PER_OPERATOR) {
     throw new OpsExportError(
-      "You already have an export job in progress.",
+      "您已有正在进行的导出任务。",
       409,
       "OPS_EXPORT_OPERATOR_BUSY",
     );
   }
   if (running.global >= OPS_EXPORT_MAX_RUNNING_GLOBAL) {
     throw new OpsExportError(
-      "Too many export jobs are running. Try again shortly.",
+      "当前导出任务过多，请稍后再试。",
       409,
       "OPS_EXPORT_GLOBAL_BUSY",
     );
@@ -228,7 +228,7 @@ export async function createExpertFileExport(input: {
     resolved.exportableIds.length !== tokenPayload.exportableCount
   ) {
     throw new OpsExportError(
-      "Selection changed since estimate. Please estimate again.",
+      "预估后选择已变更，请重新预估。",
       409,
       "ESTIMATE_STALE",
     );
@@ -236,7 +236,7 @@ export async function createExpertFileExport(input: {
 
   if (resolved.exportableIds.length > OPS_EXPORT_MAX_APPLICATIONS) {
     throw new OpsExportError(
-      `Exportable experts exceed the limit of ${OPS_EXPORT_MAX_APPLICATIONS}.`,
+      `可导出专家数超过上限 ${OPS_EXPORT_MAX_APPLICATIONS}。`,
       400,
       "OPS_EXPORT_TOO_MANY",
     );
@@ -244,7 +244,7 @@ export async function createExpertFileExport(input: {
 
   if (resolved.estimatedBytes > OPS_EXPORT_MAX_BYTES) {
     throw new OpsExportError(
-      "Estimated source size exceeds the 2GB limit.",
+      "预估源文件大小超过 2GB 上限。",
       400,
       "OPS_EXPORT_TOO_LARGE",
     );
@@ -321,7 +321,7 @@ export async function createExpertFileExport(input: {
     });
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Export job failed to start.";
+      error instanceof Error ? error.message : "导出任务启动失败。";
     await updateJob(jobId, {
       status: "FAILED",
       errorMessage: message,
@@ -395,7 +395,7 @@ async function buildEntriesDocument(input: {
     expertCount: experts.length,
     excludedEmptyCount: input.excludedEmptyCount,
     materialFolders: MATERIAL_ARCHIVE_FOLDERS.map((folder) => folder.folder),
-    note: "Please extract with 7-Zip or WinRAR for Chinese path support.",
+    note: "含中文路径时请使用 7-Zip 或 WinRAR 解压。",
   };
 
   const entries = [
@@ -516,7 +516,7 @@ export async function createExpertFileExportDownloadUrl(jobId: string) {
   assertOssMode();
   const job = await getExpertFileExportJob(jobId);
   if (!job) {
-    throw new OpsExportError("Export job not found.", 404, "OPS_EXPORT_NOT_FOUND");
+    throw new OpsExportError("未找到导出任务。", 404, "OPS_EXPORT_NOT_FOUND");
   }
 
   if (
@@ -524,7 +524,7 @@ export async function createExpertFileExportDownloadUrl(jobId: string) {
     !job.outputObjectKey
   ) {
     throw new OpsExportError(
-      "Export is not ready for download.",
+      "导出尚未就绪，暂不可下载。",
       409,
       "OPS_EXPORT_NOT_READY",
     );
@@ -533,7 +533,7 @@ export async function createExpertFileExportDownloadUrl(jobId: string) {
   const exists = await headObjectExists(job.outputObjectKey);
   if (!exists) {
     throw new OpsExportError(
-      "Export package expired. Please retry the export.",
+      "导出包已过期，请重新导出。",
       410,
       "OPS_EXPORT_EXPIRED",
     );
@@ -557,7 +557,7 @@ export async function retryExpertFileExport(input: {
 }) {
   const job = await getExpertFileExportJob(input.jobId);
   if (!job) {
-    throw new OpsExportError("Export job not found.", 404, "OPS_EXPORT_NOT_FOUND");
+    throw new OpsExportError("未找到导出任务。", 404, "OPS_EXPORT_NOT_FOUND");
   }
 
   return createExpertFileExport({
@@ -584,7 +584,7 @@ export async function handleExpertFileExportCallback(input: {
 }) {
   const job = await getExpertFileExportJob(input.jobId);
   if (!job) {
-    throw new OpsExportError("Export job not found.", 404, "OPS_EXPORT_NOT_FOUND");
+    throw new OpsExportError("未找到导出任务。", 404, "OPS_EXPORT_NOT_FOUND");
   }
 
   if (["SUCCEEDED", "SUCCEEDED_WITH_GAPS"].includes(job.status)) {
@@ -614,7 +614,7 @@ export async function handleExpertFileExportCallback(input: {
   if (input.status === "FAILED") {
     return updateJob(input.jobId, {
       status: "FAILED",
-      errorMessage: input.errorMessage ?? "Export failed.",
+      errorMessage: input.errorMessage ?? "导出失败。",
       finishedAt: new Date(),
     });
   }
@@ -646,7 +646,7 @@ async function expireStaleExportJobs(jobId?: string) {
           job.updatedAt = now;
         } else {
           job.status = "FAILED";
-          job.errorMessage = "Export timed out waiting for packager callback.";
+          job.errorMessage = "导出超时：等待打包回调未完成。";
           job.finishedAt = now;
           job.updatedAt = now;
         }
@@ -676,7 +676,7 @@ async function expireStaleExportJobs(jobId?: string) {
         data: {
           status: "FAILED",
           finishedAt: now,
-          errorMessage: "Export timed out waiting for packager callback.",
+          errorMessage: "导出超时：等待打包回调未完成。",
         },
       });
     }

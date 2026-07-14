@@ -81,6 +81,41 @@ type ExportJob = {
   finishedAt: string | null;
 };
 
+const JOB_STATUS_LABELS: Record<string, string> = {
+  PENDING: "等待中",
+  RUNNING: "进行中",
+  SUCCEEDED: "已成功",
+  SUCCEEDED_WITH_GAPS: "成功（有缺失）",
+  FAILED: "失败",
+};
+
+const APPLICATION_STATUS_LABELS: Record<string, string> = {
+  INIT: "初始化",
+  INTRO_VIEWED: "已查看介绍",
+  CV_UPLOADED: "已上传简历",
+  CV_ANALYZING: "简历分析中",
+  CV_EXTRACTING: "简历提取中",
+  CV_EXTRACTION_REVIEW: "简历提取审核",
+  INFO_REQUIRED: "需补充信息",
+  REANALYZING: "重新分析中",
+  INELIGIBLE: "不合格",
+  ELIGIBLE: "合格",
+  MATERIALS_IN_PROGRESS: "材料填写中",
+  SUBMITTED: "已提交",
+  CLOSED: "已关闭",
+  SECONDARY_ANALYZING: "二次分析中",
+  SECONDARY_REVIEW: "二次审核",
+  SECONDARY_FAILED: "二次分析失败",
+};
+
+const FILE_SOURCE_LABELS: Record<string, string> = {
+  resume: "简历",
+  initial: "初筛材料",
+  supplement: "补充材料",
+  extraction: "提取导出",
+  secondary: "二次分析导出",
+};
+
 function defaultStartDate() {
   const end = new Date();
   const start = new Date(end);
@@ -106,6 +141,18 @@ function formatTime(value: string | null) {
     return "—";
   }
   return new Date(value).toLocaleString("zh-CN", { hour12: false });
+}
+
+function formatJobStatus(status: string) {
+  return JOB_STATUS_LABELS[status] ?? status;
+}
+
+function formatApplicationStatus(status: string) {
+  return APPLICATION_STATUS_LABELS[status] ?? status;
+}
+
+function formatFileSource(source: string) {
+  return FILE_SOURCE_LABELS[source] ?? source;
 }
 
 export function ExpertFilesPanel() {
@@ -157,12 +204,12 @@ export function ExpertFilesPanel() {
       });
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? "Failed to load expert files.");
+        throw new Error(payload.error ?? "加载专家档案失败。");
       }
       setItems(payload.items);
       setTotal(payload.total);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Load failed.");
+      toast.error(error instanceof Error ? error.message : "加载失败。");
     } finally {
       setLoading(false);
     }
@@ -236,18 +283,18 @@ export function ExpertFilesPanel() {
       );
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? "Failed to load detail.");
+        throw new Error(payload.error ?? "加载详情失败。");
       }
       setDetail(payload);
       setDetailOpen(true);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Detail failed.");
+      toast.error(error instanceof Error ? error.message : "加载详情失败。");
     }
   }
 
   async function prepareExport(mode: "filter" | "ids") {
     if (hasRunningJob) {
-      toast.error("An export job is already in progress.");
+      toast.error("已有导出任务正在进行中。");
       return;
     }
 
@@ -263,7 +310,7 @@ export function ExpertFilesPanel() {
           };
 
     if (mode === "ids" && selected.size === 0) {
-      toast.error("Select at least one expert.");
+      toast.error("请至少选择一位专家。");
       return;
     }
 
@@ -276,7 +323,7 @@ export function ExpertFilesPanel() {
       });
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? "Estimate failed.");
+        throw new Error(payload.error ?? "预估失败。");
       }
       setPendingExport({
         mode,
@@ -288,7 +335,7 @@ export function ExpertFilesPanel() {
       });
       setConfirmOpen(true);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Estimate failed.");
+      toast.error(error instanceof Error ? error.message : "预估失败。");
     }
   }
 
@@ -319,14 +366,14 @@ export function ExpertFilesPanel() {
       });
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? "Export create failed.");
+        throw new Error(payload.error ?? "创建导出任务失败。");
       }
-      toast.success("Export job started.");
+      toast.success("导出任务已开始。");
       setConfirmOpen(false);
       setPendingExport(null);
       await loadJobs();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Export failed.");
+      toast.error(error instanceof Error ? error.message : "导出失败。");
     } finally {
       setExporting(false);
     }
@@ -340,12 +387,12 @@ export function ExpertFilesPanel() {
       );
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? "Download unavailable.");
+        throw new Error(payload.error ?? "暂不可下载。");
       }
       window.open(payload.downloadUrl, "_blank", "noopener,noreferrer");
-      toast.message("Use 7-Zip or WinRAR if Chinese folder names look garbled.");
+      toast.message("若中文文件夹名乱码，请使用 7-Zip 或 WinRAR 解压。");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Download failed.");
+      toast.error(error instanceof Error ? error.message : "下载失败。");
     }
   }
 
@@ -357,12 +404,12 @@ export function ExpertFilesPanel() {
       );
       const payload = await response.json();
       if (!response.ok) {
-        throw new Error(payload.error ?? "Retry failed.");
+        throw new Error(payload.error ?? "重试失败。");
       }
-      toast.success("Retry started.");
+      toast.success("已重新开始导出。");
       await loadJobs();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Retry failed.");
+      toast.error(error instanceof Error ? error.message : "重试失败。");
     }
   }
 
@@ -383,65 +430,64 @@ export function ExpertFilesPanel() {
       <header className="flex flex-col gap-2">
         <div className="flex items-center gap-2 text-muted-foreground">
           <FolderArchive />
-          <span className="text-sm tracking-wide uppercase">Operations</span>
+          <span className="text-sm tracking-wide">运营后台</span>
         </div>
         <h1 className="font-heading text-3xl font-semibold tracking-tight">
-          Expert files
+          专家档案
         </h1>
         <p className="max-w-2xl text-muted-foreground">
-          Search by name, email, or customer number. Export ZIP packages for
-          internal review. Packages keep the dossier folder layout and expire
-          after 7 days.
+          可按姓名、邮箱或客户编号搜索，导出 ZIP 包供内部审阅。压缩包保留档案文件夹结构，下载链接有效期为
+          7 天。
         </p>
       </header>
 
       <Card>
         <CardHeader>
-          <CardTitle>Search</CardTitle>
+          <CardTitle>搜索</CardTitle>
           <CardDescription>
-            Default range is the last {OPS_EXPORT_DEFAULT_LOOKBACK_DAYS} days
-            (fill time). Only applications with a customer number are listed.
+            默认范围为最近 {OPS_EXPORT_DEFAULT_LOOKBACK_DAYS}{" "}
+            天（按填写时间）。仅展示已分配客户编号的申请。
           </CardDescription>
         </CardHeader>
         <CardContent>
           <FieldGroup className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <Field>
-              <FieldLabel htmlFor="expert-q">Name / email / customer no.</FieldLabel>
+              <FieldLabel htmlFor="expert-q">姓名 / 邮箱 / 客户编号</FieldLabel>
               <Input
                 id="expert-q"
                 value={q}
                 onChange={(event) => setQ(event.target.value)}
-                placeholder="Search…"
+                placeholder="搜索…"
               />
             </Field>
             <Field>
-              <FieldLabel>Status</FieldLabel>
-                <Select
-                  value={status}
-                  onValueChange={(value) => {
-                    if (
-                      value === "all" ||
-                      value === "submitted" ||
-                      value === "unsubmitted"
-                    ) {
-                      setStatus(value);
-                    }
-                  }}
-                >
-                  <SelectTrigger className="w-full">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="all">All</SelectItem>
-                      <SelectItem value="submitted">Submitted</SelectItem>
-                      <SelectItem value="unsubmitted">Not submitted</SelectItem>
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
+              <FieldLabel>状态</FieldLabel>
+              <Select
+                value={status}
+                onValueChange={(value) => {
+                  if (
+                    value === "all" ||
+                    value === "submitted" ||
+                    value === "unsubmitted"
+                  ) {
+                    setStatus(value);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">全部</SelectItem>
+                    <SelectItem value="submitted">已提交</SelectItem>
+                    <SelectItem value="unsubmitted">未提交</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
             </Field>
             <Field>
-              <FieldLabel htmlFor="start-date">Fill time from</FieldLabel>
+              <FieldLabel htmlFor="start-date">填写时间起</FieldLabel>
               <Input
                 id="start-date"
                 type="date"
@@ -450,7 +496,7 @@ export function ExpertFilesPanel() {
               />
             </Field>
             <Field>
-              <FieldLabel htmlFor="end-date">Fill time to</FieldLabel>
+              <FieldLabel htmlFor="end-date">填写时间止</FieldLabel>
               <Input
                 id="end-date"
                 type="date"
@@ -467,7 +513,7 @@ export function ExpertFilesPanel() {
               }}
             >
               <Search data-icon="inline-start" />
-              Search
+              搜索
             </Button>
             <Button
               variant="outline"
@@ -475,7 +521,7 @@ export function ExpertFilesPanel() {
               onClick={() => void prepareExport("filter")}
             >
               <Download data-icon="inline-start" />
-              Export matched
+              导出匹配结果
             </Button>
             <Button
               variant="outline"
@@ -483,7 +529,7 @@ export function ExpertFilesPanel() {
               onClick={() => void prepareExport("ids")}
             >
               <Download data-icon="inline-start" />
-              Export selected ({selected.size})
+              导出已选（{selected.size}）
             </Button>
           </div>
         </CardContent>
@@ -492,9 +538,9 @@ export function ExpertFilesPanel() {
       <Card>
         <CardHeader className="flex-row items-center justify-between">
           <div>
-            <CardTitle>Results</CardTitle>
+            <CardTitle>结果</CardTitle>
             <CardDescription>
-              {total} matched · page {page}
+              共 {total} 条 · 第 {page} 页
             </CardDescription>
           </div>
           {loading ? <Spinner /> : null}
@@ -504,12 +550,12 @@ export function ExpertFilesPanel() {
             <TableHeader>
               <TableRow>
                 <TableHead className="w-10" />
-                <TableHead>Customer no.</TableHead>
-                <TableHead>Name</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Fill time</TableHead>
-                <TableHead>Submitted</TableHead>
+                <TableHead>客户编号</TableHead>
+                <TableHead>姓名</TableHead>
+                <TableHead>邮箱</TableHead>
+                <TableHead>状态</TableHead>
+                <TableHead>填写时间</TableHead>
+                <TableHead>提交时间</TableHead>
                 <TableHead />
               </TableRow>
             </TableHeader>
@@ -536,7 +582,7 @@ export function ExpertFilesPanel() {
                   </TableCell>
                   <TableCell>
                     <Badge variant={item.isSubmitted ? "default" : "secondary"}>
-                      {item.isSubmitted ? "Submitted" : "In progress"}
+                      {item.isSubmitted ? "已提交" : "进行中"}
                     </Badge>
                   </TableCell>
                   <TableCell>{formatTime(item.resumeUploadedAt)}</TableCell>
@@ -548,7 +594,7 @@ export function ExpertFilesPanel() {
                       onClick={() => void openDetail(item.applicationId)}
                     >
                       <Eye data-icon="inline-start" />
-                      View
+                      查看
                     </Button>
                   </TableCell>
                 </TableRow>
@@ -556,7 +602,7 @@ export function ExpertFilesPanel() {
               {items.length === 0 && !loading ? (
                 <TableRow>
                   <TableCell colSpan={8} className="text-muted-foreground">
-                    No applications in this range.
+                    该范围内暂无申请记录。
                   </TableCell>
                 </TableRow>
               ) : null}
@@ -569,7 +615,7 @@ export function ExpertFilesPanel() {
               disabled={page <= 1}
               onClick={() => setPage((value) => Math.max(1, value - 1))}
             >
-              Previous
+              上一页
             </Button>
             <Button
               variant="outline"
@@ -577,7 +623,7 @@ export function ExpertFilesPanel() {
               disabled={page * 20 >= total}
               onClick={() => setPage((value) => value + 1)}
             >
-              Next
+              下一页
             </Button>
           </div>
         </CardContent>
@@ -586,15 +632,15 @@ export function ExpertFilesPanel() {
       <Card>
         <CardHeader className="flex-row items-center justify-between">
           <div>
-            <CardTitle>Export jobs</CardTitle>
+            <CardTitle>导出任务</CardTitle>
             <CardDescription>
-              Shared across ops users. Download links last 1 hour; ZIP objects
-              are kept for 7 days.
+              运营账号共享可见。下载链接有效期 1 小时；ZIP
+              文件保留 7 天。
             </CardDescription>
           </div>
           <Button variant="outline" size="sm" onClick={() => void loadJobs()}>
             <RefreshCw data-icon="inline-start" />
-            Refresh
+            刷新
           </Button>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
@@ -606,14 +652,14 @@ export function ExpertFilesPanel() {
               <div className="flex flex-col gap-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="font-mono text-sm">{job.id}</span>
-                  <Badge variant="outline">{job.status}</Badge>
+                  <Badge variant="outline">{formatJobStatus(job.status)}</Badge>
                 </div>
                 <p className="text-sm text-muted-foreground">
-                  {job.exportableCount} experts ·{" "}
-                  {formatBytes(job.estimatedBytes)} · created{" "}
+                  {job.exportableCount} 位专家 ·{" "}
+                  {formatBytes(job.estimatedBytes)} · 创建于{" "}
                   {formatTime(job.createdAt)}
                   {job.excludedEmptyCount
-                    ? ` · excluded empty ${job.excludedEmptyCount}`
+                    ? ` · 已排除空档案 ${job.excludedEmptyCount}`
                     : ""}
                 </p>
                 {job.errorMessage ? (
@@ -624,7 +670,7 @@ export function ExpertFilesPanel() {
                 {["SUCCEEDED", "SUCCEEDED_WITH_GAPS"].includes(job.status) ? (
                   <Button size="sm" onClick={() => void downloadJob(job.id)}>
                     <Download data-icon="inline-start" />
-                    Download
+                    下载
                   </Button>
                 ) : null}
                 {["FAILED", "SUCCEEDED", "SUCCEEDED_WITH_GAPS"].includes(
@@ -636,14 +682,14 @@ export function ExpertFilesPanel() {
                     disabled={hasRunningJob}
                     onClick={() => void retryJob(job.id)}
                   >
-                    Retry
+                    重试
                   </Button>
                 ) : null}
               </div>
             </div>
           ))}
           {jobs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">No export jobs yet.</p>
+            <p className="text-sm text-muted-foreground">暂无导出任务。</p>
           ) : null}
         </CardContent>
       </Card>
@@ -652,41 +698,41 @@ export function ExpertFilesPanel() {
         <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
           <SheetHeader>
             <SheetTitle>
-              {(detail?.customerNo as string | undefined) ?? "Expert dossier"}
+              {(detail?.customerNo as string | undefined) ?? "专家档案"}
             </SheetTitle>
             <SheetDescription>
-              Read-only file inventory. Single-file download is not available.
+              只读文件清单。暂不支持单文件下载。
             </SheetDescription>
           </SheetHeader>
           {detail ? (
             <div className="mt-4 flex flex-col gap-4 px-1">
               <div className="grid gap-1 text-sm">
                 <div>
-                  <span className="text-muted-foreground">Name: </span>
+                  <span className="text-muted-foreground">姓名：</span>
                   {(detail.screeningPassportFullName as string) ?? "—"}
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Email: </span>
+                  <span className="text-muted-foreground">邮箱：</span>
                   {(detail.screeningContactEmail as string) ??
                     (detail.screeningWorkEmail as string) ??
                     "—"}
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Status: </span>
-                  {String(detail.applicationStatus)}
+                  <span className="text-muted-foreground">状态：</span>
+                  {formatApplicationStatus(String(detail.applicationStatus))}
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Fill time: </span>
+                  <span className="text-muted-foreground">填写时间：</span>
                   {formatTime(detail.resumeUploadedAt as string | null)}
                 </div>
                 <div>
-                  <span className="text-muted-foreground">Submitted: </span>
+                  <span className="text-muted-foreground">提交时间：</span>
                   {formatTime(detail.submittedAt as string | null)}
                 </div>
               </div>
               <Separator />
               <div className="flex flex-col gap-2">
-                <h3 className="font-medium">Folders</h3>
+                <h3 className="font-medium">文件夹</h3>
                 {(inventory?.folderSummaries ?? []).map((folder) => (
                   <div
                     key={folder.folder}
@@ -694,13 +740,13 @@ export function ExpertFilesPanel() {
                   >
                     <span>{folder.folder}</span>
                     <span className="text-muted-foreground">
-                      {folder.fileCount} files
+                      {folder.fileCount} 个文件
                     </span>
                   </div>
                 ))}
               </div>
               <div className="flex flex-col gap-2">
-                <h3 className="font-medium">Files</h3>
+                <h3 className="font-medium">文件</h3>
                 {(inventory?.files ?? []).map((file) => (
                   <div key={file.archivePath} className="text-sm">
                     <div className="font-mono text-xs text-muted-foreground">
@@ -708,14 +754,12 @@ export function ExpertFilesPanel() {
                     </div>
                     <div>
                       {file.fileName} · {formatBytes(file.fileSize)} ·{" "}
-                      {file.source}
+                      {formatFileSource(file.source)}
                     </div>
                   </div>
                 ))}
                 {(inventory?.files?.length ?? 0) === 0 ? (
-                  <p className="text-sm text-muted-foreground">
-                    No current files.
-                  </p>
+                  <p className="text-sm text-muted-foreground">暂无文件。</p>
                 ) : null}
               </div>
             </div>
@@ -726,31 +770,32 @@ export function ExpertFilesPanel() {
       <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Confirm export</DialogTitle>
+            <DialogTitle>确认导出</DialogTitle>
             <DialogDescription>
-              Create an asynchronous ZIP export job. Extract with 7-Zip/WinRAR
-              for Chinese paths.
+              将创建异步 ZIP 导出任务。含中文路径时请使用 7-Zip / WinRAR
+              解压。
             </DialogDescription>
           </DialogHeader>
           {pendingExport ? (
             <div className="flex flex-col gap-2 text-sm">
-              <div>Mode: {pendingExport.mode}</div>
-              <div>Experts: {pendingExport.exportableCount}</div>
               <div>
-                Excluded empty: {pendingExport.excludedEmptyCount}
+                模式：
+                {pendingExport.mode === "filter" ? "按筛选条件" : "按勾选"}
               </div>
+              <div>可导出专家：{pendingExport.exportableCount}</div>
+              <div>已排除空档案：{pendingExport.excludedEmptyCount}</div>
               <div>
-                Estimated size: {formatBytes(pendingExport.estimatedBytes)}
+                预估大小：{formatBytes(pendingExport.estimatedBytes)}
               </div>
             </div>
           ) : null}
           <DialogFooter>
             <Button variant="outline" onClick={() => setConfirmOpen(false)}>
-              Cancel
+              取消
             </Button>
             <Button disabled={exporting} onClick={() => void confirmExport()}>
               {exporting ? <Spinner data-icon="inline-start" /> : null}
-              Start export
+              开始导出
             </Button>
           </DialogFooter>
         </DialogContent>
