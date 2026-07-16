@@ -21,11 +21,9 @@ import {
   INVITATION_GENERATION_MAX_EXPIRED_DAYS,
   INVITATION_GENERATION_MAX_EXPIRED_HOURS,
   INVITATION_GENERATION_MAX_EXPIRED_MINUTES,
+  INVITATION_GENERATION_PREVIEW_LIMIT,
 } from "@/lib/invitations/constants";
-import type {
-  InvitationGenerationBatchSummary,
-  InvitationGenerationItemSummary,
-} from "@/lib/invitations/types";
+import type { InvitationGenerationBatchSummary } from "@/lib/invitations/types";
 
 export { formatInvitationExpiryLabel } from "@/lib/invitations/expiry-label";
 export {
@@ -34,6 +32,7 @@ export {
   INVITATION_GENERATION_MAX_EXPIRED_DAYS,
   INVITATION_GENERATION_MAX_EXPIRED_HOURS,
   INVITATION_GENERATION_MAX_EXPIRED_MINUTES,
+  INVITATION_GENERATION_PREVIEW_LIMIT,
 } from "@/lib/invitations/constants";
 export type {
   InvitationGenerationBatchSummary,
@@ -128,7 +127,13 @@ function buildInviteLink(token: string) {
 
 function toBatchSummary(
   batch: InvitationGenerationBatchWithItems,
+  options?: { readonly itemLimit?: number },
 ): InvitationGenerationBatchSummary {
+  const items =
+    options?.itemLimit != null
+      ? batch.items.slice(0, options.itemLimit)
+      : batch.items;
+
   return {
     id: batch.id,
     idempotencyKey: batch.idempotencyKey,
@@ -140,7 +145,7 @@ function toBatchSummary(
     expiredMinutes: batch.expiredMinutes,
     createdAt: batch.createdAt.toISOString(),
     updatedAt: batch.updatedAt.toISOString(),
-    items: batch.items.map((item, index) => ({
+    items: items.map((item, index) => ({
       sequence: index + 1,
       invitationId: item.invitationId,
       expertId: item.expertId,
@@ -164,6 +169,7 @@ export async function generateInvitationBatch(
 ): Promise<InvitationGenerationBatchSummary> {
   const existing = await findInvitationGenerationBatchByIdempotencyKey(
     input.idempotencyKey,
+    { itemsTake: INVITATION_GENERATION_PREVIEW_LIMIT },
   );
 
   if (existing) {
@@ -179,7 +185,9 @@ export async function generateInvitationBatch(
       );
     }
 
-    return toBatchSummary(existing);
+    return toBatchSummary(existing, {
+      itemLimit: INVITATION_GENERATION_PREVIEW_LIMIT,
+    });
   }
 
   const batchId = createBatchId();
@@ -206,9 +214,12 @@ export async function generateInvitationBatch(
     expiredHours: input.expiredHours,
     expiredMinutes: input.expiredMinutes,
     invitations,
+    itemsTake: INVITATION_GENERATION_PREVIEW_LIMIT,
   });
 
-  return toBatchSummary(batch);
+  return toBatchSummary(batch, {
+    itemLimit: INVITATION_GENERATION_PREVIEW_LIMIT,
+  });
 }
 
 export function buildInvitationGenerationWorkbook(

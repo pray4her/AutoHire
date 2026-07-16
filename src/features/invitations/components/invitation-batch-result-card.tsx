@@ -56,7 +56,10 @@ export function InvitationBatchResultCard({
             有效期：{formatInvitationExpiryLabel(batch)}
           </Badge>
         </div>
-        <InvitationPreviewRows items={batch.items} />
+        <InvitationPreviewRows
+          items={batch.items}
+          totalCount={batch.createdCount}
+        />
       </CardContent>
     </Card>
   );

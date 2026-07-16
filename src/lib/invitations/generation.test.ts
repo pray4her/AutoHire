@@ -7,6 +7,7 @@ import {
   generateInvitationBatch,
   invitationGenerationRequestSchema,
 } from "@/lib/invitations/generation";
+import { INVITATION_GENERATION_PREVIEW_LIMIT } from "@/lib/invitations/constants";
 import { findInvitationById } from "@/lib/data/store";
 
 const originalEnv = { ...process.env };
@@ -44,6 +45,43 @@ describe("invitation generation service", () => {
         expiredMinutes: 0,
       }),
     ).toBe("90 天");
+  });
+
+  it("rejects counts above the generation maximum", () => {
+    const parsed = invitationGenerationRequestSchema.safeParse({
+      algorithm: "SHA256",
+      count: 1_000_001,
+      idempotencyKey: "invite-test-over-max",
+    });
+
+    expect(parsed.success).toBe(false);
+  });
+
+  it("accepts the generation maximum count", () => {
+    const parsed = invitationGenerationRequestSchema.safeParse({
+      algorithm: "SHA256",
+      count: 1_000_000,
+      idempotencyKey: "invite-test-at-max",
+    });
+
+    expect(parsed.success).toBe(true);
+    if (parsed.success) {
+      expect(parsed.data.count).toBe(1_000_000);
+    }
+  });
+
+  it("returns only a preview of items for large batches", async () => {
+    const batch = await generateInvitationBatch(
+      invitationGenerationRequestSchema.parse({
+        algorithm: "SHA256",
+        count: 12,
+        idempotencyKey: "invite-test-preview-limit",
+      }),
+    );
+
+    expect(batch.createdCount).toBe(12);
+    expect(batch.requestedCount).toBe(12);
+    expect(batch.items).toHaveLength(INVITATION_GENERATION_PREVIEW_LIMIT);
   });
 
   it("creates invitations that can be resolved by the selected hash algorithm", async () => {

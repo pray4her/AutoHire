@@ -7,6 +7,9 @@ import {
 } from "@/lib/invitations/generation";
 import { requireOpsExpertFilesSession } from "@/lib/ops-expert-files/require-session";
 
+export const maxDuration = 800;
+export const dynamic = "force-dynamic";
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ batchId: string }> },

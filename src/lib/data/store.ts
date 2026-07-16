@@ -49,6 +49,7 @@ import {
   getSampleInvitationSeeds,
   getSampleSubmittedApplicationRecords,
 } from "@/lib/data/sample-data";
+import { INVITATION_GENERATION_INSERT_CHUNK_SIZE } from "@/lib/invitations/constants";
 import { Prisma } from "@prisma/client";
 import type {
   ApplicationFeedbackStatus as PrismaApplicationFeedbackStatus,
@@ -996,17 +997,36 @@ export async function findInvitationByTokenHashCandidates(
 function toInvitationGenerationBatchWithItems(
   batch: InvitationGenerationBatchRecord,
   items: readonly InvitationGenerationItemRecord[],
+  itemsTake?: number,
 ): InvitationGenerationBatchWithItems {
+  const sorted = [...items].sort(
+    (left, right) => left.createdAt.getTime() - right.createdAt.getTime(),
+  );
+
   return {
     ...batch,
-    items: [...items].sort(
-      (left, right) => left.createdAt.getTime() - right.createdAt.getTime(),
-    ),
+    items:
+      itemsTake != null ? sorted.slice(0, Math.max(itemsTake, 0)) : sorted,
   };
 }
 
+function chunkInvitationRows<T>(items: readonly T[], size: number) {
+  const chunks: T[][] = [];
+
+  for (let index = 0; index < items.length; index += size) {
+    chunks.push(items.slice(index, index + size));
+  }
+
+  return chunks;
+}
+
+type InvitationGenerationBatchLookupOptions = {
+  readonly itemsTake?: number;
+};
+
 export async function findInvitationGenerationBatchById(
   batchId: string,
+  options?: InvitationGenerationBatchLookupOptions,
 ): Promise<InvitationGenerationBatchWithItems | null> {
   if (getRuntimeMode() === "memory") {
     const store = getMemoryStore();
@@ -1023,13 +1043,19 @@ export async function findInvitationGenerationBatchById(
       store.invitationGenerationItems.filter(
         (item) => item.batchId === batch.id,
       ),
+      options?.itemsTake,
     );
   }
 
   const prisma = await getPrisma();
   const batch = await prisma.invitationGenerationBatch.findUnique({
     where: { id: batchId },
-    include: { items: { orderBy: { createdAt: "asc" } } },
+    include: {
+      items: {
+        orderBy: { createdAt: "asc" },
+        ...(options?.itemsTake != null ? { take: options.itemsTake } : {}),
+      },
+    },
   });
 
   return batch;
@@ -1037,6 +1063,7 @@ export async function findInvitationGenerationBatchById(
 
 export async function findInvitationGenerationBatchByIdempotencyKey(
   idempotencyKey: string,
+  options?: InvitationGenerationBatchLookupOptions,
 ): Promise<InvitationGenerationBatchWithItems | null> {
   if (getRuntimeMode() === "memory") {
     const store = getMemoryStore();
@@ -1054,13 +1081,19 @@ export async function findInvitationGenerationBatchByIdempotencyKey(
       store.invitationGenerationItems.filter(
         (item) => item.batchId === batch.id,
       ),
+      options?.itemsTake,
     );
   }
 
   const prisma = await getPrisma();
   const batch = await prisma.invitationGenerationBatch.findUnique({
     where: { idempotencyKey },
-    include: { items: { orderBy: { createdAt: "asc" } } },
+    include: {
+      items: {
+        orderBy: { createdAt: "asc" },
+        ...(options?.itemsTake != null ? { take: options.itemsTake } : {}),
+      },
+    },
   });
 
   return batch;
@@ -1081,6 +1114,7 @@ export async function createInvitationGenerationBatch(input: {
     inviteLink: string;
     expiredAt: Date;
   }[];
+  itemsTake?: number;
 }): Promise<InvitationGenerationBatchWithItems> {
   if (getRuntimeMode() === "memory") {
     const store = getMemoryStore();
@@ -1094,6 +1128,7 @@ export async function createInvitationGenerationBatch(input: {
         store.invitationGenerationItems.filter(
           (item) => item.batchId === existing.id,
         ),
+        input.itemsTake,
       );
     }
 
@@ -1112,7 +1147,7 @@ export async function createInvitationGenerationBatch(input: {
     };
     const items: InvitationGenerationItemRecord[] = [];
 
-    input.invitations.forEach((invitationInput) => {
+    input.invitations.forEach((invitationInput, index) => {
       const invitation: InvitationRecord = {
         id: createId("invitation"),
         expertId: invitationInput.expertId,
@@ -1132,7 +1167,7 @@ export async function createInvitationGenerationBatch(input: {
         plaintextToken: invitationInput.plaintextToken,
         tokenHash: invitationInput.tokenHash,
         inviteLink: invitationInput.inviteLink,
-        createdAt: now,
+        createdAt: new Date(now.getTime() + index),
       };
 
       store.invitations.push(invitation);
@@ -1142,62 +1177,87 @@ export async function createInvitationGenerationBatch(input: {
 
     store.invitationGenerationBatches.push(batch);
 
-    return toInvitationGenerationBatchWithItems(batch, items);
+    return toInvitationGenerationBatchWithItems(batch, items, input.itemsTake);
   }
 
   const prisma = await getPrisma();
 
-  return prisma.$transaction(async (tx) => {
-    const batch = await tx.invitationGenerationBatch.create({
-      data: {
-        ...(input.id ? { id: input.id } : {}),
-        idempotencyKey: input.idempotencyKey,
-        hashAlgorithm: input.hashAlgorithm as PrismaInviteHashAlgorithm,
-        requestedCount: input.requestedCount,
-        createdCount: 0,
-        expiredDays: input.expiredDays,
-        expiredHours: input.expiredHours,
-        expiredMinutes: input.expiredMinutes,
-      },
-    });
-    const items = [];
-
-    for (const [index, invitationInput] of input.invitations.entries()) {
-      const invitation = await tx.expertInvitation.create({
+  return prisma.$transaction(
+    async (tx) => {
+      const batch = await tx.invitationGenerationBatch.create({
         data: {
-          expertId: invitationInput.expertId,
-          email: null,
-          tokenHash: invitationInput.tokenHash,
+          ...(input.id ? { id: input.id } : {}),
+          idempotencyKey: input.idempotencyKey,
           hashAlgorithm: input.hashAlgorithm as PrismaInviteHashAlgorithm,
-          tokenStatus: "ACTIVE",
-          expiredAt: invitationInput.expiredAt,
-        },
-      });
-      const item = await tx.invitationGenerationItem.create({
-        data: {
-          batchId: batch.id,
-          invitationId: invitation.id,
-          expertId: invitation.expertId,
-          plaintextToken: invitationInput.plaintextToken,
-          tokenHash: invitationInput.tokenHash,
-          inviteLink: invitationInput.inviteLink,
-          createdAt: new Date(batch.createdAt.getTime() + index),
+          requestedCount: input.requestedCount,
+          createdCount: 0,
+          expiredDays: input.expiredDays,
+          expiredHours: input.expiredHours,
+          expiredMinutes: input.expiredMinutes,
         },
       });
 
-      items.push(item);
-    }
+      const invitationRows = input.invitations.map(
+        (invitationInput, index) => {
+          const invitationId = createId("invitation");
+          const createdAt = new Date(batch.createdAt.getTime() + index);
 
-    const updatedBatch = await tx.invitationGenerationBatch.update({
-      where: { id: batch.id },
-      data: { createdCount: items.length },
-    });
+          return {
+            invitation: {
+              id: invitationId,
+              expertId: invitationInput.expertId,
+              email: null as string | null,
+              tokenHash: invitationInput.tokenHash,
+              hashAlgorithm:
+                input.hashAlgorithm as PrismaInviteHashAlgorithm,
+              tokenStatus: "ACTIVE" as const,
+              expiredAt: invitationInput.expiredAt,
+              createdAt,
+              updatedAt: createdAt,
+            },
+            item: {
+              id: createId("invite_item"),
+              batchId: batch.id,
+              invitationId,
+              expertId: invitationInput.expertId,
+              plaintextToken: invitationInput.plaintextToken,
+              tokenHash: invitationInput.tokenHash,
+              inviteLink: invitationInput.inviteLink,
+              createdAt,
+            },
+          };
+        },
+      );
 
-    return {
-      ...updatedBatch,
-      items,
-    };
-  });
+      for (const chunk of chunkInvitationRows(
+        invitationRows,
+        INVITATION_GENERATION_INSERT_CHUNK_SIZE,
+      )) {
+        await tx.expertInvitation.createMany({
+          data: chunk.map((row) => row.invitation),
+        });
+        await tx.invitationGenerationItem.createMany({
+          data: chunk.map((row) => row.item),
+        });
+      }
+
+      const updatedBatch = await tx.invitationGenerationBatch.update({
+        where: { id: batch.id },
+        data: { createdCount: invitationRows.length },
+      });
+      const items = invitationRows.map((row) => row.item);
+
+      return toInvitationGenerationBatchWithItems(
+        updatedBatch,
+        items,
+        input.itemsTake,
+      );
+    },
+    {
+      maxWait: 60_000,
+      timeout: 600_000,
+    },
+  );
 }
 
 export async function findInvitationById(invitationId: string) {

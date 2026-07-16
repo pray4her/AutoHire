@@ -8,6 +8,9 @@ import {
 } from "@/lib/invitations/generation";
 import { requireOpsExpertFilesSession } from "@/lib/ops-expert-files/require-session";
 
+export const maxDuration = 800;
+export const dynamic = "force-dynamic";
+
 export async function POST(request: NextRequest) {
   const auth = await requireOpsExpertFilesSession(request);
   if (auth.error) {

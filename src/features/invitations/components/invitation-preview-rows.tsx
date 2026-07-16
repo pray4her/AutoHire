@@ -20,6 +20,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import type { InvitationGenerationItemSummary } from "@/lib/invitations/types";
+import { INVITATION_GENERATION_PREVIEW_LIMIT } from "@/lib/invitations/constants";
 
 function CopyTokenButton({ token }: { readonly token: string }) {
   const [copied, setCopied] = useState(false);
@@ -58,11 +59,13 @@ function CopyTokenButton({ token }: { readonly token: string }) {
 
 export function InvitationPreviewRows({
   items,
+  totalCount,
 }: {
   readonly items: readonly InvitationGenerationItemSummary[];
+  readonly totalCount: number;
 }) {
-  const visibleItems = items.slice(0, 8);
-  const hiddenCount = Math.max(items.length - visibleItems.length, 0);
+  const visibleItems = items.slice(0, INVITATION_GENERATION_PREVIEW_LIMIT);
+  const hiddenCount = Math.max(totalCount - visibleItems.length, 0);
 
   return (
     <div className="overflow-hidden rounded-lg border">
@@ -103,7 +106,7 @@ export function InvitationPreviewRows({
       {hiddenCount > 0 ? (
         <p className="text-muted-foreground border-t px-3 py-2 text-sm">
           当前显示前 {visibleItems.length} 行。导出 Excel 可查看全部{" "}
-          {items.length} 个令牌。
+          {totalCount.toLocaleString("zh-CN")} 个令牌。
         </p>
       ) : null}
     </div>

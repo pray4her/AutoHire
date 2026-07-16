@@ -105,7 +105,7 @@ describe("ops invitation generation routes", () => {
       createGenerateRequest(
         {
           algorithm: "MD5",
-          count: 100_001,
+          count: 1_000_001,
           idempotencyKey: "bad",
         },
         cookie,
