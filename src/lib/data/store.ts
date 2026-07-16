@@ -1182,82 +1182,106 @@ export async function createInvitationGenerationBatch(input: {
 
   const prisma = await getPrisma();
 
-  return prisma.$transaction(
-    async (tx) => {
-      const batch = await tx.invitationGenerationBatch.create({
-        data: {
-          ...(input.id ? { id: input.id } : {}),
-          idempotencyKey: input.idempotencyKey,
-          hashAlgorithm: input.hashAlgorithm as PrismaInviteHashAlgorithm,
-          requestedCount: input.requestedCount,
-          createdCount: 0,
-          expiredDays: input.expiredDays,
-          expiredHours: input.expiredHours,
-          expiredMinutes: input.expiredMinutes,
+  // Do not wrap the full million-row write in one interactive transaction:
+  // Prisma interactive tx has a hard timeout and holding one open for minutes
+  // also hurts Postgres. Commit each chunk in its own short transaction.
+  const batch = await prisma.invitationGenerationBatch.create({
+    data: {
+      ...(input.id ? { id: input.id } : {}),
+      idempotencyKey: input.idempotencyKey,
+      hashAlgorithm: input.hashAlgorithm as PrismaInviteHashAlgorithm,
+      requestedCount: input.requestedCount,
+      createdCount: 0,
+      expiredDays: input.expiredDays,
+      expiredHours: input.expiredHours,
+      expiredMinutes: input.expiredMinutes,
+    },
+  });
+
+  const invitationRows = input.invitations.map((invitationInput, index) => {
+    const invitationId = createId("invitation");
+    const createdAt = new Date(batch.createdAt.getTime() + index);
+
+    return {
+      invitation: {
+        id: invitationId,
+        expertId: invitationInput.expertId,
+        email: null as string | null,
+        tokenHash: invitationInput.tokenHash,
+        hashAlgorithm: input.hashAlgorithm as PrismaInviteHashAlgorithm,
+        tokenStatus: "ACTIVE" as const,
+        expiredAt: invitationInput.expiredAt,
+        createdAt,
+        updatedAt: createdAt,
+      },
+      item: {
+        id: createId("invite_item"),
+        batchId: batch.id,
+        invitationId,
+        expertId: invitationInput.expertId,
+        plaintextToken: invitationInput.plaintextToken,
+        tokenHash: invitationInput.tokenHash,
+        inviteLink: invitationInput.inviteLink,
+        createdAt,
+      },
+    };
+  });
+
+  try {
+    for (const chunk of chunkInvitationRows(
+      invitationRows,
+      INVITATION_GENERATION_INSERT_CHUNK_SIZE,
+    )) {
+      await prisma.$transaction(
+        async (tx) => {
+          await tx.expertInvitation.createMany({
+            data: chunk.map((row) => row.invitation),
+          });
+          await tx.invitationGenerationItem.createMany({
+            data: chunk.map((row) => row.item),
+          });
         },
-      });
-
-      const invitationRows = input.invitations.map(
-        (invitationInput, index) => {
-          const invitationId = createId("invitation");
-          const createdAt = new Date(batch.createdAt.getTime() + index);
-
-          return {
-            invitation: {
-              id: invitationId,
-              expertId: invitationInput.expertId,
-              email: null as string | null,
-              tokenHash: invitationInput.tokenHash,
-              hashAlgorithm:
-                input.hashAlgorithm as PrismaInviteHashAlgorithm,
-              tokenStatus: "ACTIVE" as const,
-              expiredAt: invitationInput.expiredAt,
-              createdAt,
-              updatedAt: createdAt,
-            },
-            item: {
-              id: createId("invite_item"),
-              batchId: batch.id,
-              invitationId,
-              expertId: invitationInput.expertId,
-              plaintextToken: invitationInput.plaintextToken,
-              tokenHash: invitationInput.tokenHash,
-              inviteLink: invitationInput.inviteLink,
-              createdAt,
-            },
-          };
+        {
+          maxWait: 30_000,
+          timeout: 120_000,
         },
       );
+    }
 
-      for (const chunk of chunkInvitationRows(
-        invitationRows,
+    const updatedBatch = await prisma.invitationGenerationBatch.update({
+      where: { id: batch.id },
+      data: { createdCount: invitationRows.length },
+    });
+    const items = invitationRows.map((row) => row.item);
+
+    return toInvitationGenerationBatchWithItems(
+      updatedBatch,
+      items,
+      input.itemsTake,
+    );
+  } catch (error) {
+    const invitationIds = invitationRows.map((row) => row.invitation.id);
+
+    try {
+      // Cascade removes generation items; invitations must be deleted separately.
+      await prisma.invitationGenerationBatch.delete({
+        where: { id: batch.id },
+      });
+
+      for (const idChunk of chunkInvitationRows(
+        invitationIds,
         INVITATION_GENERATION_INSERT_CHUNK_SIZE,
       )) {
-        await tx.expertInvitation.createMany({
-          data: chunk.map((row) => row.invitation),
-        });
-        await tx.invitationGenerationItem.createMany({
-          data: chunk.map((row) => row.item),
+        await prisma.expertInvitation.deleteMany({
+          where: { id: { in: idChunk } },
         });
       }
+    } catch {
+      // Preserve the original insert failure for the caller.
+    }
 
-      const updatedBatch = await tx.invitationGenerationBatch.update({
-        where: { id: batch.id },
-        data: { createdCount: invitationRows.length },
-      });
-      const items = invitationRows.map((row) => row.item);
-
-      return toInvitationGenerationBatchWithItems(
-        updatedBatch,
-        items,
-        input.itemsTake,
-      );
-    },
-    {
-      maxWait: 60_000,
-      timeout: 600_000,
-    },
-  );
+    throw error;
+  }
 }
 
 export async function findInvitationById(invitationId: string) {
