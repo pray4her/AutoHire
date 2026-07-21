@@ -103,4 +103,85 @@ describe("InvitationGeneratorPanel", () => {
       expect(toast.error).toHaveBeenCalledWith("需要有效的运营后台登录会话。");
     });
   });
+
+  it("toggles the distributed checkbox for a generated invitation", async () => {
+    const batch = {
+      id: "invite_batch_test",
+      name: "面板测试",
+      idempotencyKey: "panel-distributed-key",
+      hashAlgorithm: "SHA256",
+      requestedCount: 1,
+      createdCount: 1,
+      expiredDays: 90,
+      expiredHours: 0,
+      expiredMinutes: 0,
+      expiresAt: "2026-10-19T00:00:00.000Z",
+      createdAt: "2026-07-21T00:00:00.000Z",
+      updatedAt: "2026-07-21T00:00:00.000Z",
+      items: [
+        {
+          sequence: 1,
+          invitationId: "invitation_1",
+          expertId: "generated_1",
+          plaintextToken: "a".repeat(64),
+          tokenHash: "b".repeat(64),
+          inviteLink: "https://example.test/apply?t=token",
+          hashAlgorithm: "SHA256",
+          distributedAt: null,
+          createdAt: "2026-07-21T00:00:00.000Z",
+        },
+      ],
+    };
+
+    mockFetchSequence([
+      () =>
+        new Response(JSON.stringify({ batches: [] }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      () =>
+        new Response(JSON.stringify({ batch }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      () =>
+        new Response(JSON.stringify({ batches: [] }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      (_input, init) => {
+        expect(init?.method).toBe("PATCH");
+        expect(JSON.parse(String(init?.body))).toEqual({ distributed: true });
+        return new Response(
+          JSON.stringify({
+            item: {
+              ...batch.items[0],
+              distributedAt: "2026-07-21T01:00:00.000Z",
+            },
+          }),
+          {
+            status: 200,
+            headers: { "content-type": "application/json" },
+          },
+        );
+      },
+    ]);
+
+    const user = userEvent.setup();
+    render(<InvitationGeneratorPanel />);
+
+    await user.click(screen.getByRole("button", { name: "生成邀请链接" }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("https://example.test/apply?t=token"),
+      ).toBeInTheDocument();
+    });
+
+    await user.click(screen.getByText("https://example.test/apply?t=token"));
+
+    await waitFor(() => {
+      expect(toast.success).toHaveBeenCalledWith("已标记为已发出。");
+    });
+  });
 });

@@ -1,6 +1,6 @@
 "use client";
 
-import { Download } from "lucide-react";
+import { Download, Eye } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -19,7 +19,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { formatInvitationExpiryLabel } from "@/lib/invitations/expiry-label";
+import { formatInvitationDateTime } from "@/lib/invitations/date-format";
 import type { InvitationGenerationBatchListItem } from "@/lib/invitations/types";
 
 import { formatDateTime } from "./invitation-generator-options";
@@ -27,22 +27,26 @@ import { formatDateTime } from "./invitation-generator-options";
 type InvitationBatchHistoryCardProps = {
   readonly batches: readonly InvitationGenerationBatchListItem[];
   readonly exportingBatchId: string | null;
+  readonly viewingBatchId: string | null;
   readonly isLoading: boolean;
   readonly onExport: (batchId: string) => void;
+  readonly onView: (batchId: string) => void;
 };
 
 export function InvitationBatchHistoryCard({
   batches,
   exportingBatchId,
+  viewingBatchId,
   isLoading,
   onExport,
+  onView,
 }: InvitationBatchHistoryCardProps) {
   return (
     <Card className="border-foreground/10 bg-background/90 w-full shadow-xl backdrop-blur">
       <CardHeader>
         <CardTitle>近期批次</CardTitle>
         <CardDescription>
-          可重新下载此前生成的 Excel，无需再次生成。
+          可查看明细并标记已发出，或重新下载 Excel。
         </CardDescription>
       </CardHeader>
       <CardContent>
@@ -58,38 +62,58 @@ export function InvitationBatchHistoryCard({
             <Table>
               <TableHeader>
                 <TableRow className="bg-muted/40 hover:bg-muted/40">
+                  <TableHead className="w-40">命名</TableHead>
                   <TableHead>生成时间</TableHead>
-                  <TableHead className="w-28">数量</TableHead>
-                  <TableHead className="w-32">有效期</TableHead>
-                  <TableHead className="w-36 text-right">操作</TableHead>
+                  <TableHead className="w-24">数量</TableHead>
+                  <TableHead className="w-40">失效时间</TableHead>
+                  <TableHead className="w-52 text-right">操作</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {batches.map((batch) => {
                   const isExporting = exportingBatchId === batch.id;
+                  const isViewing = viewingBatchId === batch.id;
                   return (
                     <TableRow key={batch.id}>
+                      <TableCell className="max-w-[10rem] truncate font-medium">
+                        {batch.name.trim() || "未命名"}
+                      </TableCell>
                       <TableCell>{formatDateTime(batch.createdAt)}</TableCell>
                       <TableCell>
                         {batch.createdCount.toLocaleString("zh-CN")}
                       </TableCell>
                       <TableCell>
-                        {formatInvitationExpiryLabel(batch)}
+                        {formatInvitationDateTime(batch.expiresAt)}
                       </TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          disabled={isExporting}
-                          onClick={() => onExport(batch.id)}
-                        >
-                          {isExporting ? (
-                            <Spinner data-icon="inline-start" />
-                          ) : (
-                            <Download data-icon="inline-start" />
-                          )}
-                          重新下载
-                        </Button>
+                        <div className="flex justify-end gap-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={isViewing || isExporting}
+                            onClick={() => onView(batch.id)}
+                          >
+                            {isViewing ? (
+                              <Spinner data-icon="inline-start" />
+                            ) : (
+                              <Eye data-icon="inline-start" />
+                            )}
+                            查看
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={isExporting || isViewing}
+                            onClick={() => onExport(batch.id)}
+                          >
+                            {isExporting ? (
+                              <Spinner data-icon="inline-start" />
+                            ) : (
+                              <Download data-icon="inline-start" />
+                            )}
+                            重新下载
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   );

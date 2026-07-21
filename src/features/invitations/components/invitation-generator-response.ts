@@ -9,6 +9,9 @@ const GENERATION_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   OPS_EXPERT_FILES_SESSION_REQUIRED: "需要有效的运营后台登录会话。",
   INVITATION_GENERATION_INVALID_PAYLOAD: "邀请链接生成请求参数无效。",
   INVITATION_GENERATION_IDEMPOTENCY_CONFLICT: "幂等键已用于不同的生成设置。",
+  INVITATION_GENERATION_BATCH_NOT_FOUND: "未找到该邀请生成批次。",
+  INVITATION_GENERATION_ITEM_NOT_FOUND: "未找到该邀请令牌。",
+  INVITATION_DISTRIBUTION_INVALID_PAYLOAD: "已发出标记请求参数无效。",
 };
 
 function isGenerateResponse(value: unknown): value is GenerateResponse {

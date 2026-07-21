@@ -47,6 +47,7 @@ import { readGenerateResponse } from "./invitation-generator-response";
 
 export function InvitationGeneratorPanel() {
   const router = useRouter();
+  const [name, setName] = useState("");
   const [algorithm, setAlgorithm] = useState<InviteHashAlgorithm>("SHA256");
   const [count, setCount] = useState(String(INVITATION_GENERATION_DEFAULT_COUNT));
   const [expiredDays, setExpiredDays] = useState(
@@ -67,6 +68,10 @@ export function InvitationGeneratorPanel() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
   const [exportingBatchId, setExportingBatchId] = useState<string | null>(null);
+  const [viewingBatchId, setViewingBatchId] = useState<string | null>(null);
+  const [pendingInvitationIds, setPendingInvitationIds] = useState<
+    ReadonlySet<string>
+  >(() => new Set());
   const [confirmOpen, setConfirmOpen] = useState(false);
 
   const selectedDescription = useMemo(
@@ -137,6 +142,7 @@ export function InvitationGeneratorPanel() {
         headers: { "content-type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
+          name: name.trim(),
           algorithm,
           count: Number(count),
           expiredDays: Number(expiredDays),
@@ -171,6 +177,132 @@ export function InvitationGeneratorPanel() {
       return;
     }
     void generateBatch();
+  }
+
+  async function loadBatch(batchId: string) {
+    setViewingBatchId(batchId);
+
+    try {
+      const response = await fetch(
+        `/api/ops/invitations/batches/${encodeURIComponent(batchId)}`,
+        { credentials: "include" },
+      );
+      const payload = await readGenerateResponse(response);
+      setBatch(payload.batch);
+      toast.success("已加载批次明细。");
+    } catch (error) {
+      const message =
+        error instanceof Error ? error.message : "加载批次明细失败。";
+      toast.error(message);
+    } finally {
+      setViewingBatchId(null);
+    }
+  }
+
+  async function setDistributed(
+    invitationIds: readonly string[],
+    distributed: boolean,
+  ) {
+    if (!batch || invitationIds.length === 0) {
+      return;
+    }
+
+    const idSet = new Set(invitationIds);
+    const previousItems = batch.items;
+    const optimisticAt = distributed ? new Date().toISOString() : null;
+
+    setPendingInvitationIds(idSet);
+    setBatch({
+      ...batch,
+      items: batch.items.map((item) =>
+        idSet.has(item.invitationId)
+          ? { ...item, distributedAt: optimisticAt }
+          : item,
+      ),
+    });
+
+    try {
+      const results = await Promise.all(
+        invitationIds.map(async (invitationId) => {
+          const response = await fetch(
+            `/api/ops/invitations/items/${encodeURIComponent(invitationId)}`,
+            {
+              method: "PATCH",
+              headers: { "content-type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({ distributed }),
+            },
+          );
+          const payload = await response.json().catch(() => null);
+
+          if (
+            !response.ok ||
+            !payload ||
+            typeof payload !== "object" ||
+            !("item" in payload)
+          ) {
+            const code =
+              payload && typeof payload === "object" && "code" in payload
+                ? String((payload as { code: unknown }).code)
+                : "";
+            const localized =
+              code === "INVITATION_GENERATION_ITEM_NOT_FOUND"
+                ? "未找到该邀请令牌。"
+                : code === "OPS_EXPERT_FILES_SESSION_REQUIRED"
+                  ? "需要有效的运营后台登录会话。"
+                  : "更新已发出标记失败。";
+            throw new Error(localized);
+          }
+
+          return {
+            invitationId,
+            distributedAt:
+              (payload as { item: { distributedAt?: string | null } }).item
+                .distributedAt ?? null,
+          };
+        }),
+      );
+
+      const resultById = new Map(
+        results.map((result) => [result.invitationId, result.distributedAt]),
+      );
+
+      setBatch((current) =>
+        current
+          ? {
+              ...current,
+              items: current.items.map((entry) =>
+                resultById.has(entry.invitationId)
+                  ? {
+                      ...entry,
+                      distributedAt:
+                        resultById.get(entry.invitationId) ?? null,
+                    }
+                  : entry,
+              ),
+            }
+          : current,
+      );
+
+      if (invitationIds.length === 1) {
+        toast.success(distributed ? "已标记为已发出。" : "已取消已发出标记。");
+      } else {
+        toast.success(
+          distributed
+            ? `已标记 ${invitationIds.length.toLocaleString("zh-CN")} 个为已发出。`
+            : `已取消 ${invitationIds.length.toLocaleString("zh-CN")} 个已发出标记。`,
+        );
+      }
+    } catch (error) {
+      setBatch((current) =>
+        current ? { ...current, items: previousItems } : current,
+      );
+      const message =
+        error instanceof Error ? error.message : "更新已发出标记失败。";
+      toast.error(message);
+    } finally {
+      setPendingInvitationIds(new Set());
+    }
   }
 
   async function exportBatchById(batchId: string) {
@@ -231,6 +363,7 @@ export function InvitationGeneratorPanel() {
           </CardHeader>
           <CardContent>
             <InvitationGeneratorForm
+              name={name}
               algorithm={algorithm}
               count={count}
               expiredDays={expiredDays}
@@ -241,6 +374,7 @@ export function InvitationGeneratorPanel() {
               selectedDescription={selectedDescription}
               advancedOpen={advancedOpen}
               onAdvancedOpenChange={setAdvancedOpen}
+              onNameChange={setName}
               onAlgorithmChange={setAlgorithm}
               onCountChange={setCount}
               onExpiredDaysChange={handleExpiredDaysChange}
@@ -256,15 +390,21 @@ export function InvitationGeneratorPanel() {
           <InvitationBatchResultCard
             batch={batch}
             isExporting={exportingBatchId === batch.id}
+            pendingInvitationIds={pendingInvitationIds}
             onExport={() => void exportBatchById(batch.id)}
+            onSetDistributed={(invitationIds, distributed) =>
+              void setDistributed(invitationIds, distributed)
+            }
           />
         ) : null}
 
         <InvitationBatchHistoryCard
           batches={history}
           exportingBatchId={exportingBatchId}
+          viewingBatchId={viewingBatchId}
           isLoading={isLoadingHistory}
           onExport={(batchId) => void exportBatchById(batchId)}
+          onView={(batchId) => void loadBatch(batchId)}
         />
       </div>
 

@@ -21,6 +21,7 @@ import type { InviteHashAlgorithm } from "@/lib/auth/token";
 import {
   INVITATION_GENERATION_MAX_COUNT,
   INVITATION_GENERATION_MAX_EXPIRED_DAYS,
+  INVITATION_GENERATION_NAME_MAX_LENGTH,
   INVITATION_GENERATION_SOFT_CONFIRM_COUNT,
 } from "@/lib/invitations/constants";
 import { RefreshCcw } from "lucide-react";
@@ -32,6 +33,7 @@ import {
 } from "./invitation-generator-options";
 
 type InvitationGeneratorFormProps = {
+  readonly name: string;
   readonly algorithm: InviteHashAlgorithm;
   readonly count: string;
   readonly expiredDays: string;
@@ -42,6 +44,7 @@ type InvitationGeneratorFormProps = {
   readonly selectedDescription: string;
   readonly advancedOpen: boolean;
   readonly onAdvancedOpenChange: (open: boolean) => void;
+  readonly onNameChange: (name: string) => void;
   readonly onAlgorithmChange: (algorithm: InviteHashAlgorithm) => void;
   readonly onCountChange: (count: string) => void;
   readonly onExpiredDaysChange: (expiredDays: string) => void;
@@ -52,6 +55,7 @@ type InvitationGeneratorFormProps = {
 };
 
 export function InvitationGeneratorForm({
+  name,
   algorithm,
   count,
   expiredDays,
@@ -62,6 +66,7 @@ export function InvitationGeneratorForm({
   selectedDescription,
   advancedOpen,
   onAdvancedOpenChange,
+  onNameChange,
   onAlgorithmChange,
   onCountChange,
   onExpiredDaysChange,
@@ -90,12 +95,25 @@ export function InvitationGeneratorForm({
       }}
     >
       <ol className="text-muted-foreground flex flex-wrap gap-x-4 gap-y-1 text-sm">
-        <li>1. 设置数量与有效期</li>
+        <li>1. 命名并设置数量与有效期</li>
         <li>2. 生成邀请链接</li>
         <li>3. 下载 Excel 发送</li>
       </ol>
 
-      <div className="grid gap-4 lg:grid-cols-3">
+      <div className="grid gap-4 lg:grid-cols-4">
+        <label className="flex flex-col gap-2 lg:col-span-1">
+          <span className="text-sm font-medium">批次命名</span>
+          <Input
+            maxLength={INVITATION_GENERATION_NAME_MAX_LENGTH}
+            placeholder="例如：华东渠道-7月"
+            value={name}
+            onChange={(event) => onNameChange(event.target.value)}
+          />
+          <span className="text-muted-foreground text-xs">
+            可选；会出现在结果表第一列，便于区分批次。
+          </span>
+        </label>
+
         <label className="flex flex-col gap-2">
           <span className="text-sm font-medium">数量</span>
           <Input

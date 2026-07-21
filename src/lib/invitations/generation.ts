@@ -11,8 +11,11 @@ import {
   createInvitationGenerationBatch,
   findInvitationGenerationBatchById,
   findInvitationGenerationBatchByIdempotencyKey,
+  findInvitationGenerationItemByInvitationId,
   listInvitationGenerationBatches as listInvitationGenerationBatchesFromStore,
+  updateInvitationGenerationItemDistributedAt,
   type InvitationGenerationBatchWithItems,
+  type InvitationGenerationItemRecord,
 } from "@/lib/data/store";
 import { getEnv } from "@/lib/env";
 import {
@@ -22,12 +25,14 @@ import {
   INVITATION_GENERATION_MAX_EXPIRED_DAYS,
   INVITATION_GENERATION_MAX_EXPIRED_HOURS,
   INVITATION_GENERATION_MAX_EXPIRED_MINUTES,
+  INVITATION_GENERATION_NAME_MAX_LENGTH,
   INVITATION_GENERATION_PREVIEW_LIMIT,
 } from "@/lib/invitations/constants";
 import { formatInvitationDateTime } from "@/lib/invitations/date-format";
 import type {
   InvitationGenerationBatchListItem,
   InvitationGenerationBatchSummary,
+  InvitationGenerationItemSummary,
 } from "@/lib/invitations/types";
 
 export { formatInvitationExpiryLabel } from "@/lib/invitations/expiry-label";
@@ -39,6 +44,7 @@ export {
   INVITATION_GENERATION_MAX_EXPIRED_DAYS,
   INVITATION_GENERATION_MAX_EXPIRED_HOURS,
   INVITATION_GENERATION_MAX_EXPIRED_MINUTES,
+  INVITATION_GENERATION_NAME_MAX_LENGTH,
   INVITATION_GENERATION_PREVIEW_LIMIT,
   INVITATION_GENERATION_SOFT_CONFIRM_COUNT,
 } from "@/lib/invitations/constants";
@@ -52,6 +58,11 @@ export const invitationGenerationRequestSchema = z
   .object({
     algorithm: z.enum(INVITE_HASH_ALGORITHMS),
     count: z.coerce.number().int().min(1).max(INVITATION_GENERATION_MAX_COUNT),
+    name: z
+      .string()
+      .trim()
+      .max(INVITATION_GENERATION_NAME_MAX_LENGTH)
+      .default(""),
     idempotencyKey: z.string().trim().min(8).max(120),
     expiredDays: z.coerce
       .number()
@@ -122,6 +133,20 @@ function addExpiryDuration(
   return new Date(date.getTime() + ms);
 }
 
+export function getInvitationBatchExpiresAt(input: {
+  readonly createdAt: string | Date;
+  readonly expiredDays: number;
+  readonly expiredHours: number;
+  readonly expiredMinutes: number;
+}) {
+  return addExpiryDuration(
+    input.createdAt instanceof Date
+      ? input.createdAt
+      : new Date(input.createdAt),
+    input,
+  );
+}
+
 function createBatchId() {
   return `invite_batch_${randomUUID().replaceAll("-", "")}`;
 }
@@ -142,9 +167,11 @@ function toBatchSummary(
     options?.itemLimit != null
       ? batch.items.slice(0, options.itemLimit)
       : batch.items;
+  const expiresAt = getInvitationBatchExpiresAt(batch).toISOString();
 
   return {
     id: batch.id,
+    name: batch.name,
     idempotencyKey: batch.idempotencyKey,
     hashAlgorithm: batch.hashAlgorithm,
     requestedCount: batch.requestedCount,
@@ -152,25 +179,75 @@ function toBatchSummary(
     expiredDays: batch.expiredDays,
     expiredHours: batch.expiredHours,
     expiredMinutes: batch.expiredMinutes,
+    expiresAt,
     createdAt: batch.createdAt.toISOString(),
     updatedAt: batch.updatedAt.toISOString(),
-    items: items.map((item, index) => ({
-      sequence: index + 1,
-      invitationId: item.invitationId,
-      expertId: item.expertId,
-      plaintextToken: item.plaintextToken,
-      tokenHash: item.tokenHash,
-      inviteLink: item.inviteLink,
-      hashAlgorithm: batch.hashAlgorithm,
-      createdAt: item.createdAt.toISOString(),
-    })),
+    items: items.map((item, index) =>
+      toItemSummary(item, batch.hashAlgorithm, index + 1),
+    ),
   };
 }
 
-export async function getInvitationGenerationBatchSummary(batchId: string) {
-  const batch = await findInvitationGenerationBatchById(batchId);
+function toItemSummary(
+  item: InvitationGenerationItemRecord,
+  hashAlgorithm: InvitationGenerationBatchWithItems["hashAlgorithm"],
+  sequence: number,
+): InvitationGenerationItemSummary {
+  return {
+    sequence,
+    invitationId: item.invitationId,
+    expertId: item.expertId,
+    plaintextToken: item.plaintextToken,
+    tokenHash: item.tokenHash,
+    inviteLink: item.inviteLink,
+    hashAlgorithm,
+    distributedAt: item.distributedAt?.toISOString() ?? null,
+    createdAt: item.createdAt.toISOString(),
+  };
+}
 
-  return batch ? toBatchSummary(batch) : null;
+export async function getInvitationGenerationBatchSummary(
+  batchId: string,
+  options?: { readonly itemLimit?: number },
+) {
+  const batch = await findInvitationGenerationBatchById(batchId, {
+    itemsTake: options?.itemLimit,
+  });
+
+  return batch
+    ? toBatchSummary(batch, { itemLimit: options?.itemLimit })
+    : null;
+}
+
+export async function setInvitationItemDistributed(
+  invitationId: string,
+  distributed: boolean,
+): Promise<InvitationGenerationItemSummary | null> {
+  const existing =
+    await findInvitationGenerationItemByInvitationId(invitationId);
+
+  if (!existing) {
+    return null;
+  }
+
+  const batch = await findInvitationGenerationBatchById(existing.batchId, {
+    itemsTake: 0,
+  });
+
+  if (!batch) {
+    return null;
+  }
+
+  const updated = await updateInvitationGenerationItemDistributedAt(
+    invitationId,
+    distributed ? new Date() : null,
+  );
+
+  if (!updated) {
+    return null;
+  }
+
+  return toItemSummary(updated, batch.hashAlgorithm, 0);
 }
 
 export async function listInvitationGenerationBatches(
@@ -180,12 +257,14 @@ export async function listInvitationGenerationBatches(
 
   return batches.map((batch) => ({
     id: batch.id,
+    name: batch.name,
     hashAlgorithm: batch.hashAlgorithm,
     requestedCount: batch.requestedCount,
     createdCount: batch.createdCount,
     expiredDays: batch.expiredDays,
     expiredHours: batch.expiredHours,
     expiredMinutes: batch.expiredMinutes,
+    expiresAt: getInvitationBatchExpiresAt(batch).toISOString(),
     createdAt: batch.createdAt.toISOString(),
     updatedAt: batch.updatedAt.toISOString(),
   }));
@@ -201,6 +280,7 @@ export async function generateInvitationBatch(
 
   if (existing) {
     if (
+      existing.name !== input.name ||
       existing.hashAlgorithm !== input.algorithm ||
       existing.requestedCount !== input.count ||
       existing.expiredDays !== input.expiredDays ||
@@ -235,6 +315,7 @@ export async function generateInvitationBatch(
   const batch = await createInvitationGenerationBatch({
     id: batchId,
     idempotencyKey: input.idempotencyKey,
+    name: input.name,
     hashAlgorithm: input.algorithm,
     requestedCount: input.count,
     expiredDays: input.expiredDays,
@@ -261,31 +342,37 @@ export function buildInvitationGenerationWorkbook(
   );
 
   const opsRows = batch.items.map((item) => ({
+    命名: batch.name || "未命名",
     序号: item.sequence,
     邀请链接: item.inviteLink,
+    已发出: item.distributedAt ? "是" : "否",
     失效时间: expiredAt,
   }));
   const techRows = batch.items.map((item) => ({
+    命名: batch.name || "未命名",
     序号: item.sequence,
     "邀请 ID": item.invitationId,
     "专家 ID": item.expertId,
     原始令牌: item.plaintextToken,
     邀请链接: item.inviteLink,
+    已发出: item.distributedAt ? "是" : "否",
     哈希算法: item.hashAlgorithm,
     失效时间: expiredAt,
     创建时间: formatInvitationDateTime(item.createdAt),
   }));
 
   const opsSheet = XLSX.utils.json_to_sheet(opsRows, {
-    header: ["序号", "邀请链接", "失效时间"],
+    header: ["命名", "序号", "邀请链接", "已发出", "失效时间"],
   });
   const techSheet = XLSX.utils.json_to_sheet(techRows, {
     header: [
+      "命名",
       "序号",
       "邀请 ID",
       "专家 ID",
       "原始令牌",
       "邀请链接",
+      "已发出",
       "哈希算法",
       "失效时间",
       "创建时间",

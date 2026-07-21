@@ -8,11 +8,13 @@ export type InvitationGenerationItemSummary = {
   readonly tokenHash: string;
   readonly inviteLink: string;
   readonly hashAlgorithm: InviteHashAlgorithm;
+  readonly distributedAt: string | null;
   readonly createdAt: string;
 };
 
 export type InvitationGenerationBatchSummary = {
   readonly id: string;
+  readonly name: string;
   readonly idempotencyKey: string;
   readonly hashAlgorithm: InviteHashAlgorithm;
   readonly requestedCount: number;
@@ -20,6 +22,8 @@ export type InvitationGenerationBatchSummary = {
   readonly expiredDays: number;
   readonly expiredHours: number;
   readonly expiredMinutes: number;
+  /** Absolute expiry instant derived from createdAt + duration. */
+  readonly expiresAt: string;
   readonly createdAt: string;
   readonly updatedAt: string;
   readonly items: readonly InvitationGenerationItemSummary[];
@@ -28,12 +32,14 @@ export type InvitationGenerationBatchSummary = {
 /** List row without plaintext tokens / invite links. */
 export type InvitationGenerationBatchListItem = {
   readonly id: string;
+  readonly name: string;
   readonly hashAlgorithm: InviteHashAlgorithm;
   readonly requestedCount: number;
   readonly createdCount: number;
   readonly expiredDays: number;
   readonly expiredHours: number;
   readonly expiredMinutes: number;
+  readonly expiresAt: string;
   readonly createdAt: string;
   readonly updatedAt: string;
 };

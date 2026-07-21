@@ -115,6 +115,7 @@ export type InvitationTokenHashCandidate = {
 export type InvitationGenerationBatchRecord = {
   id: string;
   idempotencyKey: string;
+  name: string;
   hashAlgorithm: InviteHashAlgorithm;
   requestedCount: number;
   createdCount: number;
@@ -133,6 +134,7 @@ export type InvitationGenerationItemRecord = {
   plaintextToken: string;
   tokenHash: string;
   inviteLink: string;
+  distributedAt: Date | null;
   createdAt: Date;
 };
 
@@ -1121,6 +1123,7 @@ export async function listInvitationGenerationBatches(options?: {
 export async function createInvitationGenerationBatch(input: {
   id?: string;
   idempotencyKey: string;
+  name: string;
   hashAlgorithm: InviteHashAlgorithm;
   requestedCount: number;
   expiredDays: number;
@@ -1155,6 +1158,7 @@ export async function createInvitationGenerationBatch(input: {
     const batch: InvitationGenerationBatchRecord = {
       id: input.id ?? createId("invite_batch"),
       idempotencyKey: input.idempotencyKey,
+      name: input.name,
       hashAlgorithm: input.hashAlgorithm,
       requestedCount: input.requestedCount,
       createdCount: input.invitations.length,
@@ -1186,6 +1190,7 @@ export async function createInvitationGenerationBatch(input: {
         plaintextToken: invitationInput.plaintextToken,
         tokenHash: invitationInput.tokenHash,
         inviteLink: invitationInput.inviteLink,
+        distributedAt: null,
         createdAt: new Date(now.getTime() + index),
       };
 
@@ -1208,6 +1213,7 @@ export async function createInvitationGenerationBatch(input: {
     data: {
       ...(input.id ? { id: input.id } : {}),
       idempotencyKey: input.idempotencyKey,
+      name: input.name,
       hashAlgorithm: input.hashAlgorithm as PrismaInviteHashAlgorithm,
       requestedCount: input.requestedCount,
       createdCount: 0,
@@ -1241,6 +1247,7 @@ export async function createInvitationGenerationBatch(input: {
         plaintextToken: invitationInput.plaintextToken,
         tokenHash: invitationInput.tokenHash,
         inviteLink: invitationInput.inviteLink,
+        distributedAt: null as Date | null,
         createdAt,
       },
     };
@@ -6172,4 +6179,33 @@ export async function findInvitationGenerationItemByInvitationId(
   return prisma.invitationGenerationItem.findUnique({
     where: { invitationId },
   });
+}
+
+export async function updateInvitationGenerationItemDistributedAt(
+  invitationId: string,
+  distributedAt: Date | null,
+): Promise<InvitationGenerationItemRecord | null> {
+  if (getRuntimeMode() === "memory") {
+    const store = getMemoryStore();
+    const item = store.invitationGenerationItems.find(
+      (entry) => entry.invitationId === invitationId,
+    );
+
+    if (!item) {
+      return null;
+    }
+
+    item.distributedAt = distributedAt;
+    return item;
+  }
+
+  const prisma = await getPrisma();
+  try {
+    return await prisma.invitationGenerationItem.update({
+      where: { invitationId },
+      data: { distributedAt },
+    });
+  } catch {
+    return null;
+  }
 }

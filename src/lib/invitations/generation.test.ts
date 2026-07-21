@@ -9,6 +9,7 @@ import {
   generateInvitationBatch,
   invitationGenerationRequestSchema,
   listInvitationGenerationBatches,
+  setInvitationItemDistributed,
 } from "@/lib/invitations/generation";
 import { INVITATION_GENERATION_PREVIEW_LIMIT } from "@/lib/invitations/constants";
 import { findInvitationById } from "@/lib/data/store";
@@ -77,14 +78,15 @@ describe("invitation generation service", () => {
     const batch = await generateInvitationBatch(
       invitationGenerationRequestSchema.parse({
         algorithm: "SHA256",
-        count: 12,
+        count: INVITATION_GENERATION_PREVIEW_LIMIT + 4,
         idempotencyKey: "invite-test-preview-limit",
       }),
     );
 
-    expect(batch.createdCount).toBe(12);
-    expect(batch.requestedCount).toBe(12);
+    expect(batch.createdCount).toBe(INVITATION_GENERATION_PREVIEW_LIMIT + 4);
+    expect(batch.requestedCount).toBe(INVITATION_GENERATION_PREVIEW_LIMIT + 4);
     expect(batch.items).toHaveLength(INVITATION_GENERATION_PREVIEW_LIMIT);
+    expect(batch.items[0]?.distributedAt).toBeNull();
   });
 
   it("creates invitations that can be resolved by the selected hash algorithm", async () => {
@@ -259,6 +261,48 @@ describe("invitation generation service", () => {
       header: 1,
       defval: "",
     });
-    expect(headerRows[0]).toEqual(["序号", "邀请链接", "失效时间"]);
+    expect(headerRows[0]).toEqual([
+      "命名",
+      "序号",
+      "邀请链接",
+      "已发出",
+      "失效时间",
+    ]);
+  });
+
+  it("stores batch name and exposes absolute expiresAt", async () => {
+    const before = Date.now();
+    const batch = await generateInvitationBatch(
+      invitationGenerationRequestSchema.parse({
+        algorithm: "SHA256",
+        count: 1,
+        name: "华东渠道",
+        expiredDays: 1,
+        idempotencyKey: "invite-test-named-batch",
+      }),
+    );
+    const after = Date.now();
+
+    expect(batch.name).toBe("华东渠道");
+    const expiresAtMs = new Date(batch.expiresAt).getTime();
+    expect(expiresAtMs).toBeGreaterThanOrEqual(before + 24 * 60 * 60 * 1000);
+    expect(expiresAtMs).toBeLessThanOrEqual(after + 24 * 60 * 60 * 1000);
+  });
+
+  it("marks and unmarks an invitation item as distributed", async () => {
+    const batch = await generateInvitationBatch(
+      invitationGenerationRequestSchema.parse({
+        algorithm: "SHA256",
+        count: 1,
+        idempotencyKey: "invite-test-distributed",
+      }),
+    );
+    const invitationId = batch.items[0]?.invitationId ?? "";
+
+    const marked = await setInvitationItemDistributed(invitationId, true);
+    expect(marked?.distributedAt).toBeTruthy();
+
+    const unmarked = await setInvitationItemDistributed(invitationId, false);
+    expect(unmarked?.distributedAt).toBeNull();
   });
 });

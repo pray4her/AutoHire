@@ -181,10 +181,157 @@ describe("ops invitation generation routes", () => {
       header: 1,
       defval: "",
     });
-    expect(headerRows[0]).toEqual(["序号", "邀请链接", "失效时间"]);
+    expect(headerRows[0]).toEqual([
+      "命名",
+      "序号",
+      "邀请链接",
+      "已发出",
+      "失效时间",
+    ]);
 
     const dataRows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
     expect(dataRows).toHaveLength(2);
+  });
+
+  it("loads a batch detail and toggles distributed status", async () => {
+    const cookie = await authCookieHeader();
+    const generated = await generateBatch(
+      createGenerateRequest(
+        {
+          algorithm: "SHA256",
+          count: 2,
+          idempotencyKey: "route-detail-distributed-key",
+        },
+        cookie,
+      ),
+    );
+    const generatedPayload = (await generated.json()) as GeneratePayload;
+    const invitationId = generatedPayload.batch.items[0]?.invitationId ?? "";
+
+    const { GET: getBatch } = await import(
+      "@/app/api/ops/invitations/batches/[batchId]/route"
+    );
+    const detailResponse = await getBatch(
+      new NextRequest(
+        `http://localhost/api/ops/invitations/batches/${generatedPayload.batch.id}`,
+        { headers: { cookie } },
+      ),
+      { params: Promise.resolve({ batchId: generatedPayload.batch.id }) },
+    );
+
+    expect(detailResponse.status).toBe(200);
+    const detailPayload = (await detailResponse.json()) as GeneratePayload;
+    expect(detailPayload.batch.id).toBe(generatedPayload.batch.id);
+    expect(detailPayload.batch.items).toHaveLength(2);
+    expect(detailPayload.batch.items[0]?.distributedAt).toBeNull();
+
+    const { PATCH: patchItem } = await import(
+      "@/app/api/ops/invitations/items/[invitationId]/route"
+    );
+    const markResponse = await patchItem(
+      new NextRequest(
+        `http://localhost/api/ops/invitations/items/${invitationId}`,
+        {
+          method: "PATCH",
+          headers: {
+            cookie,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ distributed: true }),
+        },
+      ),
+      { params: Promise.resolve({ invitationId }) },
+    );
+
+    expect(markResponse.status).toBe(200);
+    const marked = (await markResponse.json()) as {
+      item: { distributedAt: string | null };
+    };
+    expect(marked.item.distributedAt).toBeTruthy();
+
+    const unmarkResponse = await patchItem(
+      new NextRequest(
+        `http://localhost/api/ops/invitations/items/${invitationId}`,
+        {
+          method: "PATCH",
+          headers: {
+            cookie,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ distributed: false }),
+        },
+      ),
+      { params: Promise.resolve({ invitationId }) },
+    );
+
+    expect(unmarkResponse.status).toBe(200);
+    const unmarked = (await unmarkResponse.json()) as {
+      item: { distributedAt: string | null };
+    };
+    expect(unmarked.item.distributedAt).toBeNull();
+  });
+
+  it("requires auth for batch detail and item distribution updates", async () => {
+    const { GET: getBatch } = await import(
+      "@/app/api/ops/invitations/batches/[batchId]/route"
+    );
+    const detailResponse = await getBatch(
+      new NextRequest(
+        "http://localhost/api/ops/invitations/batches/missing-batch",
+      ),
+      { params: Promise.resolve({ batchId: "missing-batch" }) },
+    );
+    expect(detailResponse.status).toBe(401);
+
+    const { PATCH: patchItem } = await import(
+      "@/app/api/ops/invitations/items/[invitationId]/route"
+    );
+    const patchResponse = await patchItem(
+      new NextRequest(
+        "http://localhost/api/ops/invitations/items/missing-item",
+        {
+          method: "PATCH",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ distributed: true }),
+        },
+      ),
+      { params: Promise.resolve({ invitationId: "missing-item" }) },
+    );
+    expect(patchResponse.status).toBe(401);
+  });
+
+  it("returns 404 for missing batch detail and invitation items", async () => {
+    const cookie = await authCookieHeader();
+    const { GET: getBatch } = await import(
+      "@/app/api/ops/invitations/batches/[batchId]/route"
+    );
+    const detailResponse = await getBatch(
+      new NextRequest(
+        "http://localhost/api/ops/invitations/batches/missing-batch",
+        { headers: { cookie } },
+      ),
+      { params: Promise.resolve({ batchId: "missing-batch" }) },
+    );
+    expect(detailResponse.status).toBe(404);
+
+    const { PATCH: patchItem } = await import(
+      "@/app/api/ops/invitations/items/[invitationId]/route"
+    );
+    const patchResponse = await patchItem(
+      new NextRequest(
+        "http://localhost/api/ops/invitations/items/missing-item",
+        {
+          method: "PATCH",
+          headers: {
+            cookie,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({ distributed: true }),
+        },
+      ),
+      { params: Promise.resolve({ invitationId: "missing-item" }) },
+    );
+    expect(patchResponse.status).toBe(404);
   });
 
   it("lists recent generation batches without plaintext items", async () => {

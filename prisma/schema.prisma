@@ -226,6 +226,7 @@ model ExpertInvitation {
 model InvitationGenerationBatch {
   id             String              @id @default(cuid())
   idempotencyKey String              @unique
+  name           String              @default("")
   hashAlgorithm  InviteHashAlgorithm
   requestedCount Int
   createdCount   Int                 @default(0)
@@ -239,14 +240,15 @@ model InvitationGenerationBatch {
 }
 
 model InvitationGenerationItem {
-  id             String   @id @default(cuid())
+  id             String    @id @default(cuid())
   batchId        String
-  invitationId   String   @unique
+  invitationId   String    @unique
   expertId       String
   plaintextToken String
-  tokenHash      String   @unique
+  tokenHash      String    @unique
   inviteLink     String
-  createdAt      DateTime @default(now())
+  distributedAt  DateTime?
+  createdAt      DateTime  @default(now())
 
   batch      InvitationGenerationBatch @relation(fields: [batchId], references: [id], onDelete: Cascade)
   invitation ExpertInvitation          @relation(fields: [invitationId], references: [id], onDelete: Restrict)
