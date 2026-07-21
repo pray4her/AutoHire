@@ -21,8 +21,8 @@ export default async function InvitationsLoginPage() {
   return (
     <ExpertFilesLoginForm
       redirectTo="/ops/invitations"
-      title="邀请令牌登录"
-      subtitle="使用运营账号与密码进入邀请令牌生成器。"
+      title="邀请链接登录"
+      subtitle="使用运营账号与密码进入邀请链接生成页。"
     />
   );
 }

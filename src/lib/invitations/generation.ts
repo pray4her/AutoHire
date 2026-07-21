@@ -6,16 +6,17 @@ import {
   generateInvitePlaintextToken,
   hashInviteToken,
   INVITE_HASH_ALGORITHMS,
-  type InviteHashAlgorithm,
 } from "@/lib/auth/token";
 import {
   createInvitationGenerationBatch,
   findInvitationGenerationBatchById,
   findInvitationGenerationBatchByIdempotencyKey,
+  listInvitationGenerationBatches as listInvitationGenerationBatchesFromStore,
   type InvitationGenerationBatchWithItems,
 } from "@/lib/data/store";
 import { getEnv } from "@/lib/env";
 import {
+  INVITATION_GENERATION_BATCH_LIST_LIMIT,
   INVITATION_GENERATION_DEFAULT_EXPIRED_DAYS,
   INVITATION_GENERATION_MAX_COUNT,
   INVITATION_GENERATION_MAX_EXPIRED_DAYS,
@@ -23,18 +24,26 @@ import {
   INVITATION_GENERATION_MAX_EXPIRED_MINUTES,
   INVITATION_GENERATION_PREVIEW_LIMIT,
 } from "@/lib/invitations/constants";
-import type { InvitationGenerationBatchSummary } from "@/lib/invitations/types";
+import { formatInvitationDateTime } from "@/lib/invitations/date-format";
+import type {
+  InvitationGenerationBatchListItem,
+  InvitationGenerationBatchSummary,
+} from "@/lib/invitations/types";
 
 export { formatInvitationExpiryLabel } from "@/lib/invitations/expiry-label";
 export {
+  INVITATION_GENERATION_BATCH_LIST_LIMIT,
+  INVITATION_GENERATION_DEFAULT_COUNT,
   INVITATION_GENERATION_DEFAULT_EXPIRED_DAYS,
   INVITATION_GENERATION_MAX_COUNT,
   INVITATION_GENERATION_MAX_EXPIRED_DAYS,
   INVITATION_GENERATION_MAX_EXPIRED_HOURS,
   INVITATION_GENERATION_MAX_EXPIRED_MINUTES,
   INVITATION_GENERATION_PREVIEW_LIMIT,
+  INVITATION_GENERATION_SOFT_CONFIRM_COUNT,
 } from "@/lib/invitations/constants";
 export type {
+  InvitationGenerationBatchListItem,
   InvitationGenerationBatchSummary,
   InvitationGenerationItemSummary,
 } from "@/lib/invitations/types";
@@ -164,6 +173,24 @@ export async function getInvitationGenerationBatchSummary(batchId: string) {
   return batch ? toBatchSummary(batch) : null;
 }
 
+export async function listInvitationGenerationBatches(
+  take = INVITATION_GENERATION_BATCH_LIST_LIMIT,
+): Promise<readonly InvitationGenerationBatchListItem[]> {
+  const batches = await listInvitationGenerationBatchesFromStore({ take });
+
+  return batches.map((batch) => ({
+    id: batch.id,
+    hashAlgorithm: batch.hashAlgorithm,
+    requestedCount: batch.requestedCount,
+    createdCount: batch.createdCount,
+    expiredDays: batch.expiredDays,
+    expiredHours: batch.expiredHours,
+    expiredMinutes: batch.expiredMinutes,
+    createdAt: batch.createdAt.toISOString(),
+    updatedAt: batch.updatedAt.toISOString(),
+  }));
+}
+
 export async function generateInvitationBatch(
   input: InvitationGenerationRequest,
 ): Promise<InvitationGenerationBatchSummary> {
@@ -225,21 +252,34 @@ export async function generateInvitationBatch(
 export function buildInvitationGenerationWorkbook(
   batch: InvitationGenerationBatchSummary,
 ) {
-  const rows = batch.items.map((item) => ({
+  const expiredAt = formatInvitationDateTime(
+    addExpiryDuration(new Date(batch.createdAt), {
+      expiredDays: batch.expiredDays,
+      expiredHours: batch.expiredHours,
+      expiredMinutes: batch.expiredMinutes,
+    }),
+  );
+
+  const opsRows = batch.items.map((item) => ({
+    序号: item.sequence,
+    邀请链接: item.inviteLink,
+    失效时间: expiredAt,
+  }));
+  const techRows = batch.items.map((item) => ({
     序号: item.sequence,
     "邀请 ID": item.invitationId,
     "专家 ID": item.expertId,
     原始令牌: item.plaintextToken,
     邀请链接: item.inviteLink,
     哈希算法: item.hashAlgorithm,
-    失效时间: addExpiryDuration(new Date(batch.createdAt), {
-      expiredDays: batch.expiredDays,
-      expiredHours: batch.expiredHours,
-      expiredMinutes: batch.expiredMinutes,
-    }).toISOString(),
-    创建时间: item.createdAt,
+    失效时间: expiredAt,
+    创建时间: formatInvitationDateTime(item.createdAt),
   }));
-  const worksheet = XLSX.utils.json_to_sheet(rows, {
+
+  const opsSheet = XLSX.utils.json_to_sheet(opsRows, {
+    header: ["序号", "邀请链接", "失效时间"],
+  });
+  const techSheet = XLSX.utils.json_to_sheet(techRows, {
     header: [
       "序号",
       "邀请 ID",
@@ -253,7 +293,8 @@ export function buildInvitationGenerationWorkbook(
   });
   const workbook = XLSX.utils.book_new();
 
-  XLSX.utils.book_append_sheet(workbook, worksheet, "邀请令牌");
+  XLSX.utils.book_append_sheet(workbook, opsSheet, "邀请链接");
+  XLSX.utils.book_append_sheet(workbook, techSheet, "技术明细");
 
   const workbookBuffer: Buffer = XLSX.write(workbook, {
     bookType: "xlsx",

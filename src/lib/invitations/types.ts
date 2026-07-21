@@ -24,3 +24,16 @@ export type InvitationGenerationBatchSummary = {
   readonly updatedAt: string;
   readonly items: readonly InvitationGenerationItemSummary[];
 };
+
+/** List row without plaintext tokens / invite links. */
+export type InvitationGenerationBatchListItem = {
+  readonly id: string;
+  readonly hashAlgorithm: InviteHashAlgorithm;
+  readonly requestedCount: number;
+  readonly createdCount: number;
+  readonly expiredDays: number;
+  readonly expiredHours: number;
+  readonly expiredMinutes: number;
+  readonly createdAt: string;
+  readonly updatedAt: string;
+};

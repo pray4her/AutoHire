@@ -1,10 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { KeyRound, LogOut } from "lucide-react";
+import { Link2, LogOut } from "lucide-react";
 import { toast } from "sonner";
 
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,8 +26,17 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import type { InviteHashAlgorithm } from "@/lib/auth/token";
-import type { InvitationGenerationBatchSummary } from "@/lib/invitations/types";
+import {
+  INVITATION_GENERATION_DEFAULT_COUNT,
+  INVITATION_GENERATION_DEFAULT_EXPIRED_DAYS,
+  INVITATION_GENERATION_SOFT_CONFIRM_COUNT,
+} from "@/lib/invitations/constants";
+import type {
+  InvitationGenerationBatchListItem,
+  InvitationGenerationBatchSummary,
+} from "@/lib/invitations/types";
 
+import { InvitationBatchHistoryCard } from "./invitation-batch-history-card";
 import { InvitationBatchResultCard } from "./invitation-batch-result-card";
 import { InvitationGeneratorForm } from "./invitation-generator-form";
 import {
@@ -29,24 +48,55 @@ import { readGenerateResponse } from "./invitation-generator-response";
 export function InvitationGeneratorPanel() {
   const router = useRouter();
   const [algorithm, setAlgorithm] = useState<InviteHashAlgorithm>("SHA256");
-  const [count, setCount] = useState("100");
-  const [expiredDays, setExpiredDays] = useState("90");
+  const [count, setCount] = useState(String(INVITATION_GENERATION_DEFAULT_COUNT));
+  const [expiredDays, setExpiredDays] = useState(
+    String(INVITATION_GENERATION_DEFAULT_EXPIRED_DAYS),
+  );
   const [expiredHours, setExpiredHours] = useState("0");
   const [expiredMinutes, setExpiredMinutes] = useState("0");
   const [idempotencyKey, setIdempotencyKey] = useState(
     createDefaultIdempotencyKey,
   );
+  const [advancedOpen, setAdvancedOpen] = useState(false);
   const [batch, setBatch] = useState<InvitationGenerationBatchSummary | null>(
     null,
   );
+  const [history, setHistory] = useState<
+    readonly InvitationGenerationBatchListItem[]
+  >([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(true);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
+  const [exportingBatchId, setExportingBatchId] = useState<string | null>(null);
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const selectedDescription = useMemo(
     () => getAlgorithmDescription(algorithm),
     [algorithm],
   );
-  const exportFilename = batch ? `邀请令牌-${batch.id}.xlsx` : "邀请令牌.xlsx";
+
+  const loadHistory = useCallback(async () => {
+    setIsLoadingHistory(true);
+    try {
+      const response = await fetch("/api/ops/invitations/batches", {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("加载近期批次失败。");
+      }
+      const payload = (await response.json()) as {
+        batches?: InvitationGenerationBatchListItem[];
+      };
+      setHistory(Array.isArray(payload.batches) ? payload.batches : []);
+    } catch {
+      toast.error("加载近期批次失败。");
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadHistory();
+  }, [loadHistory]);
 
   function handleExpiredDaysChange(nextDays: string) {
     setExpiredDays(nextDays);
@@ -73,6 +123,14 @@ export function InvitationGeneratorPanel() {
   async function generateBatch() {
     setIsGenerating(true);
 
+    const keyForRequest = advancedOpen
+      ? idempotencyKey
+      : createDefaultIdempotencyKey();
+
+    if (!advancedOpen) {
+      setIdempotencyKey(keyForRequest);
+    }
+
     try {
       const response = await fetch("/api/ops/invitations/generate", {
         method: "POST",
@@ -84,32 +142,43 @@ export function InvitationGeneratorPanel() {
           expiredDays: Number(expiredDays),
           expiredHours: Number(expiredHours),
           expiredMinutes: Number(expiredMinutes),
-          idempotencyKey,
+          idempotencyKey: keyForRequest,
         }),
       });
       const payload = await readGenerateResponse(response);
 
       setBatch(payload.batch);
-      toast.success("邀请令牌已准备就绪。");
+      toast.success(
+        `已生成 ${payload.batch.createdCount.toLocaleString("zh-CN")} 个邀请链接，请下载 Excel。`,
+      );
+      await loadHistory();
     } catch (error) {
       const message =
-        error instanceof Error ? error.message : "邀请令牌生成失败。";
+        error instanceof Error ? error.message : "邀请链接生成失败。";
       toast.error(message);
     } finally {
       setIsGenerating(false);
     }
   }
 
-  async function exportBatch() {
-    if (!batch) {
+  function requestGenerate() {
+    const countValue = Number(count);
+    if (
+      Number.isFinite(countValue) &&
+      countValue > INVITATION_GENERATION_SOFT_CONFIRM_COUNT
+    ) {
+      setConfirmOpen(true);
       return;
     }
+    void generateBatch();
+  }
 
-    setIsExporting(true);
+  async function exportBatchById(batchId: string) {
+    setExportingBatchId(batchId);
 
     try {
       const response = await fetch(
-        `/api/ops/invitations/batches/${encodeURIComponent(batch.id)}/export`,
+        `/api/ops/invitations/batches/${encodeURIComponent(batchId)}/export`,
         { credentials: "include" },
       );
 
@@ -121,7 +190,7 @@ export function InvitationGeneratorPanel() {
       const objectUrl = URL.createObjectURL(blob);
       const anchor = document.createElement("a");
       anchor.href = objectUrl;
-      anchor.download = exportFilename;
+      anchor.download = `邀请链接-${batchId}.xlsx`;
       anchor.click();
       URL.revokeObjectURL(objectUrl);
       toast.success("Excel 文件已下载。");
@@ -130,7 +199,7 @@ export function InvitationGeneratorPanel() {
         error instanceof Error ? error.message : "Excel 导出失败。";
       toast.error(message);
     } finally {
-      setIsExporting(false);
+      setExportingBatchId(null);
     }
   }
 
@@ -140,15 +209,15 @@ export function InvitationGeneratorPanel() {
         <Card className="border-foreground/10 bg-background/85 w-full overflow-hidden shadow-xl backdrop-blur">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 text-2xl">
-              <KeyRound data-icon="inline-start" />
-              邀请令牌生成器
+              <Link2 data-icon="inline-start" />
+              邀请链接
             </CardTitle>
             <CardDescription>
-              为邮件运营生成具备幂等性的邀请批次。原始令牌仅保留在受保护的生成批次中。
+              生成可发给专家的报名链接，下载 Excel 后用于邮件发送。
             </CardDescription>
             <CardAction>
               <div className="flex items-center gap-2">
-                <Badge variant="secondary">运维受保护</Badge>
+                <Badge variant="secondary">已登录</Badge>
                 <Button
                   variant="outline"
                   size="sm"
@@ -170,12 +239,14 @@ export function InvitationGeneratorPanel() {
               idempotencyKey={idempotencyKey}
               isGenerating={isGenerating}
               selectedDescription={selectedDescription}
+              advancedOpen={advancedOpen}
+              onAdvancedOpenChange={setAdvancedOpen}
               onAlgorithmChange={setAlgorithm}
               onCountChange={setCount}
               onExpiredDaysChange={handleExpiredDaysChange}
               onExpiredHoursChange={setExpiredHours}
               onExpiredMinutesChange={setExpiredMinutes}
-              onGenerate={() => void generateBatch()}
+              onGenerate={requestGenerate}
               onIdempotencyKeyChange={setIdempotencyKey}
             />
           </CardContent>
@@ -184,11 +255,41 @@ export function InvitationGeneratorPanel() {
         {batch ? (
           <InvitationBatchResultCard
             batch={batch}
-            isExporting={isExporting}
-            onExport={() => void exportBatch()}
+            isExporting={exportingBatchId === batch.id}
+            onExport={() => void exportBatchById(batch.id)}
           />
         ) : null}
+
+        <InvitationBatchHistoryCard
+          batches={history}
+          exportingBatchId={exportingBatchId}
+          isLoading={isLoadingHistory}
+          onExport={(batchId) => void exportBatchById(batchId)}
+        />
       </div>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>确认生成大量邀请链接？</AlertDialogTitle>
+            <AlertDialogDescription>
+              将生成 {Number(count).toLocaleString("zh-CN")}{" "}
+              个链接，可能需要较长时间。是否继续？
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>取消</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setConfirmOpen(false);
+                void generateBatch();
+              }}
+            >
+              继续生成
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </main>
   );
 }

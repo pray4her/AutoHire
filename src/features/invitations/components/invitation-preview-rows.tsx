@@ -22,17 +22,17 @@ import {
 import type { InvitationGenerationItemSummary } from "@/lib/invitations/types";
 import { INVITATION_GENERATION_PREVIEW_LIMIT } from "@/lib/invitations/constants";
 
-function CopyTokenButton({ token }: { readonly token: string }) {
+function CopyLinkButton({ link }: { readonly link: string }) {
   const [copied, setCopied] = useState(false);
 
-  async function copyToken() {
+  async function copyLink() {
     try {
-      await navigator.clipboard.writeText(token);
+      await navigator.clipboard.writeText(link);
       setCopied(true);
-      toast.success("令牌已复制。");
+      toast.success("邀请链接已复制。");
       window.setTimeout(() => setCopied(false), 1500);
     } catch {
-      toast.error("无法复制令牌。");
+      toast.error("无法复制邀请链接。");
     }
   }
 
@@ -45,14 +45,14 @@ function CopyTokenButton({ token }: { readonly token: string }) {
             variant="ghost"
             size="icon-xs"
             className="shrink-0"
-            aria-label="复制令牌"
-            onClick={() => void copyToken()}
+            aria-label="复制邀请链接"
+            onClick={() => void copyLink()}
           />
         }
       >
         {copied ? <Check /> : <Copy />}
       </TooltipTrigger>
-      <TooltipContent>{copied ? "已复制" : "复制令牌"}</TooltipContent>
+      <TooltipContent>{copied ? "已复制" : "复制链接"}</TooltipContent>
     </Tooltip>
   );
 }
@@ -70,13 +70,11 @@ export function InvitationPreviewRows({
   return (
     <div className="overflow-hidden rounded-lg border">
       <Table className="table-fixed">
-        <TableCaption className="sr-only">生成的邀请令牌预览</TableCaption>
+        <TableCaption className="sr-only">生成的邀请链接预览</TableCaption>
         <TableHeader>
           <TableRow className="bg-muted/40 hover:bg-muted/40">
             <TableHead className="w-14">#</TableHead>
-            <TableHead className="w-[18%]">专家 ID</TableHead>
-            <TableHead className="w-[42%]">令牌</TableHead>
-            <TableHead>链接</TableHead>
+            <TableHead>邀请链接</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
@@ -85,19 +83,13 @@ export function InvitationPreviewRows({
               <TableCell className="text-muted-foreground font-mono text-xs tabular-nums">
                 {item.sequence}
               </TableCell>
-              <TableCell className="font-mono text-xs break-all whitespace-normal">
-                {item.expertId}
-              </TableCell>
               <TableCell className="whitespace-normal">
                 <div className="flex min-w-0 items-start gap-2">
                   <span className="min-w-0 flex-1 font-mono text-xs break-all">
-                    {item.plaintextToken}
+                    {item.inviteLink}
                   </span>
-                  <CopyTokenButton token={item.plaintextToken} />
+                  <CopyLinkButton link={item.inviteLink} />
                 </div>
-              </TableCell>
-              <TableCell className="font-mono text-xs break-all whitespace-normal">
-                {item.inviteLink}
               </TableCell>
             </TableRow>
           ))}
@@ -105,8 +97,8 @@ export function InvitationPreviewRows({
       </Table>
       {hiddenCount > 0 ? (
         <p className="text-muted-foreground border-t px-3 py-2 text-sm">
-          当前显示前 {visibleItems.length} 行。导出 Excel 可查看全部{" "}
-          {totalCount.toLocaleString("zh-CN")} 个令牌。
+          当前显示前 {visibleItems.length} 行。下载 Excel 可查看全部{" "}
+          {totalCount.toLocaleString("zh-CN")} 个邀请链接。
         </p>
       ) : null}
     </div>

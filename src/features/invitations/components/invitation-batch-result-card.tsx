@@ -31,31 +31,36 @@ export function InvitationBatchResultCard({
   return (
     <Card className="border-foreground/10 bg-background/90 w-full shadow-xl backdrop-blur">
       <CardHeader>
-        <CardTitle>已生成批次</CardTitle>
+        <CardTitle>邀请链接已就绪</CardTitle>
         <CardDescription>
-          已于 {formatDateTime(batch.createdAt)} 使用 {batch.hashAlgorithm} 生成{" "}
-          {batch.createdCount} 个令牌。
+          已生成 {batch.createdCount.toLocaleString("zh-CN")}{" "}
+          个链接（{formatDateTime(batch.createdAt)}
+          ）。请下载 Excel，用「邀请链接」列发给专家。
         </CardDescription>
         <CardAction>
-          <Button disabled={isExporting} onClick={onExport}>
+          <Button size="lg" disabled={isExporting} onClick={onExport}>
             {isExporting ? (
               <Spinner data-icon="inline-start" />
             ) : (
               <Download data-icon="inline-start" />
             )}
-            导出 Excel
+            下载 Excel
           </Button>
         </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-4">
         <div className="flex flex-wrap gap-2">
-          <Badge variant="outline">批次：{batch.id}</Badge>
-          <Badge variant="outline">幂等键：{batch.idempotencyKey}</Badge>
-          <Badge variant="outline">数量：{batch.createdCount}</Badge>
+          <Badge variant="outline">
+            数量：{batch.createdCount.toLocaleString("zh-CN")}
+          </Badge>
           <Badge variant="outline">
             有效期：{formatInvitationExpiryLabel(batch)}
           </Badge>
+          <Badge variant="outline">
+            生成时间：{formatDateTime(batch.createdAt)}
+          </Badge>
         </div>
+
         <InvitationPreviewRows
           items={batch.items}
           totalCount={batch.createdCount}

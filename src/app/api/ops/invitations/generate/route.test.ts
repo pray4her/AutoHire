@@ -168,30 +168,57 @@ describe("ops invitation generation routes", () => {
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     );
     expect(response.headers.get("content-disposition")).toContain(
-      "filename*=UTF-8''%E9%82%80%E8%AF%B7%E4%BB%A4%E7%89%8C-",
+      "filename*=UTF-8''%E9%82%80%E8%AF%B7%E9%93%BE%E6%8E%A5-",
     );
 
     const bytes = Buffer.from(await response.arrayBuffer());
     const workbook = XLSX.read(bytes, { type: "buffer" });
-    const sheet = workbook.Sheets["邀请令牌"];
+    const sheet = workbook.Sheets["邀请链接"];
     expect(sheet).toBeDefined();
+    expect(workbook.Sheets["技术明细"]).toBeDefined();
 
     const headerRows = XLSX.utils.sheet_to_json(sheet, {
       header: 1,
       defval: "",
     });
-    expect(headerRows[0]).toEqual([
-      "序号",
-      "邀请 ID",
-      "专家 ID",
-      "原始令牌",
-      "邀请链接",
-      "哈希算法",
-      "失效时间",
-      "创建时间",
-    ]);
+    expect(headerRows[0]).toEqual(["序号", "邀请链接", "失效时间"]);
 
     const dataRows = XLSX.utils.sheet_to_json(sheet, { defval: "" });
     expect(dataRows).toHaveLength(2);
+  });
+
+  it("lists recent generation batches without plaintext items", async () => {
+    const cookie = await authCookieHeader();
+    await generateBatch(
+      createGenerateRequest(
+        {
+          algorithm: "SHA256",
+          count: 1,
+          idempotencyKey: "route-list-key",
+        },
+        cookie,
+      ),
+    );
+
+    const { GET: listBatches } = await import(
+      "@/app/api/ops/invitations/batches/route"
+    );
+    const response = await listBatches(
+      new NextRequest("http://localhost/api/ops/invitations/batches", {
+        headers: { cookie },
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as {
+      batches: Array<{
+        id: string;
+        createdCount: number;
+        items?: unknown;
+      }>;
+    };
+    expect(payload.batches.length).toBeGreaterThanOrEqual(1);
+    expect(payload.batches[0]?.createdCount).toBe(1);
+    expect(payload.batches[0]).not.toHaveProperty("items");
   });
 });

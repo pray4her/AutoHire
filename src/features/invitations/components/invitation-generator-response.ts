@@ -7,7 +7,7 @@ type GenerateResponse = {
 const GENERATION_ERROR_MESSAGES: Readonly<Record<string, string>> = {
   OPS_SESSION_REQUIRED: "需要有效的运营后台登录会话。",
   OPS_EXPERT_FILES_SESSION_REQUIRED: "需要有效的运营后台登录会话。",
-  INVITATION_GENERATION_INVALID_PAYLOAD: "邀请令牌生成请求参数无效。",
+  INVITATION_GENERATION_INVALID_PAYLOAD: "邀请链接生成请求参数无效。",
   INVITATION_GENERATION_IDEMPOTENCY_CONFLICT: "幂等键已用于不同的生成设置。",
 };
 
@@ -54,8 +54,8 @@ function readErrorMessage(payload: unknown, fallback: string) {
 
 function getGenerationFailureMessage(payload: unknown, status: number) {
   const fallback = status
-    ? `邀请令牌生成失败（HTTP ${status}）。`
-    : "邀请令牌生成失败。";
+    ? `邀请链接生成失败（HTTP ${status}）。`
+    : "邀请链接生成失败。";
 
   return readErrorMessage(payload, fallback);
 }

@@ -29,7 +29,7 @@ export async function GET(
   }
 
   const workbook = buildInvitationGenerationWorkbook(batch);
-  const filename = `邀请令牌-${batch.id}.xlsx`;
+  const filename = `邀请链接-${batch.id}.xlsx`;
   const encodedFilename = encodeURIComponent(filename);
 
   return new NextResponse(new Uint8Array(workbook), {

@@ -1,11 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import * as XLSX from "xlsx";
 
 import { resolveInviteToken } from "@/lib/application/service";
 import { resetEnvForTests } from "@/lib/env";
 import {
+  buildInvitationGenerationWorkbook,
   formatInvitationExpiryLabel,
   generateInvitationBatch,
   invitationGenerationRequestSchema,
+  listInvitationGenerationBatches,
 } from "@/lib/invitations/generation";
 import { INVITATION_GENERATION_PREVIEW_LIMIT } from "@/lib/invitations/constants";
 import { findInvitationById } from "@/lib/data/store";
@@ -210,5 +213,52 @@ describe("invitation generation service", () => {
     const expectedMs = 2 * 60 * 60 * 1000 + 30 * 60 * 1000;
     expect(expiredAtMs).toBeGreaterThanOrEqual(before + expectedMs);
     expect(expiredAtMs).toBeLessThanOrEqual(after + expectedMs);
+  });
+
+  it("lists recent batches without item payloads", async () => {
+    await generateInvitationBatch(
+      invitationGenerationRequestSchema.parse({
+        algorithm: "SHA256",
+        count: 2,
+        idempotencyKey: "invite-test-list-a",
+      }),
+    );
+    await generateInvitationBatch(
+      invitationGenerationRequestSchema.parse({
+        algorithm: "SHA256",
+        count: 1,
+        idempotencyKey: "invite-test-list-b",
+      }),
+    );
+
+    const batches = await listInvitationGenerationBatches(10);
+
+    expect(batches.length).toBeGreaterThanOrEqual(2);
+    expect(batches.map((item) => item.createdCount).sort()).toEqual([1, 2]);
+    expect(batches[0]).not.toHaveProperty("items");
+  });
+
+  it("builds an ops-first workbook with a technical detail sheet", async () => {
+    const batch = await generateInvitationBatch(
+      invitationGenerationRequestSchema.parse({
+        algorithm: "SHA256",
+        count: 2,
+        idempotencyKey: "invite-test-workbook",
+      }),
+    );
+    const fullBatch = {
+      ...batch,
+      items: batch.items,
+    };
+    const bytes = buildInvitationGenerationWorkbook(fullBatch);
+    const workbook = XLSX.read(bytes, { type: "buffer" });
+
+    expect(workbook.SheetNames).toEqual(["邀请链接", "技术明细"]);
+    const opsSheet = workbook.Sheets["邀请链接"];
+    const headerRows = XLSX.utils.sheet_to_json(opsSheet, {
+      header: 1,
+      defval: "",
+    });
+    expect(headerRows[0]).toEqual(["序号", "邀请链接", "失效时间"]);
   });
 });

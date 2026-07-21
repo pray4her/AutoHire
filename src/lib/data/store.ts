@@ -1099,6 +1099,25 @@ export async function findInvitationGenerationBatchByIdempotencyKey(
   return batch;
 }
 
+export async function listInvitationGenerationBatches(options?: {
+  readonly take?: number;
+}): Promise<readonly InvitationGenerationBatchRecord[]> {
+  const take = options?.take ?? 20;
+
+  if (getRuntimeMode() === "memory") {
+    const store = getMemoryStore();
+    return [...store.invitationGenerationBatches]
+      .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())
+      .slice(0, take);
+  }
+
+  const prisma = await getPrisma();
+  return prisma.invitationGenerationBatch.findMany({
+    orderBy: { createdAt: "desc" },
+    take,
+  });
+}
+
 export async function createInvitationGenerationBatch(input: {
   id?: string;
   idempotencyKey: string;

@@ -1,4 +1,5 @@
 import type { InviteHashAlgorithm } from "@/lib/auth/token";
+import { formatInvitationDateTime } from "@/lib/invitations/date-format";
 
 export const ALGORITHM_OPTIONS: ReadonlyArray<{
   readonly label: string;
@@ -8,17 +9,17 @@ export const ALGORITHM_OPTIONS: ReadonlyArray<{
   {
     label: "SHA-256",
     value: "SHA256",
-    description: "64 位十六进制哈希，兼容现有邀请链接",
+    description: "默认算法，兼容现有邀请链接",
   },
   {
     label: "SHA-384",
     value: "SHA384",
-    description: "96 位十六进制哈希，更长摘要",
+    description: "更长摘要，仅在有明确要求时使用",
   },
   {
     label: "SHA-512",
     value: "SHA512",
-    description: "128 位十六进制哈希，最长摘要",
+    description: "最长摘要，仅在有明确要求时使用",
   },
 ];
 
@@ -37,13 +38,7 @@ export function createDefaultIdempotencyKey() {
 }
 
 export function formatDateTime(value: string) {
-  return new Intl.DateTimeFormat("zh-CN", {
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
+  return formatInvitationDateTime(value);
 }
 
 export function getAlgorithmDescription(algorithm: InviteHashAlgorithm) {

@@ -1,5 +1,9 @@
 export const INVITATION_GENERATION_MAX_COUNT = 1_000_000;
 export const INVITATION_GENERATION_PREVIEW_LIMIT = 8;
+/** Soft UX confirm threshold; server max remains INVITATION_GENERATION_MAX_COUNT. */
+export const INVITATION_GENERATION_SOFT_CONFIRM_COUNT = 1_000;
+export const INVITATION_GENERATION_DEFAULT_COUNT = 10;
+export const INVITATION_GENERATION_BATCH_LIST_LIMIT = 20;
 /** Rows per createMany call. Keep under Postgres bind-variable limits (~65k). */
 export const INVITATION_GENERATION_INSERT_CHUNK_SIZE = 2_000;
 export const INVITATION_GENERATION_DEFAULT_EXPIRED_DAYS = 90;

@@ -23,6 +23,17 @@ vi.mock("sonner", () => ({
   },
 }));
 
+function mockFetchSequence(
+  handlers: Array<(input: RequestInfo | URL, init?: RequestInit) => Response>,
+) {
+  let index = 0;
+  vi.mocked(fetch).mockImplementation((input, init) => {
+    const handler = handlers[Math.min(index, handlers.length - 1)];
+    index += 1;
+    return Promise.resolve(handler(input, init));
+  });
+}
+
 describe("InvitationGeneratorPanel", () => {
   beforeEach(() => {
     vi.stubGlobal("fetch", vi.fn());
@@ -35,23 +46,28 @@ describe("InvitationGeneratorPanel", () => {
   });
 
   it("shows a clear error when generation returns an empty response body", async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      new Response(null, {
-        status: 500,
-      }),
-    );
+    mockFetchSequence([
+      () =>
+        new Response(JSON.stringify({ batches: [] }), {
+          status: 200,
+          headers: { "content-type": "application/json" },
+        }),
+      () =>
+        new Response(null, {
+          status: 500,
+        }),
+    ]);
     const user = userEvent.setup();
     render(<InvitationGeneratorPanel />);
 
-    expect(
-      screen.getByText("64 位十六进制哈希，兼容现有邀请链接"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("邀请链接")).toBeInTheDocument();
+    expect(screen.getByText("高级设置")).toBeInTheDocument();
 
-    await user.click(screen.getByRole("button", { name: "生成" }));
+    await user.click(screen.getByRole("button", { name: "生成邀请链接" }));
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith(
-        "邀请令牌生成失败（HTTP 500）。",
+        "邀请链接生成失败（HTTP 500）。",
       );
     });
     expect(toast.error).not.toHaveBeenCalledWith(
@@ -60,22 +76,28 @@ describe("InvitationGeneratorPanel", () => {
   });
 
   it("localizes known generation API errors", async () => {
-    vi.mocked(fetch).mockResolvedValue(
-      new Response(
-        JSON.stringify({
-          code: "OPS_EXPERT_FILES_SESSION_REQUIRED",
-          error: "需要有效的运营后台登录会话。",
-        }),
-        {
-          status: 401,
+    mockFetchSequence([
+      () =>
+        new Response(JSON.stringify({ batches: [] }), {
+          status: 200,
           headers: { "content-type": "application/json" },
-        },
-      ),
-    );
+        }),
+      () =>
+        new Response(
+          JSON.stringify({
+            code: "OPS_EXPERT_FILES_SESSION_REQUIRED",
+            error: "需要有效的运营后台登录会话。",
+          }),
+          {
+            status: 401,
+            headers: { "content-type": "application/json" },
+          },
+        ),
+    ]);
     const user = userEvent.setup();
     render(<InvitationGeneratorPanel />);
 
-    await user.click(screen.getByRole("button", { name: "生成" }));
+    await user.click(screen.getByRole("button", { name: "生成邀请链接" }));
 
     await waitFor(() => {
       expect(toast.error).toHaveBeenCalledWith("需要有效的运营后台登录会话。");
