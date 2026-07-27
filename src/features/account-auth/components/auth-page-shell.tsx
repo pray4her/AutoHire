@@ -29,7 +29,7 @@ export function AuthPageShell({
       <header className="flex flex-col gap-2 text-center">
         <div className="text-muted-foreground flex items-center justify-center gap-2">
           <UserRound />
-          <span className="text-sm tracking-wide">账号</span>
+          <span className="text-sm tracking-wide">Account</span>
         </div>
         <h1 className="font-heading text-2xl font-semibold tracking-tight">
           {title}

@@ -6,7 +6,7 @@ import { LoginForm } from "@/features/account-auth/components/login-form";
 import { getAccountSession } from "@/lib/account-auth/session";
 
 export const metadata = {
-  title: "登录",
+  title: "Sign In",
 };
 
 export default async function LoginPage({
@@ -25,9 +25,9 @@ export default async function LoginPage({
 
   return (
     <AuthPageShell
-      title="登录"
-      subtitle="使用注册邮箱与密码登录，回访你的申报。"
-      cardTitle="账号登录"
+      title="Welcome back"
+      subtitle="Sign in with your registered email and password to return to your application."
+      cardTitle="Sign In"
     >
       <LoginForm nextPath={nextPath} />
     </AuthPageShell>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -13,9 +13,10 @@ import { captureReferralContextAction } from "@/features/account-auth/actions";
 import { authClient } from "@/lib/account-auth/client";
 import { otpErrorMessage } from "@/features/account-auth/error-messages";
 
+const RESEND_COUNTDOWN_SECONDS = 60;
+
 type SignupFormProps = {
   initialEmail?: string;
-  initialStep?: "credentials" | "verify";
   referralPlaintextToken?: string;
   nextPath?: string;
 };
@@ -24,18 +25,24 @@ function defaultNameFromEmail(email: string) {
   return email.split("@")[0] || email;
 }
 
+function isValidEmail(email: string) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
+}
+
 export function SignupForm({
   initialEmail = "",
-  initialStep = "credentials",
   referralPlaintextToken,
   nextPath,
 }: SignupFormProps) {
   const router = useRouter();
-  const [step, setStep] = useState<"credentials" | "verify">(initialStep);
   const [email, setEmail] = useState(initialEmail);
   const [password, setPassword] = useState("");
   const [otp, setOtp] = useState("");
+  const [codeSent, setCodeSent] = useState(false);
+  const [countdown, setCountdown] = useState(0);
+  const [sendingCode, setSendingCode] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const countdownTimer = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
     if (!referralPlaintextToken) {
@@ -44,124 +51,134 @@ export function SignupForm({
     void captureReferralContextAction(referralPlaintextToken);
   }, [referralPlaintextToken]);
 
-  async function onSubmitCredentials(event: FormEvent) {
+  useEffect(() => {
+    return () => {
+      if (countdownTimer.current) {
+        clearInterval(countdownTimer.current);
+      }
+    };
+  }, []);
+
+  function startCountdown() {
+    setCountdown(RESEND_COUNTDOWN_SECONDS);
+    if (countdownTimer.current) {
+      clearInterval(countdownTimer.current);
+    }
+    countdownTimer.current = setInterval(() => {
+      setCountdown((current) => {
+        if (current <= 1) {
+          if (countdownTimer.current) {
+            clearInterval(countdownTimer.current);
+            countdownTimer.current = null;
+          }
+          return 0;
+        }
+        return current - 1;
+      });
+    }, 1000);
+  }
+
+  async function onSendCode() {
+    if (!isValidEmail(email)) {
+      toast.error("Please enter a valid email address first.");
+      return;
+    }
+    setSendingCode(true);
+    try {
+      // The "sign-in" OTP type also reaches addresses that do not have an
+      // account yet — the account is created when the form is submitted.
+      const { error } = await authClient.emailOtp.sendVerificationOtp({
+        email,
+        type: "sign-in",
+      });
+      if (error) {
+        throw new Error(error.message ?? "Failed to send the code.");
+      }
+      toast.success(`Verification code sent to ${email}.`);
+      setCodeSent(true);
+      startCountdown();
+    } catch (error) {
+      toast.error(
+        error instanceof Error ? error.message : "Failed to send the code.",
+      );
+    } finally {
+      setSendingCode(false);
+    }
+  }
+
+  async function onSubmit(event: FormEvent) {
     event.preventDefault();
     setSubmitting(true);
     try {
       if (referralPlaintextToken) {
         await captureReferralContextAction(referralPlaintextToken);
       }
-      const { error } = await authClient.signUp.email({
+      const { error: signUpError } = await authClient.signUp.email({
         email,
         password,
         name: defaultNameFromEmail(email),
       });
-      if (error) {
-        throw new Error(error.message ?? "注册失败。");
+      // An account left unverified by an earlier attempt is fine here — the
+      // OTP sign-in below completes verification. Any other failure aborts.
+      const accountAlreadyExisted =
+        signUpError?.code === "USER_ALREADY_EXISTS";
+      if (signUpError && !accountAlreadyExisted) {
+        throw new Error(signUpError.message ?? "Sign-up failed.");
       }
-      toast.success("验证码已发送到你的邮箱。");
-      setStep("verify");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "注册失败。");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  async function onSubmitOtp(event: FormEvent) {
-    event.preventDefault();
-    setSubmitting(true);
-    try {
-      const { error } = await authClient.emailOtp.verifyEmail({ email, otp });
-      if (error) {
-        throw new Error(otpErrorMessage(error, "验证失败。"));
+      const { error: verifyError } = await authClient.signIn.emailOtp({
+        email,
+        otp,
+      });
+      if (verifyError) {
+        throw new Error(
+          accountAlreadyExisted
+            ? "This email is already registered. Sign in instead, or resend the code if you have not verified yet."
+            : otpErrorMessage(verifyError, "Verification failed."),
+        );
       }
-      toast.success("邮箱验证成功，已为你登录。");
+      toast.success("Email verified. You are now signed in.");
       router.replace((nextPath ?? "/account") as "/apply/resume" | "/account");
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "验证失败。");
+      toast.error(error instanceof Error ? error.message : "Sign-up failed.");
     } finally {
       setSubmitting(false);
     }
-  }
-
-  async function onResendOtp() {
-    setSubmitting(true);
-    try {
-      const { error } = await authClient.emailOtp.sendVerificationOtp({
-        email,
-        type: "email-verification",
-      });
-      if (error) {
-        throw new Error(error.message ?? "发送失败。");
-      }
-      toast.success("验证码已重新发送。");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "发送失败。");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  if (step === "verify") {
-    return (
-      <form onSubmit={onSubmitOtp}>
-        <FieldGroup className="gap-4">
-          <p className="text-muted-foreground text-sm">
-            验证码已发送至 <span className="font-medium">{email}</span>
-            ，10 分钟内有效。
-          </p>
-          <Field>
-            <FieldLabel htmlFor="signup-otp">邮箱验证码</FieldLabel>
-            <Input
-              id="signup-otp"
-              inputMode="numeric"
-              autoComplete="one-time-code"
-              maxLength={6}
-              value={otp}
-              onChange={(event) => setOtp(event.target.value.trim())}
-              required
-            />
-          </Field>
-          <Button
-            type="submit"
-            className="w-full"
-            disabled={submitting || otp.length !== 6}
-          >
-            {submitting ? <Spinner data-icon="inline-start" /> : null}
-            完成验证并登录
-          </Button>
-          <Button
-            type="button"
-            variant="ghost"
-            className="w-full"
-            disabled={submitting}
-            onClick={onResendOtp}
-          >
-            重新发送验证码
-          </Button>
-        </FieldGroup>
-      </form>
-    );
   }
 
   return (
-    <form onSubmit={onSubmitCredentials}>
+    <form onSubmit={onSubmit}>
       <FieldGroup className="gap-4">
         <Field>
-          <FieldLabel htmlFor="signup-email">邮箱</FieldLabel>
-          <Input
-            id="signup-email"
-            type="email"
-            autoComplete="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value.trim())}
-            required
-          />
+          <FieldLabel htmlFor="signup-email">Email</FieldLabel>
+          <div className="flex items-center gap-2">
+            <Input
+              id="signup-email"
+              type="email"
+              autoComplete="email"
+              className="flex-1"
+              value={email}
+              onChange={(event) => setEmail(event.target.value.trim())}
+              required
+            />
+            <Button
+              type="button"
+              variant="outline"
+              className="shrink-0"
+              disabled={sendingCode || countdown > 0 || !isValidEmail(email)}
+              onClick={() => void onSendCode()}
+            >
+              {sendingCode ? <Spinner data-icon="inline-start" /> : null}
+              {countdown > 0
+                ? `Resend in ${countdown}s`
+                : codeSent
+                  ? "Resend Code"
+                  : "Send Code"}
+            </Button>
+          </div>
         </Field>
         <Field>
-          <FieldLabel htmlFor="signup-password">密码</FieldLabel>
+          <FieldLabel htmlFor="signup-password">Password</FieldLabel>
           <Input
             id="signup-password"
             type="password"
@@ -171,19 +188,46 @@ export function SignupForm({
             onChange={(event) => setPassword(event.target.value)}
             required
           />
-          <p className="text-muted-foreground text-xs">至少 8 个字符。</p>
+          <p className="text-muted-foreground text-xs">
+            At least 8 characters.
+          </p>
         </Field>
-        <Button type="submit" className="w-full" disabled={submitting}>
+        <Field>
+          <FieldLabel htmlFor="signup-otp">Verification Code</FieldLabel>
+          <Input
+            id="signup-otp"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            maxLength={6}
+            value={otp}
+            onChange={(event) => setOtp(event.target.value.trim())}
+            required
+          />
+          <p className="text-muted-foreground text-xs">
+            {codeSent
+              ? `Enter the 6-digit code sent to ${email}. It is valid for 10 minutes.`
+              : 'Click "Send Code" to receive a 6-digit code by email.'}
+          </p>
+        </Field>
+        <Button
+          type="submit"
+          className="w-full"
+          disabled={submitting || otp.length !== 6}
+        >
           {submitting ? <Spinner data-icon="inline-start" /> : null}
-          发送验证码并注册
+          Create Account
         </Button>
         <p className="text-muted-foreground text-center text-sm">
-          已有账号？{" "}
+          Already have an account?{" "}
           <Link
-            href={nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : "/login"}
+            href={
+              nextPath
+                ? `/login?next=${encodeURIComponent(nextPath)}`
+                : "/login"
+            }
             className="text-primary underline"
           >
-            直接登录
+            Sign in
           </Link>
         </p>
       </FieldGroup>

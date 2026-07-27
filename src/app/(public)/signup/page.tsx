@@ -7,12 +7,11 @@ import { getAccountSession } from "@/lib/account-auth/session";
 import { isReferralPlaintextToken } from "@/lib/referral-tokens/context-cookie";
 
 export const metadata = {
-  title: "注册账号",
+  title: "Create Account",
 };
 
 type SignupPageProps = {
   searchParams: Promise<{
-    step?: string;
     email?: string;
     referral?: string;
     next?: string;
@@ -29,21 +28,19 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
   }
 
   const initialEmail = typeof params.email === "string" ? params.email : "";
-  const initialStep = params.step === "verify" ? "verify" : "credentials";
   const referralPlaintextToken = isReferralPlaintextToken(params.referral)
     ? params.referral
     : undefined;
 
   return (
     <AuthPageShell
-      title="注册账号"
-      subtitle="使用邮箱注册，验证成功后自动登录。"
-      cardTitle="注册"
-      cardDescription="填写邮箱与密码，我们会向你的邮箱发送 6 位验证码。"
+      title="Create your account"
+      subtitle="Sign up with your email — you will be signed in once the code is verified."
+      cardTitle="Sign Up"
+      cardDescription="Enter your email and password, then verify the 6-digit code we send you."
     >
       <SignupForm
         initialEmail={initialEmail}
-        initialStep={initialStep}
         referralPlaintextToken={referralPlaintextToken}
         nextPath={params.next === "/apply/resume" ? params.next : undefined}
       />

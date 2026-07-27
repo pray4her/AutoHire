@@ -16,7 +16,9 @@ export async function PATCH(
 ): Promise<Response> {
   const auth = await requireOpsExpertFilesSession(request);
   if (auth.error) return auth.error;
-  const parsed = referralTokenActionSchema.safeParse(await parseJsonBody<unknown>(request));
+  const parsed = referralTokenActionSchema.safeParse(
+    await parseJsonBody<unknown>(request),
+  );
   if (!parsed.success) {
     return jsonError("推荐 token 操作参数无效。", 400, {
       code: "REFERRAL_TOKEN_INVALID_ACTION",
@@ -24,20 +26,27 @@ export async function PATCH(
     });
   }
   const { tokenId } = await context.params;
+  const createdBy = auth.session.operatorDigest;
   try {
     switch (parsed.data.action) {
       case "DISABLE":
-        return Response.json({ token: await disableReferralToken(tokenId) });
+        return Response.json({
+          token: await disableReferralToken({ tokenId, createdBy }),
+        });
       case "RENEW":
-        return Response.json({ token: await renewReferralToken(tokenId) });
+        return Response.json({
+          token: await renewReferralToken({ tokenId, createdBy }),
+        });
       case "REGENERATE":
         return Response.json(
-          await regenerateReferralToken({ tokenId, createdBy: auth.session.operatorDigest }),
+          await regenerateReferralToken({ tokenId, createdBy }),
         );
     }
   } catch (error) {
     if (error instanceof ReferralTokenUnavailableError) {
-      return jsonError(error.message, 404, { code: "REFERRAL_TOKEN_UNAVAILABLE" });
+      return jsonError(error.message, 404, {
+        code: "REFERRAL_TOKEN_UNAVAILABLE",
+      });
     }
     throw error;
   }

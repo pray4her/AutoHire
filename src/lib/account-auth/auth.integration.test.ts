@@ -94,14 +94,29 @@ describe.skipIf(!RUN)("account-auth integration (real Postgres)", () => {
   });
 
   it("runs the full register-verify-login-reset lifecycle", async () => {
-    // 1. Register: sign-up persists user+account via the Prisma adapter and
-    //    triggers our verification-email callback.
+    // 1. The sign-up form's "Send Code" button delivers the OTP explicitly
+    //    (sign-in OTP type reaches not-yet-registered emails).
+    const sendCodeResponse = await postJson(
+      "/email-otp/send-verification-otp",
+      {
+        email: TEST_EMAIL,
+        type: "sign-in",
+      },
+    );
+    expect(sendCodeResponse.status).toBe(200);
+    expect(calls).toHaveLength(1);
+    expect(calls[0]?.to).toBe(TEST_EMAIL);
+    const registrationOtp = latestOtp();
+
+    // 2. Sign-up persists user+account via the Prisma adapter. No second
+    //    email is sent on sign-up (sendVerificationOnSignUp is disabled).
     const signUpResponse = await postJson("/sign-up/email", {
       email: TEST_EMAIL,
       password: INITIAL_PASSWORD,
       name: "integration-tester",
     });
     expect(signUpResponse.status).toBe(200);
+    expect(calls).toHaveLength(1);
 
     const user = await prisma.user.findUnique({
       where: { email: TEST_EMAIL },
@@ -114,11 +129,7 @@ describe.skipIf(!RUN)("account-auth integration (real Postgres)", () => {
     expect(credentialAccount?.password).toBeTruthy();
     expect(credentialAccount?.password).not.toBe(INITIAL_PASSWORD);
 
-    expect(calls).toHaveLength(1);
-    expect(calls[0]?.to).toBe(TEST_EMAIL);
-    const registrationOtp = latestOtp();
-
-    // 1c. Registration bootstraps the account-track application context: a
+    // 2b. Registration bootstraps the account-track application context: a
     //     shadow invitation bound to the registered email (source ACCOUNT,
     //     token never exposed) plus the INIT application attached to it.
     const shadowInvitation = await prisma.expertInvitation.findFirst({
@@ -135,16 +146,17 @@ describe.skipIf(!RUN)("account-auth integration (real Postgres)", () => {
       applicationStatus: "INIT",
     });
 
-    // 1b. Sign-in before verification is rejected (the login form relies on
-    //     this 403 to offer resending the code).
+    // 2c. Password sign-in before verification is rejected (the login form
+    //     relies on this 403 to offer resending the code).
     const unverifiedSignInResponse = await postJson("/sign-in/email", {
       email: TEST_EMAIL,
       password: INITIAL_PASSWORD,
     });
     expect(unverifiedSignInResponse.status).toBe(403);
 
-    // 2. Verify email: OTP check flips emailVerified and auto-signs in.
-    const verifyResponse = await postJson("/email-otp/verify-email", {
+    // 3. The code from step 1 completes verification: OTP sign-in flips
+    //    emailVerified and establishes the session.
+    const verifyResponse = await postJson("/sign-in/email-otp", {
       email: TEST_EMAIL,
       otp: registrationOtp,
     });
@@ -156,7 +168,7 @@ describe.skipIf(!RUN)("account-auth integration (real Postgres)", () => {
     });
     expect(verifiedUser!.emailVerified).toBe(true);
 
-    // 3. Session is live (auto-login after registration).
+    // 4. Session is live (signed in right after registration).
     const sessionResponse = await auth.handler(
       new Request(`${BASE_URL}/get-session`, {
         headers: { cookie: verifiedCookie },
@@ -166,7 +178,7 @@ describe.skipIf(!RUN)("account-auth integration (real Postgres)", () => {
     const sessionBody = await sessionResponse.json();
     expect(sessionBody.user.email).toBe(TEST_EMAIL);
 
-    // 4. Sign out invalidates the session.
+    // 5. Sign out invalidates the session.
     const signOutResponse = await postJson("/sign-out", {}, verifiedCookie);
     expect(signOutResponse.status).toBe(200);
     const sessionAfterSignOut = await auth.handler(
@@ -176,7 +188,7 @@ describe.skipIf(!RUN)("account-auth integration (real Postgres)", () => {
     );
     expect(await sessionAfterSignOut.json()).toBeNull();
 
-    // 5. Login: wrong password rejected, correct password accepted.
+    // 6. Login: wrong password rejected, correct password accepted.
     const wrongPasswordResponse = await postJson("/sign-in/email", {
       email: TEST_EMAIL,
       password: "not-the-password",
@@ -190,7 +202,7 @@ describe.skipIf(!RUN)("account-auth integration (real Postgres)", () => {
     expect(signInResponse.status).toBe(200);
     sessionCookieFrom(signInResponse);
 
-    // 6. Forgot password: OTP arrives through our email channel, reset works.
+    // 7. Forgot password: OTP arrives through our email channel, reset works.
     const forgotResponse = await postJson("/email-otp/send-verification-otp", {
       email: TEST_EMAIL,
       type: "forget-password",

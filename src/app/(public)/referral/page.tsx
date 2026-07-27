@@ -10,8 +10,9 @@ import {
 export const dynamic = "force-dynamic";
 
 export const metadata: Metadata = {
-  title: "专家推荐 | GESF",
-  description: "通过专家本人转发的推荐链接了解 GESF 并开始申报。",
+  title: "Referral | GESF",
+  description:
+    "Open a GESF referral link and continue to the application entry.",
 };
 
 type ReferralPageProps = {

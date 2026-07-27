@@ -1,5 +1,8 @@
 import { getEnv } from "@/lib/env";
-import { getReferralTokenFunnel } from "@/lib/referral-tokens/attribution";
+import {
+  getReferralTokenFunnel,
+  listReferralDownstream,
+} from "@/lib/referral-tokens/attribution";
 import {
   createReferralTokenRecord,
   disableReferralTokenById,
@@ -28,8 +31,13 @@ function referralLink(plaintextToken: string) {
   return `${new URL(getEnv().APP_BASE_URL).origin}/referral?t=${encodeURIComponent(plaintextToken)}`;
 }
 
-async function toOpsView(record: ReferralTokenRecord): Promise<ReferralTokenOpsView> {
-  return { ...toReferralTokenView(record), funnel: await getReferralTokenFunnel(record.id) };
+async function toOpsView(
+  record: ReferralTokenRecord,
+): Promise<ReferralTokenOpsView> {
+  return {
+    ...toReferralTokenView(record),
+    funnel: await getReferralTokenFunnel(record.id),
+  };
 }
 
 async function generated(record: ReferralTokenRecord) {
@@ -68,31 +76,46 @@ export async function batchGenerateReferralTokens(input: {
   return { results };
 }
 
-export async function listReferralTokensWithFunnels() {
-  return Promise.all((await listReferralTokens()).map(toOpsView));
+export async function listReferralTokensWithFunnels(createdBy: string) {
+  return Promise.all((await listReferralTokens(createdBy)).map(toOpsView));
 }
 
-export async function disableReferralToken(tokenId: string) {
-  const record = await disableReferralTokenById(tokenId);
+/** Tokens are scoped to the ops account that created them: anything owned by
+ * another account is treated as unavailable (same 404 semantics as missing). */
+type OwnedReferralTokenRef = {
+  tokenId: string;
+  createdBy: string;
+};
+
+async function findOwnedReferralToken(
+  input: OwnedReferralTokenRef,
+): Promise<ReferralTokenRecord> {
+  const record = await findReferralTokenById(input.tokenId);
+  if (!record || record.createdBy !== input.createdBy) {
+    throw new ReferralTokenUnavailableError();
+  }
+  return record;
+}
+
+export async function disableReferralToken(input: OwnedReferralTokenRef) {
+  await findOwnedReferralToken(input);
+  const record = await disableReferralTokenById(input.tokenId);
   if (!record) throw new ReferralTokenUnavailableError();
   return toOpsView(record);
 }
 
-export async function renewReferralToken(tokenId: string) {
+export async function renewReferralToken(input: OwnedReferralTokenRef) {
+  await findOwnedReferralToken(input);
   const record = await renewReferralTokenById({
-    id: tokenId,
+    id: input.tokenId,
     lifetimeDays: REFERRAL_TOKEN_DEFAULT_LIFETIME_DAYS,
   });
   if (!record) throw new ReferralTokenUnavailableError();
   return toOpsView(record);
 }
 
-export async function regenerateReferralToken(input: {
-  tokenId: string;
-  createdBy: string;
-}) {
-  const existing = await findReferralTokenById(input.tokenId);
-  if (!existing) throw new ReferralTokenUnavailableError();
+export async function regenerateReferralToken(input: OwnedReferralTokenRef) {
+  const existing = await findOwnedReferralToken(input);
   const issued = issueReferralTokenMaterial();
   const record = await replaceReferralTokenRecord({
     referrerEmail: existing.referrerEmail,
@@ -104,4 +127,11 @@ export async function regenerateReferralToken(input: {
     createdAt: issued.createdAt,
   });
   return generated(record);
+}
+
+export async function listReferralDownstreamForOwner(
+  input: OwnedReferralTokenRef,
+) {
+  await findOwnedReferralToken(input);
+  return listReferralDownstream(input.tokenId);
 }

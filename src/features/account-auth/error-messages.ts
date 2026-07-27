@@ -8,7 +8,7 @@ export function otpErrorMessage(
   fallback: string,
 ) {
   if (error.code === "OTP_EXPIRED" || error.code === "INVALID_OTP") {
-    return "验证码不正确或已过期。";
+    return "The verification code is incorrect or has expired.";
   }
 
   return error.message ?? fallback;

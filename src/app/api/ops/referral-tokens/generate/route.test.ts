@@ -81,9 +81,9 @@ describe("POST /api/ops/referral-tokens/generate", () => {
     expect(secondPayload.results[0]?.plaintextToken).toBe(
       firstPayload.results[0]?.plaintextToken,
     );
-    expect(storedReferralTokens().filter((t) => t.status === "ACTIVE")).toHaveLength(
-      1,
-    );
+    expect(
+      storedReferralTokens().filter((t) => t.status === "ACTIVE"),
+    ).toHaveLength(1);
   });
 });
 
@@ -165,5 +165,97 @@ describe("GET /api/ops/referral-tokens and PATCH lifecycle", () => {
     expect(
       storedReferralTokens().filter((token) => token.status === "ACTIVE"),
     ).toHaveLength(0);
+  });
+
+  it("scopes list, mutations and downstream to the ops account that created the token", async () => {
+    const cookie = await authCookieHeader();
+    const created = await generate(
+      new NextRequest("http://localhost/api/ops/referral-tokens/generate", {
+        method: "POST",
+        headers: { cookie, "content-type": "application/json" },
+        body: JSON.stringify({ entries: [{ email: "mine@example.com" }] }),
+      }),
+    );
+    const createdPayload = (await created.json()) as {
+      results: Array<{ token: { id: string } }>;
+    };
+    const ownTokenId = createdPayload.results[0]!.token.id;
+
+    // A token owned by a different ops account digest (inserted directly —
+    // the generate route always stamps the current session's digest).
+    const { createReferralTokenRecord } =
+      await import("@/lib/referral-tokens/repository");
+    const { issueReferralTokenMaterial } =
+      await import("@/lib/referral-tokens/token");
+    const issued = issueReferralTokenMaterial();
+    const foreign = await createReferralTokenRecord({
+      referrerEmail: "foreign@example.com",
+      referrerDisplayName: null,
+      tokenHash: issued.tokenHash,
+      plaintextToken: issued.plaintextToken,
+      expiredAt: issued.expiredAt,
+      createdBy: "another-ops-account-digest",
+      createdAt: issued.createdAt,
+    });
+    expect(foreign).not.toBeNull();
+
+    const { GET: downstream } =
+      await import("@/app/api/ops/referral-tokens/[tokenId]/downstream/route");
+
+    // List only returns the caller's own tokens.
+    const listed = await listTokens(
+      new NextRequest("http://localhost/api/ops/referral-tokens", {
+        headers: { cookie },
+      }),
+    );
+    const listedPayload = (await listed.json()) as {
+      items: Array<{ id: string }>;
+    };
+    expect(listedPayload.items.map((item) => item.id)).toEqual([ownTokenId]);
+
+    // Mutations against another account's token are unavailable (404).
+    for (const action of ["DISABLE", "RENEW", "REGENERATE"] as const) {
+      const response = await mutateToken(
+        new NextRequest(
+          `http://localhost/api/ops/referral-tokens/${foreign!.id}`,
+          {
+            method: "PATCH",
+            headers: { cookie, "content-type": "application/json" },
+            body: JSON.stringify({ action }),
+          },
+        ),
+        { params: Promise.resolve({ tokenId: foreign!.id }) },
+      );
+      expect(response.status).toBe(404);
+    }
+
+    // Downstream expansion of another account's token is unavailable too.
+    const downstreamResponse = await downstream(
+      new NextRequest(
+        `http://localhost/api/ops/referral-tokens/${foreign!.id}/downstream`,
+        { headers: { cookie } },
+      ),
+      { params: Promise.resolve({ tokenId: foreign!.id }) },
+    );
+    expect(downstreamResponse.status).toBe(404);
+
+    // The foreign token is untouched.
+    expect(
+      storedReferralTokens().find((token) => token.id === foreign!.id),
+    ).toMatchObject({ status: "ACTIVE" });
+
+    // Own token remains fully operable.
+    const ownRenew = await mutateToken(
+      new NextRequest(
+        `http://localhost/api/ops/referral-tokens/${ownTokenId}`,
+        {
+          method: "PATCH",
+          headers: { cookie, "content-type": "application/json" },
+          body: JSON.stringify({ action: "RENEW" }),
+        },
+      ),
+      { params: Promise.resolve({ tokenId: ownTokenId }) },
+    );
+    expect(ownRenew.status).toBe(200);
   });
 });

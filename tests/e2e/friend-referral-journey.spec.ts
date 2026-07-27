@@ -71,15 +71,24 @@ async function registerFriend(
   email: string,
   password: string,
 ) {
-  await expect(page.getByRole("heading", { name: "注册账号" })).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Create your account" }),
+  ).toBeVisible();
   await page.locator("#signup-email").fill(email);
-  await page.locator("#signup-password").fill(password);
-  await page.getByRole("button", { name: "发送验证码并注册" }).click();
-  await expect(page.locator("#signup-otp")).toBeVisible({ timeout: 15_000 });
+  await page.getByRole("button", { name: "Send Code" }).click();
 
   const otp = await fetchRecordedOtp(request, email);
+  await page.locator("#signup-password").fill(password);
   await page.locator("#signup-otp").fill(otp);
-  await page.getByRole("button", { name: "完成验证并登录" }).click();
+  await page.getByRole("button", { name: "Create Account" }).click();
+
+  // A fresh application starts at INIT, so the flow state machine brings the
+  // friend to the apply entry page first; continuing from there reaches the
+  // CV upload page.
+  const understandButton = page.getByRole("button", { name: "I understand" });
+  await expect(understandButton).toBeVisible({ timeout: 20_000 });
+  await understandButton.click();
+  await page.getByRole("button", { name: "Continue to CV Submission" }).click();
   await expect(page).toHaveURL(/\/apply\/resume/, { timeout: 20_000 });
 }
 
@@ -105,10 +114,11 @@ test("friend referral journey attributes registration in ops views", async ({
 
     const friendPage = await context.newPage();
     await friendPage.goto(referralPath);
-    await expect(
-      friendPage.getByRole("heading", { name: "开始你的申报" }),
-    ).toBeVisible({ timeout: 15_000 });
-    await friendPage.getByRole("link", { name: "开始申报" }).click();
+    const continueButton = friendPage.getByRole("button", {
+      name: "Continue to CV Submission",
+    });
+    await expect(continueButton).toBeVisible({ timeout: 15_000 });
+    await continueButton.click();
     await expect(friendPage).toHaveURL(/\/signup\?next=/);
     await registerFriend(friendPage, request, friendEmail, friendPassword);
 

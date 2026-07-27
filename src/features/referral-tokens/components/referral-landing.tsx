@@ -1,9 +1,32 @@
-import Link from "next/link";
+"use client";
 
-import { Button } from "@/components/ui/button";
-import { PageFrame, PageShell, StatusBanner } from "@/components/ui/page-shell";
+import { useState } from "react";
+import { ChevronRight } from "lucide-react";
+import { useRouter } from "next/navigation";
+
+import {
+  ActionButton,
+  PageFrame,
+  PageShell,
+  StatusBanner,
+} from "@/components/ui/page-shell";
+import { ApplyEntryFooterNav } from "@/features/application/components/apply-entry-footer-nav";
+import {
+  APPLICATION_DEADLINE_PILL,
+  APPLY_ENTRY_ACCORDION_SECTION_CLASS,
+  INTRO_DESCRIPTION,
+  type IntroSectionId,
+} from "@/features/application/components/apply-entry-intro-content";
+import { ApplyEntryProgramIntroduction } from "@/features/application/components/apply-entry-program-introduction";
+import { APPLICATION_FLOW_STEPS_WITH_INTRO } from "@/features/application/constants";
 import type { PublicReferralResult } from "@/lib/referral-tokens/public-service";
 
+/**
+ * Referral links land on the same entry shell as the invitation /apply page:
+ * program introduction plus a single "Continue to CV Submission" action. The
+ * account gate lives behind that action (via /api/referrals/context), so no
+ * invitation or application is created before registration.
+ */
 export function ReferralLanding({
   result,
   referralToken,
@@ -11,56 +34,103 @@ export function ReferralLanding({
   result: PublicReferralResult;
   referralToken: string;
 }) {
+  const router = useRouter();
+  const [openSections, setOpenSections] = useState<Set<IntroSectionId>>(
+    () => new Set(["overview"]),
+  );
+  const [isNavigating, setIsNavigating] = useState(false);
+
+  function toggleSection(sectionId: IntroSectionId) {
+    setOpenSections((current) => {
+      const next = new Set(current);
+      if (next.has(sectionId)) {
+        next.delete(sectionId);
+      } else {
+        next.add(sectionId);
+      }
+      return next;
+    });
+  }
+
   if (result.status === "UNAVAILABLE") {
     return (
       <PageFrame>
         <PageShell
           title="Global Excellent Scientists Fund"
-          description="推荐链接状态说明。"
+          description="Referral link status."
           headerVariant="centered"
         >
-          <StatusBanner
-            tone="neutral"
-            title="这条推荐链接暂时不可用"
-            description="链接可能已过期或已失效。你仍可直接注册账号并开始申报。"
-          />
+          <div className="mx-auto max-w-2xl space-y-6">
+            <StatusBanner
+              tone="neutral"
+              title="This referral link is no longer available"
+              description="The link may have expired or been deactivated. You can still create an account and start your application directly."
+            />
+            <div className="flex justify-center">
+              <ActionButton onClick={() => router.push("/signup")}>
+                <span>Create an account</span>
+                <ChevronRight className="h-4 w-4" aria-hidden />
+              </ActionButton>
+            </div>
+          </div>
         </PageShell>
       </PageFrame>
     );
   }
-  const signupHref = `/api/referrals/context?t=${encodeURIComponent(referralToken)}`;
-  const loginHref = `/api/referrals/context?t=${encodeURIComponent(referralToken)}&to=login`;
+
+  function handleContinue() {
+    // Full navigation: the context route 307s into the sign-up/sign-in flow
+    // (or straight to the CV upload for signed-in users), so the client-side
+    // router cannot follow it.
+    setIsNavigating(true);
+    window.location.assign(
+      `/api/referrals/context?t=${encodeURIComponent(referralToken)}`,
+    );
+  }
+
   return (
     <PageFrame>
       <PageShell
         title="Global Excellent Scientists Fund"
-        description="完成账号注册后，即可上传简历并继续申报。"
+        description={INTRO_DESCRIPTION}
+        headerTitleClassName="font-normal"
         headerVariant="centered"
+        className="pb-0"
+        steps={APPLICATION_FLOW_STEPS_WITH_INTRO}
+        currentStep={0}
+        stepIndexing="zero"
+        maxAccessibleStep={0}
+        headerSlot={
+          <div className="flex justify-center">
+            <span className="inline-flex min-h-11 items-center rounded-full bg-[color:var(--primary)] px-5 text-sm font-semibold text-white shadow-[0_10px_24px_rgba(10,25,47,0.16)]">
+              {APPLICATION_DEADLINE_PILL}
+            </span>
+          </div>
+        }
       >
-        <div className="mx-auto max-w-2xl space-y-6 text-center">
-          <h1 className="font-heading text-3xl font-semibold tracking-tight">
-            开始你的申报
-          </h1>
-          <p className="text-muted-foreground leading-7">
-            请先准备简历。开始上传前，我们会请你登录或注册账号，以便安全保存申报进度。
-          </p>
-          <div className="flex flex-col items-center gap-3">
-            <Button
-              nativeButton={false}
-              size="lg"
-              render={<Link href={signupHref as never} />}
-            >
-              开始申报
-            </Button>
-            <Link
-              href={loginHref as never}
-              className="text-muted-foreground text-sm underline-offset-4 hover:underline"
-            >
-              已有账号？先登录
-            </Link>
+        <div className="mx-auto max-w-4xl space-y-4">
+          <section
+            className={APPLY_ENTRY_ACCORDION_SECTION_CLASS}
+            aria-label="Application information"
+          >
+            <ApplyEntryProgramIntroduction
+              openSections={openSections}
+              onToggleSection={toggleSection}
+            />
+          </section>
+
+          <div className="flex justify-center py-4">
+            <ActionButton onClick={handleContinue} disabled={isNavigating}>
+              <span>
+                {isNavigating ? "Opening..." : "Continue to CV Submission"}
+              </span>
+              <ChevronRight className="h-4 w-4" aria-hidden />
+            </ActionButton>
           </div>
         </div>
       </PageShell>
+
+      <ApplyEntryFooterNav />
     </PageFrame>
   );
 }

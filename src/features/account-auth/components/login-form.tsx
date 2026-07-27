@@ -24,27 +24,30 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
       const { error } = await authClient.signIn.email({ email, password });
       if (error) {
         if (error.code === "EMAIL_NOT_VERIFIED" || error.status === 403) {
-          // Email not verified yet: resend the code and continue at signup.
+          // Email not verified yet: send a fresh code and continue on the
+          // sign-up page, where entering it completes verification.
           await authClient.emailOtp.sendVerificationOtp({
             email,
-            type: "email-verification",
+            type: "sign-in",
           });
-          toast.success("邮箱尚未验证，验证码已重新发送。");
+          toast.success(
+            "Your email is not verified yet — we sent you a new code.",
+          );
           const next = nextPath ? `&next=${encodeURIComponent(nextPath)}` : "";
-          router.push(`/signup?step=verify&email=${encodeURIComponent(email)}${next}`);
+          router.push(`/signup?email=${encodeURIComponent(email)}${next}`);
           return;
         }
         throw new Error(
           error.code === "INVALID_EMAIL_OR_PASSWORD"
-            ? "邮箱或密码不正确。"
-            : (error.message ?? "登录失败。"),
+            ? "Incorrect email or password."
+            : (error.message ?? "Sign-in failed."),
         );
       }
-      toast.success("登录成功。");
+      toast.success("Signed in successfully.");
       router.replace((nextPath ?? "/account") as "/apply/resume" | "/account");
       router.refresh();
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "登录失败。");
+      toast.error(error instanceof Error ? error.message : "Sign-in failed.");
     } finally {
       setSubmitting(false);
     }
@@ -54,7 +57,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
     <form onSubmit={onSubmit}>
       <FieldGroup className="gap-4">
         <Field>
-          <FieldLabel htmlFor="login-email">邮箱</FieldLabel>
+          <FieldLabel htmlFor="login-email">Email</FieldLabel>
           <Input
             id="login-email"
             type="email"
@@ -65,7 +68,7 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
           />
         </Field>
         <Field>
-          <FieldLabel htmlFor="login-password">密码</FieldLabel>
+          <FieldLabel htmlFor="login-password">Password</FieldLabel>
           <Input
             id="login-password"
             type="password"
@@ -77,17 +80,21 @@ export function LoginForm({ nextPath }: { nextPath?: string }) {
         </Field>
         <Button type="submit" className="w-full" disabled={submitting}>
           {submitting ? <Spinner data-icon="inline-start" /> : null}
-          登录
+          Sign In
         </Button>
         <div className="text-muted-foreground flex items-center justify-between text-sm">
           <Link href="/forgot-password" className="text-primary underline">
-            忘记密码
+            Forgot password?
           </Link>
           <Link
-            href={nextPath ? `/signup?next=${encodeURIComponent(nextPath)}` : "/signup"}
+            href={
+              nextPath
+                ? `/signup?next=${encodeURIComponent(nextPath)}`
+                : "/signup"
+            }
             className="text-primary underline"
           >
-            注册账号
+            Create account
           </Link>
         </div>
       </FieldGroup>

@@ -92,7 +92,11 @@ export function createAccountAuthOptions(sender?: EmailSender) {
         otpLength: 6,
         expiresIn: ACCOUNT_AUTH_OTP_EXPIRES_IN_SECONDS,
         storeOTP: "hashed",
-        sendVerificationOnSignUp: true,
+        // The sign-up form sends the code explicitly via its "Send Code"
+        // button (sign-in OTP type, which also reaches not-yet-registered
+        // emails). Auto-sending here would deliver a second, different code
+        // when the form creates the account on submit.
+        sendVerificationOnSignUp: false,
         overrideDefaultEmailVerification: true,
         sendVerificationOTP: async ({ email, otp, type }) => {
           await sendAccountAuthOtpEmail({

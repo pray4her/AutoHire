@@ -43,14 +43,19 @@ export async function findActiveReferralTokenByEmail(referrerEmail: string) {
   });
 }
 
-export async function listReferralTokens(): Promise<ReferralTokenRecord[]> {
+export async function listReferralTokens(
+  createdBy?: string,
+): Promise<ReferralTokenRecord[]> {
   if (getRuntimeMode() === "memory") {
-    return [...memoryStore().tokens].sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
-    );
+    return [...memoryStore().tokens]
+      .filter((token) => !createdBy || token.createdBy === createdBy)
+      .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
   }
   const { prisma } = await import("@/lib/db/prisma");
-  return prisma.referralToken.findMany({ orderBy: { createdAt: "desc" } });
+  return prisma.referralToken.findMany({
+    where: createdBy ? { createdBy } : undefined,
+    orderBy: { createdAt: "desc" },
+  });
 }
 
 export async function createReferralTokenRecord(
@@ -61,7 +66,8 @@ export async function createReferralTokenRecord(
     if (
       store.tokens.some(
         (token) =>
-          token.referrerEmail === input.referrerEmail && token.status === "ACTIVE",
+          token.referrerEmail === input.referrerEmail &&
+          token.status === "ACTIVE",
       )
     ) {
       return null;
@@ -98,7 +104,11 @@ export async function disableReferralTokenById(id: string) {
     const index = tokens.findIndex((token) => token.id === id);
     const existing = tokens[index];
     if (!existing) return null;
-    const record = { ...existing, status: "DISABLED" as const, updatedAt: new Date() };
+    const record = {
+      ...existing,
+      status: "DISABLED" as const,
+      updatedAt: new Date(),
+    };
     tokens[index] = record;
     return record;
   }
@@ -120,7 +130,9 @@ export async function renewReferralTokenById(input: {
   const now = new Date();
   const record = await findReferralTokenById(input.id);
   if (!record || record.status !== "ACTIVE") return null;
-  const expiredAt = new Date(Math.max(now.getTime(), record.expiredAt.getTime()));
+  const expiredAt = new Date(
+    Math.max(now.getTime(), record.expiredAt.getTime()),
+  );
   expiredAt.setUTCDate(expiredAt.getUTCDate() + input.lifetimeDays);
   if (getRuntimeMode() === "memory") {
     const tokens = memoryStore().tokens;
@@ -139,12 +151,21 @@ export async function renewReferralTokenById(input: {
 export async function replaceReferralTokenRecord(input: CreateInput) {
   if (getRuntimeMode() === "memory") {
     for (const token of memoryStore().tokens) {
-      if (token.referrerEmail === input.referrerEmail && token.status === "ACTIVE") {
-        Object.assign(token, { status: "DISABLED", updatedAt: input.createdAt });
+      if (
+        token.referrerEmail === input.referrerEmail &&
+        token.status === "ACTIVE"
+      ) {
+        Object.assign(token, {
+          status: "DISABLED",
+          updatedAt: input.createdAt,
+        });
       }
     }
     const record: ReferralTokenRecord = {
-      ...input, id: randomUUID(), status: "ACTIVE", updatedAt: input.createdAt,
+      ...input,
+      id: randomUUID(),
+      status: "ACTIVE",
+      updatedAt: input.createdAt,
     };
     memoryStore().tokens.push(record);
     return record;
