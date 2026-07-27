@@ -1,4 +1,9 @@
-import { expect, test, type APIRequestContext, type Page } from "@playwright/test";
+import {
+  expect,
+  test,
+  type APIRequestContext,
+  type Page,
+} from "@playwright/test";
 
 import { e2eOpsCredentials } from "../../playwright.config";
 
@@ -13,15 +18,20 @@ async function loginOps(page: Page) {
   await page.locator("#ops-password").fill(e2eOpsCredentials.password);
   await page.getByRole("button", { name: "登录" }).click();
   await expect(page).toHaveURL(/\/ops\/referrals$/);
-  await expect(page.getByRole("heading", { name: "推荐链接" })).toBeVisible();
+  await expect(page.getByText("推荐链接", { exact: true })).toBeVisible();
 }
 
 async function generateReferralLink(page: Page): Promise<string> {
   const email = `referrer-${Date.now()}@example.com`;
-  await page.getByPlaceholder("name@example.com, 张三").fill(`${email}, 推荐人甲`);
+  await page
+    .getByPlaceholder("name@example.com, 张三")
+    .fill(`${email}, 推荐人甲`);
   await page.getByRole("button", { name: "生成链接" }).click();
   await expect(page.getByText(email)).toBeVisible({ timeout: 15_000 });
-  const link = page.locator("p.font-mono").filter({ hasText: "/referral?t=" }).first();
+  const link = page
+    .locator("p.font-mono")
+    .filter({ hasText: "/referral?t=" })
+    .first();
   await expect(link).toBeVisible();
   const href = (await link.textContent())?.trim();
   expect(href).toBeTruthy();

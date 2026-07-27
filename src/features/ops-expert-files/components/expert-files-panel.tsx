@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
   CardHeader,
@@ -490,515 +491,532 @@ export function ExpertFilesPanel() {
     | undefined;
 
   return (
-    <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-8 md:px-8">
-      <header className="flex flex-col gap-2">
-        <div className="flex items-center justify-between gap-2">
-          <div className="flex items-center gap-2 text-muted-foreground">
-            <FolderArchive />
-            <span className="text-sm tracking-wide">运营后台</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push("/ops/referrals")}
-            >
-              推荐链接
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => router.push("/ops/invitations")}
-            >
-              邀请生成
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setPasswordOpen(true)}
-            >
-              <KeyRound data-icon="inline-start" />
-              修改密码
-            </Button>
-            <Button variant="outline" size="sm" onClick={() => void logout()}>
-              <LogOut data-icon="inline-start" />
-              退出
-            </Button>
-          </div>
-        </div>
-        <h1 className="font-heading text-3xl font-semibold tracking-tight">
-          专家档案
-        </h1>
-        <p className="max-w-2xl text-muted-foreground">
-          可按姓名、邮箱或客户编号搜索，导出 ZIP 包供内部审阅。压缩包保留档案文件夹结构，下载链接有效期为
-          7 天。
-        </p>
-      </header>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>搜索</CardTitle>
-          <CardDescription>
-            默认范围为最近 {OPS_EXPORT_DEFAULT_LOOKBACK_DAYS}{" "}
-            天（按填写时间）。仅展示已分配客户编号的申请。
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <FieldGroup className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            <Field>
-              <FieldLabel htmlFor="expert-q">姓名 / 邮箱 / 客户编号</FieldLabel>
-              <Input
-                id="expert-q"
-                value={q}
-                onChange={(event) => setQ(event.target.value)}
-                placeholder="搜索…"
-              />
-            </Field>
-            <Field>
-              <FieldLabel>状态</FieldLabel>
-              <Select
-                value={status}
-                onValueChange={(value) => {
-                  if (
-                    value === "all" ||
-                    value === "submitted" ||
-                    value === "unsubmitted"
-                  ) {
-                    setStatus(value);
-                  }
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="all">全部</SelectItem>
-                    <SelectItem value="submitted">已提交</SelectItem>
-                    <SelectItem value="unsubmitted">未提交</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field>
-              <FieldLabel>来源</FieldLabel>
-              <Select
-                value={source}
-                onValueChange={(value) => {
-                  if (value === "all" || value === "OPS" || value === "ACCOUNT") {
-                    setSource(value);
-                  }
-                }}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    <SelectItem value="all">全部来源</SelectItem>
-                    <SelectItem value="OPS">邀请链接</SelectItem>
-                    <SelectItem value="ACCOUNT">账号注册</SelectItem>
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="start-date">填写时间起</FieldLabel>
-              <Input
-                id="start-date"
-                type="date"
-                value={startDate}
-                onChange={(event) => setStartDate(event.target.value)}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="end-date">填写时间止</FieldLabel>
-              <Input
-                id="end-date"
-                type="date"
-                value={endDate}
-                onChange={(event) => setEndDate(event.target.value)}
-              />
-            </Field>
-          </FieldGroup>
-          <div className="mt-4 flex flex-wrap gap-2">
-            <Button
-              onClick={() => {
-                setPage(1);
-                void loadList();
-              }}
-            >
-              <Search data-icon="inline-start" />
-              搜索
-            </Button>
-            <Button
-              variant="outline"
-              disabled={hasRunningJob}
-              onClick={() => void prepareExport("filter")}
-            >
-              <Download data-icon="inline-start" />
-              导出匹配结果
-            </Button>
-            <Button
-              variant="outline"
-              disabled={hasRunningJob || selected.size === 0}
-              onClick={() => void prepareExport("ids")}
-            >
-              <Download data-icon="inline-start" />
-              导出已选（{selected.size}）
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader className="flex-row items-center justify-between">
-          <div>
-            <CardTitle>结果</CardTitle>
+    <main className="text-foreground min-h-screen bg-[radial-gradient(circle_at_top_left,var(--muted),transparent_32rem),linear-gradient(135deg,var(--background),var(--secondary))] px-6 py-8">
+      <div className="mx-auto flex w-full max-w-7xl flex-col gap-6">
+        <Card className="border-foreground/10 bg-background/85 w-full overflow-hidden shadow-xl backdrop-blur">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2 text-2xl">
+              <FolderArchive data-icon="inline-start" />
+              专家档案
+            </CardTitle>
             <CardDescription>
-              共 {total} 条 · 第 {page} 页
+              可按姓名、邮箱或客户编号搜索，导出 ZIP
+              包供内部审阅。压缩包保留档案文件夹结构，下载链接有效期为 7 天。
             </CardDescription>
-          </div>
-          {loading ? <Spinner /> : null}
-        </CardHeader>
-        <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="w-10" />
-                <TableHead>客户编号</TableHead>
-                <TableHead>姓名</TableHead>
-                <TableHead>邮箱</TableHead>
-                <TableHead>来源</TableHead>
-                <TableHead>推荐来源</TableHead>
-                <TableHead>状态</TableHead>
-                <TableHead>填写时间</TableHead>
-                <TableHead>提交时间</TableHead>
-                <TableHead />
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {items.map((item) => (
-                <TableRow key={item.applicationId}>
-                  <TableCell>
-                    <Checkbox
-                      checked={selected.has(item.applicationId)}
-                      onCheckedChange={(checked) =>
-                        toggleSelect(item.applicationId, checked === true)
-                      }
-                    />
-                  </TableCell>
-                  <TableCell className="font-mono text-sm">
-                    {item.customerNo}
-                  </TableCell>
-                  <TableCell>{item.screeningPassportFullName ?? "—"}</TableCell>
-                  <TableCell className="max-w-[220px] truncate">
-                    {item.screeningContactEmail ??
-                      item.screeningWorkEmail ??
-                      item.invitationEmail ??
-                      "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge
-                      variant={
-                        item.invitationSource === "ACCOUNT"
-                          ? "default"
-                          : "outline"
-                      }
-                    >
-                      {item.invitationSource === "ACCOUNT"
-                        ? "账号注册"
-                        : "邀请链接"}
+            <CardAction>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push("/ops/referrals")}
+                >
+                  推荐链接
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push("/ops/invitations")}
+                >
+                  邀请生成
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPasswordOpen(true)}
+                >
+                  <KeyRound data-icon="inline-start" />
+                  修改密码
+                </Button>
+                <Badge variant="secondary">已登录</Badge>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => void logout()}
+                >
+                  <LogOut data-icon="inline-start" />
+                  退出
+                </Button>
+              </div>
+            </CardAction>
+          </CardHeader>
+        </Card>
+
+        <Card className="border-foreground/10 bg-background/90 w-full shadow-xl backdrop-blur">
+          <CardHeader>
+            <CardTitle>搜索</CardTitle>
+            <CardDescription>
+              默认范围为最近 {OPS_EXPORT_DEFAULT_LOOKBACK_DAYS}{" "}
+              天（按填写时间）。仅展示已分配客户编号的申请。
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <FieldGroup className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+              <Field>
+                <FieldLabel htmlFor="expert-q">
+                  姓名 / 邮箱 / 客户编号
+                </FieldLabel>
+                <Input
+                  id="expert-q"
+                  value={q}
+                  onChange={(event) => setQ(event.target.value)}
+                  placeholder="搜索…"
+                />
+              </Field>
+              <Field>
+                <FieldLabel>状态</FieldLabel>
+                <Select
+                  value={status}
+                  onValueChange={(value) => {
+                    if (
+                      value === "all" ||
+                      value === "submitted" ||
+                      value === "unsubmitted"
+                    ) {
+                      setStatus(value);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="all">全部</SelectItem>
+                      <SelectItem value="submitted">已提交</SelectItem>
+                      <SelectItem value="unsubmitted">未提交</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field>
+                <FieldLabel>来源</FieldLabel>
+                <Select
+                  value={source}
+                  onValueChange={(value) => {
+                    if (
+                      value === "all" ||
+                      value === "OPS" ||
+                      value === "ACCOUNT"
+                    ) {
+                      setSource(value);
+                    }
+                  }}
+                >
+                  <SelectTrigger className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="all">全部来源</SelectItem>
+                      <SelectItem value="OPS">邀请链接</SelectItem>
+                      <SelectItem value="ACCOUNT">账号注册</SelectItem>
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="start-date">填写时间起</FieldLabel>
+                <Input
+                  id="start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={(event) => setStartDate(event.target.value)}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="end-date">填写时间止</FieldLabel>
+                <Input
+                  id="end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={(event) => setEndDate(event.target.value)}
+                />
+              </Field>
+            </FieldGroup>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Button
+                onClick={() => {
+                  setPage(1);
+                  void loadList();
+                }}
+              >
+                <Search data-icon="inline-start" />
+                搜索
+              </Button>
+              <Button
+                variant="outline"
+                disabled={hasRunningJob}
+                onClick={() => void prepareExport("filter")}
+              >
+                <Download data-icon="inline-start" />
+                导出匹配结果
+              </Button>
+              <Button
+                variant="outline"
+                disabled={hasRunningJob || selected.size === 0}
+                onClick={() => void prepareExport("ids")}
+              >
+                <Download data-icon="inline-start" />
+                导出已选（{selected.size}）
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-foreground/10 bg-background/90 w-full shadow-xl backdrop-blur">
+          <CardHeader className="flex-row items-center justify-between">
+            <div>
+              <CardTitle>结果</CardTitle>
+              <CardDescription>
+                共 {total} 条 · 第 {page} 页
+              </CardDescription>
+            </div>
+            {loading ? <Spinner /> : null}
+          </CardHeader>
+          <CardContent>
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="w-10" />
+                  <TableHead>客户编号</TableHead>
+                  <TableHead>姓名</TableHead>
+                  <TableHead>邮箱</TableHead>
+                  <TableHead>来源</TableHead>
+                  <TableHead>推荐来源</TableHead>
+                  <TableHead>状态</TableHead>
+                  <TableHead>填写时间</TableHead>
+                  <TableHead>提交时间</TableHead>
+                  <TableHead />
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {items.map((item) => (
+                  <TableRow key={item.applicationId}>
+                    <TableCell>
+                      <Checkbox
+                        checked={selected.has(item.applicationId)}
+                        onCheckedChange={(checked) =>
+                          toggleSelect(item.applicationId, checked === true)
+                        }
+                      />
+                    </TableCell>
+                    <TableCell className="font-mono text-sm">
+                      {item.customerNo}
+                    </TableCell>
+                    <TableCell>
+                      {item.screeningPassportFullName ?? "—"}
+                    </TableCell>
+                    <TableCell className="max-w-[220px] truncate">
+                      {item.screeningContactEmail ??
+                        item.screeningWorkEmail ??
+                        item.invitationEmail ??
+                        "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={
+                          item.invitationSource === "ACCOUNT"
+                            ? "default"
+                            : "outline"
+                        }
+                      >
+                        {item.invitationSource === "ACCOUNT"
+                          ? "账号注册"
+                          : "邀请链接"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="max-w-[140px] truncate">
+                      {item.referredByExpertName ?? "—"}
+                    </TableCell>
+                    <TableCell>
+                      <Badge
+                        variant={item.isSubmitted ? "default" : "secondary"}
+                      >
+                        {item.isSubmitted ? "已提交" : "进行中"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>{formatTime(item.resumeUploadedAt)}</TableCell>
+                    <TableCell>{formatTime(item.submittedAt)}</TableCell>
+                    <TableCell>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => void openDetail(item.applicationId)}
+                      >
+                        <Eye data-icon="inline-start" />
+                        查看
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+                {items.length === 0 && !loading ? (
+                  <TableRow>
+                    <TableCell colSpan={10} className="text-muted-foreground">
+                      该范围内暂无申请记录。
+                    </TableCell>
+                  </TableRow>
+                ) : null}
+              </TableBody>
+            </Table>
+            <div className="mt-4 flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page <= 1}
+                onClick={() => setPage((value) => Math.max(1, value - 1))}
+              >
+                上一页
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                disabled={page * 20 >= total}
+                onClick={() => setPage((value) => value + 1)}
+              >
+                下一页
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-foreground/10 bg-background/90 w-full shadow-xl backdrop-blur">
+          <CardHeader className="flex-row items-center justify-between">
+            <div>
+              <CardTitle>导出任务</CardTitle>
+              <CardDescription>
+                运营账号共享可见。下载链接有效期 1 小时；ZIP 文件保留 7 天。
+              </CardDescription>
+            </div>
+            <Button variant="outline" size="sm" onClick={() => void loadJobs()}>
+              <RefreshCw data-icon="inline-start" />
+              刷新
+            </Button>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {jobs.map((job) => (
+              <div
+                key={job.id}
+                className="flex flex-col gap-2 rounded-lg border p-3 md:flex-row md:items-center md:justify-between"
+              >
+                <div className="flex flex-col gap-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="font-mono text-sm">{job.id}</span>
+                    <Badge variant="outline">
+                      {formatJobStatus(job.status)}
                     </Badge>
-                  </TableCell>
-                  <TableCell className="max-w-[140px] truncate">
-                    {item.referredByExpertName ?? "—"}
-                  </TableCell>
-                  <TableCell>
-                    <Badge variant={item.isSubmitted ? "default" : "secondary"}>
-                      {item.isSubmitted ? "已提交" : "进行中"}
-                    </Badge>
-                  </TableCell>
-                  <TableCell>{formatTime(item.resumeUploadedAt)}</TableCell>
-                  <TableCell>{formatTime(item.submittedAt)}</TableCell>
-                  <TableCell>
+                  </div>
+                  <p className="text-muted-foreground text-sm">
+                    {job.exportableCount} 位专家 ·{" "}
+                    {formatBytes(job.estimatedBytes)} · 创建于{" "}
+                    {formatTime(job.createdAt)}
+                    {job.excludedEmptyCount
+                      ? ` · 已排除空档案 ${job.excludedEmptyCount}`
+                      : ""}
+                  </p>
+                  {job.errorMessage ? (
+                    <p className="text-destructive text-sm">
+                      {job.errorMessage}
+                    </p>
+                  ) : null}
+                </div>
+                <div className="flex gap-2">
+                  {["SUCCEEDED", "SUCCEEDED_WITH_GAPS"].includes(job.status) ? (
+                    <Button size="sm" onClick={() => void downloadJob(job.id)}>
+                      <Download data-icon="inline-start" />
+                      下载
+                    </Button>
+                  ) : null}
+                  {["FAILED", "SUCCEEDED", "SUCCEEDED_WITH_GAPS"].includes(
+                    job.status,
+                  ) ? (
                     <Button
                       size="sm"
-                      variant="ghost"
-                      onClick={() => void openDetail(item.applicationId)}
+                      variant="outline"
+                      disabled={hasRunningJob}
+                      onClick={() => void retryJob(job.id)}
                     >
-                      <Eye data-icon="inline-start" />
-                      查看
+                      重试
                     </Button>
-                  </TableCell>
-                </TableRow>
-              ))}
-              {items.length === 0 && !loading ? (
-                <TableRow>
-                  <TableCell colSpan={10} className="text-muted-foreground">
-                    该范围内暂无申请记录。
-                  </TableCell>
-                </TableRow>
-              ) : null}
-            </TableBody>
-          </Table>
-          <div className="mt-4 flex gap-2">
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page <= 1}
-              onClick={() => setPage((value) => Math.max(1, value - 1))}
-            >
-              上一页
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              disabled={page * 20 >= total}
-              onClick={() => setPage((value) => value + 1)}
-            >
-              下一页
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+                  ) : null}
+                </div>
+              </div>
+            ))}
+            {jobs.length === 0 ? (
+              <p className="text-muted-foreground text-sm">暂无导出任务。</p>
+            ) : null}
+          </CardContent>
+        </Card>
 
-      <Card>
-        <CardHeader className="flex-row items-center justify-between">
-          <div>
-            <CardTitle>导出任务</CardTitle>
-            <CardDescription>
-              运营账号共享可见。下载链接有效期 1 小时；ZIP
-              文件保留 7 天。
-            </CardDescription>
-          </div>
-          <Button variant="outline" size="sm" onClick={() => void loadJobs()}>
-            <RefreshCw data-icon="inline-start" />
-            刷新
-          </Button>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          {jobs.map((job) => (
-            <div
-              key={job.id}
-              className="flex flex-col gap-2 rounded-lg border p-3 md:flex-row md:items-center md:justify-between"
-            >
-              <div className="flex flex-col gap-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-mono text-sm">{job.id}</span>
-                  <Badge variant="outline">{formatJobStatus(job.status)}</Badge>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {job.exportableCount} 位专家 ·{" "}
-                  {formatBytes(job.estimatedBytes)} · 创建于{" "}
-                  {formatTime(job.createdAt)}
-                  {job.excludedEmptyCount
-                    ? ` · 已排除空档案 ${job.excludedEmptyCount}`
-                    : ""}
-                </p>
-                {job.errorMessage ? (
-                  <p className="text-sm text-destructive">{job.errorMessage}</p>
-                ) : null}
-              </div>
-              <div className="flex gap-2">
-                {["SUCCEEDED", "SUCCEEDED_WITH_GAPS"].includes(job.status) ? (
-                  <Button size="sm" onClick={() => void downloadJob(job.id)}>
-                    <Download data-icon="inline-start" />
-                    下载
-                  </Button>
-                ) : null}
-                {["FAILED", "SUCCEEDED", "SUCCEEDED_WITH_GAPS"].includes(
-                  job.status,
-                ) ? (
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={hasRunningJob}
-                    onClick={() => void retryJob(job.id)}
-                  >
-                    重试
-                  </Button>
-                ) : null}
-              </div>
-            </div>
-          ))}
-          {jobs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">暂无导出任务。</p>
-          ) : null}
-        </CardContent>
-      </Card>
-
-      <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
-        <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
-          <SheetHeader>
-            <SheetTitle>
-              {(detail?.customerNo as string | undefined) ?? "专家档案"}
-            </SheetTitle>
-            <SheetDescription>
-              只读文件清单。暂不支持单文件下载。
-            </SheetDescription>
-          </SheetHeader>
-          {detail ? (
-            <div className="mt-4 flex flex-col gap-4 px-1">
-              <div className="grid gap-1 text-sm">
-                <div>
-                  <span className="text-muted-foreground">姓名：</span>
-                  {(detail.screeningPassportFullName as string) ?? "—"}
-                </div>
-                <div>
-                  <span className="text-muted-foreground">邮箱：</span>
-                  {(detail.screeningContactEmail as string) ??
-                    (detail.screeningWorkEmail as string) ??
-                    "—"}
-                </div>
-                <div>
-                  <span className="text-muted-foreground">状态：</span>
-                  {formatApplicationStatus(String(detail.applicationStatus))}
-                </div>
-                <div>
-                  <span className="text-muted-foreground">填写时间：</span>
-                  {formatTime(detail.resumeUploadedAt as string | null)}
-                </div>
-                <div>
-                  <span className="text-muted-foreground">提交时间：</span>
-                  {formatTime(detail.submittedAt as string | null)}
-                </div>
-              </div>
-              <Separator />
-              <div className="flex flex-col gap-2">
-                <h3 className="font-medium">文件夹</h3>
-                {(inventory?.folderSummaries ?? []).map((folder) => (
-                  <div
-                    key={folder.folder}
-                    className="flex justify-between text-sm"
-                  >
-                    <span>{folder.folder}</span>
-                    <span className="text-muted-foreground">
-                      {folder.fileCount} 个文件
-                    </span>
+        <Sheet open={detailOpen} onOpenChange={setDetailOpen}>
+          <SheetContent className="w-full overflow-y-auto sm:max-w-lg">
+            <SheetHeader>
+              <SheetTitle>
+                {(detail?.customerNo as string | undefined) ?? "专家档案"}
+              </SheetTitle>
+              <SheetDescription>
+                只读文件清单。暂不支持单文件下载。
+              </SheetDescription>
+            </SheetHeader>
+            {detail ? (
+              <div className="mt-4 flex flex-col gap-4 px-1">
+                <div className="grid gap-1 text-sm">
+                  <div>
+                    <span className="text-muted-foreground">姓名：</span>
+                    {(detail.screeningPassportFullName as string) ?? "—"}
                   </div>
-                ))}
-              </div>
-              <div className="flex flex-col gap-2">
-                <h3 className="font-medium">文件</h3>
-                {(inventory?.files ?? []).map((file) => (
-                  <div key={file.archivePath} className="text-sm">
-                    <div className="font-mono text-xs text-muted-foreground">
-                      {file.archivePath}
-                    </div>
-                    <div>
-                      {file.fileName} · {formatBytes(file.fileSize)} ·{" "}
-                      {formatFileSource(file.source)}
-                    </div>
+                  <div>
+                    <span className="text-muted-foreground">邮箱：</span>
+                    {(detail.screeningContactEmail as string) ??
+                      (detail.screeningWorkEmail as string) ??
+                      "—"}
                   </div>
-                ))}
-                {(inventory?.files?.length ?? 0) === 0 ? (
-                  <p className="text-sm text-muted-foreground">暂无文件。</p>
-                ) : null}
+                  <div>
+                    <span className="text-muted-foreground">状态：</span>
+                    {formatApplicationStatus(String(detail.applicationStatus))}
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">填写时间：</span>
+                    {formatTime(detail.resumeUploadedAt as string | null)}
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground">提交时间：</span>
+                    {formatTime(detail.submittedAt as string | null)}
+                  </div>
+                </div>
+                <Separator />
+                <div className="flex flex-col gap-2">
+                  <h3 className="font-medium">文件夹</h3>
+                  {(inventory?.folderSummaries ?? []).map((folder) => (
+                    <div
+                      key={folder.folder}
+                      className="flex justify-between text-sm"
+                    >
+                      <span>{folder.folder}</span>
+                      <span className="text-muted-foreground">
+                        {folder.fileCount} 个文件
+                      </span>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex flex-col gap-2">
+                  <h3 className="font-medium">文件</h3>
+                  {(inventory?.files ?? []).map((file) => (
+                    <div key={file.archivePath} className="text-sm">
+                      <div className="text-muted-foreground font-mono text-xs">
+                        {file.archivePath}
+                      </div>
+                      <div>
+                        {file.fileName} · {formatBytes(file.fileSize)} ·{" "}
+                        {formatFileSource(file.source)}
+                      </div>
+                    </div>
+                  ))}
+                  {(inventory?.files?.length ?? 0) === 0 ? (
+                    <p className="text-muted-foreground text-sm">暂无文件。</p>
+                  ) : null}
+                </div>
               </div>
-            </div>
-          ) : null}
-        </SheetContent>
-      </Sheet>
+            ) : null}
+          </SheetContent>
+        </Sheet>
 
-      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>确认导出</DialogTitle>
-            <DialogDescription>
-              将创建异步 ZIP 导出任务。含中文路径时请使用 7-Zip / WinRAR
-              解压。
-            </DialogDescription>
-          </DialogHeader>
-          {pendingExport ? (
-            <div className="flex flex-col gap-2 text-sm">
-              <div>
-                模式：
-                {pendingExport.mode === "filter" ? "按筛选条件" : "按勾选"}
+        <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>确认导出</DialogTitle>
+              <DialogDescription>
+                将创建异步 ZIP 导出任务。含中文路径时请使用 7-Zip / WinRAR
+                解压。
+              </DialogDescription>
+            </DialogHeader>
+            {pendingExport ? (
+              <div className="flex flex-col gap-2 text-sm">
+                <div>
+                  模式：
+                  {pendingExport.mode === "filter" ? "按筛选条件" : "按勾选"}
+                </div>
+                <div>可导出专家：{pendingExport.exportableCount}</div>
+                <div>已排除空档案：{pendingExport.excludedEmptyCount}</div>
+                <div>预估大小：{formatBytes(pendingExport.estimatedBytes)}</div>
               </div>
-              <div>可导出专家：{pendingExport.exportableCount}</div>
-              <div>已排除空档案：{pendingExport.excludedEmptyCount}</div>
-              <div>
-                预估大小：{formatBytes(pendingExport.estimatedBytes)}
-              </div>
-            </div>
-          ) : null}
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setConfirmOpen(false)}>
-              取消
-            </Button>
-            <Button disabled={exporting} onClick={() => void confirmExport()}>
-              {exporting ? <Spinner data-icon="inline-start" /> : null}
-              开始导出
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            ) : null}
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setConfirmOpen(false)}>
+                取消
+              </Button>
+              <Button disabled={exporting} onClick={() => void confirmExport()}>
+                {exporting ? <Spinner data-icon="inline-start" /> : null}
+                开始导出
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
-      <Dialog
-        open={passwordOpen}
-        onOpenChange={(open) => {
-          setPasswordOpen(open);
-          if (!open) {
-            setCurrentPassword("");
-            setNewPassword("");
-            setConfirmPassword("");
-          }
-        }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>修改密码</DialogTitle>
-            <DialogDescription>
-              修改成功后当前会话会刷新，其他已登录会话将失效。
-            </DialogDescription>
-          </DialogHeader>
-          <FieldGroup className="gap-4">
-            <Field>
-              <FieldLabel htmlFor="current-password">当前密码</FieldLabel>
-              <Input
-                id="current-password"
-                type="password"
-                autoComplete="current-password"
-                value={currentPassword}
-                onChange={(event) => setCurrentPassword(event.target.value)}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="new-password">新密码</FieldLabel>
-              <Input
-                id="new-password"
-                type="password"
-                autoComplete="new-password"
-                value={newPassword}
-                onChange={(event) => setNewPassword(event.target.value)}
-              />
-            </Field>
-            <Field>
-              <FieldLabel htmlFor="confirm-password">确认新密码</FieldLabel>
-              <Input
-                id="confirm-password"
-                type="password"
-                autoComplete="new-password"
-                value={confirmPassword}
-                onChange={(event) => setConfirmPassword(event.target.value)}
-              />
-            </Field>
-          </FieldGroup>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setPasswordOpen(false)}>
-              取消
-            </Button>
-            <Button
-              disabled={changingPassword}
-              onClick={() => void submitChangePassword()}
-            >
-              {changingPassword ? <Spinner data-icon="inline-start" /> : null}
-              保存
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </div>
+        <Dialog
+          open={passwordOpen}
+          onOpenChange={(open) => {
+            setPasswordOpen(open);
+            if (!open) {
+              setCurrentPassword("");
+              setNewPassword("");
+              setConfirmPassword("");
+            }
+          }}
+        >
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>修改密码</DialogTitle>
+              <DialogDescription>
+                修改成功后当前会话会刷新，其他已登录会话将失效。
+              </DialogDescription>
+            </DialogHeader>
+            <FieldGroup className="gap-4">
+              <Field>
+                <FieldLabel htmlFor="current-password">当前密码</FieldLabel>
+                <Input
+                  id="current-password"
+                  type="password"
+                  autoComplete="current-password"
+                  value={currentPassword}
+                  onChange={(event) => setCurrentPassword(event.target.value)}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="new-password">新密码</FieldLabel>
+                <Input
+                  id="new-password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={newPassword}
+                  onChange={(event) => setNewPassword(event.target.value)}
+                />
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="confirm-password">确认新密码</FieldLabel>
+                <Input
+                  id="confirm-password"
+                  type="password"
+                  autoComplete="new-password"
+                  value={confirmPassword}
+                  onChange={(event) => setConfirmPassword(event.target.value)}
+                />
+              </Field>
+            </FieldGroup>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setPasswordOpen(false)}>
+                取消
+              </Button>
+              <Button
+                disabled={changingPassword}
+                onClick={() => void submitChangePassword()}
+              >
+                {changingPassword ? <Spinner data-icon="inline-start" /> : null}
+                保存
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </main>
   );
 }
