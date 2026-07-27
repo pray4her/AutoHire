@@ -44,6 +44,7 @@
     "@prisma/client": "^7.7.0",
     "@sentry/nextjs": "10",
     "ai": "^6.0.184",
+    "better-auth": "^1.6.25",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-react": "^1.16.0",

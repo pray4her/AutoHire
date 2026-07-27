@@ -1,10 +1,14 @@
 import { z } from "zod";
 
+const DEFAULT_BETTER_AUTH_SECRET = "autohire-dev-better-auth-secret-change-me";
+
 const envSchema = z.object({
   DATABASE_URL: z.string().optional(),
   APP_BASE_URL: z.string().url().default("http://localhost:3000"),
   APP_NAME: z.string().min(1).default("AutoHire"),
   APP_RUNTIME_MODE: z.enum(["auto", "memory", "prisma"]).default("auto"),
+  BETTER_AUTH_SECRET: z.string().min(32).default(DEFAULT_BETTER_AUTH_SECRET),
+  BETTER_AUTH_URL: z.string().url().optional(),
   INVITE_TOKEN_SECRET: z.string().min(1).default("autohire-dev-secret"),
   SESSION_COOKIE_NAME: z.string().min(1).default("autohire_session"),
   SESSION_COOKIE_MAX_AGE_SECONDS: z.coerce
@@ -101,6 +105,7 @@ export function getEnv() {
   if (!cachedEnv) {
     cachedEnv = envSchema.parse(process.env);
     assertProductionHttps(cachedEnv.APP_BASE_URL);
+    assertProductionBetterAuthSecret(cachedEnv.BETTER_AUTH_SECRET);
   }
 
   return cachedEnv;
@@ -131,5 +136,17 @@ function assertProductionHttps(appBaseUrl: string) {
 
   if (!appBaseUrl.startsWith("https://")) {
     throw new Error("APP_BASE_URL must use https in production.");
+  }
+}
+
+function assertProductionBetterAuthSecret(betterAuthSecret: string) {
+  if (process.env.NODE_ENV !== "production") {
+    return;
+  }
+
+  if (betterAuthSecret === DEFAULT_BETTER_AUTH_SECRET) {
+    throw new Error(
+      "BETTER_AUTH_SECRET must be set to a unique secret in production.",
+    );
   }
 }

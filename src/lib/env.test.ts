@@ -29,7 +29,18 @@ describe("getEnv", () => {
   it("accepts https app base urls in production", () => {
     process.env.NODE_ENV = "production";
     process.env.APP_BASE_URL = "https://autohire.test";
+    process.env.BETTER_AUTH_SECRET = "production-secret-at-least-32-chars-long";
 
     expect(getEnv().APP_BASE_URL).toBe("https://autohire.test");
+  });
+
+  it("rejects the default better-auth secret in production", () => {
+    process.env.NODE_ENV = "production";
+    process.env.APP_BASE_URL = "https://autohire.test";
+    delete process.env.BETTER_AUTH_SECRET;
+
+    expect(() => getEnv()).toThrowError(
+      "BETTER_AUTH_SECRET must be set to a unique secret in production.",
+    );
   });
 });
