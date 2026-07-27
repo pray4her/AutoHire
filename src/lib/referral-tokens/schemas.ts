@@ -11,7 +11,7 @@ export const REFERRAL_DISPLAY_FIELDS = [
 export const referralDisplayFieldSchema = z.enum(REFERRAL_DISPLAY_FIELDS);
 export const referralDisplayFieldsSchema = z.array(referralDisplayFieldSchema);
 
-const referralDisplayFieldSelectionSchema = z
+export const referralDisplayFieldSelectionSchema = z
   .array(referralDisplayFieldSchema)
   .min(1)
   .max(REFERRAL_DISPLAY_FIELDS.length)
@@ -24,6 +24,14 @@ const referralDisplayFieldSelectionSchema = z
 
 export const referralTokenCreateSchema = z.object({
   displayFields: referralDisplayFieldSelectionSchema,
+});
+
+export const publicReferralTokenSchema = z
+  .string()
+  .regex(/^[0-9a-f]{64}$/, "推荐 token 格式无效。");
+
+export const publicReferralQuerySchema = z.object({
+  t: publicReferralTokenSchema,
 });
 
 export const referralTokenActionSchema = z.discriminatedUnion("action", [
