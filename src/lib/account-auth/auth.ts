@@ -7,6 +7,7 @@ import type { EmailSender } from "@/lib/email/transport";
 import { createEmailSenderFromEnv } from "@/lib/email/transport";
 import { getEnv } from "@/lib/env";
 import { sendAccountAuthOtpEmail } from "@/lib/account-auth/emails";
+import { ensureAccountApplication } from "@/lib/account-auth/shadow-invitation";
 
 export const ACCOUNT_AUTH_OTP_EXPIRES_IN_SECONDS = 600;
 export const ACCOUNT_AUTH_SESSION_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 7;
@@ -25,6 +26,30 @@ export function createAccountAuthOptions(sender?: EmailSender) {
     baseURL: env.BETTER_AUTH_URL ?? env.APP_BASE_URL,
     secret: env.BETTER_AUTH_SECRET,
     database: prismaAdapter(prisma, { provider: "postgresql" }),
+    databaseHooks: {
+      user: {
+        create: {
+          // Registration bootstraps the account-track application context:
+          // a shadow invitation bound to the registered email plus the
+          // application attached to it. A failure here must not block the
+          // sign-up response — the apply-entry account branch re-ensures the
+          // context lazily on first visit.
+          after: async (user) => {
+            try {
+              await ensureAccountApplication({
+                userId: user.id,
+                email: user.email,
+              });
+            } catch (error) {
+              console.error(
+                "[account-auth] failed to create shadow invitation",
+                error,
+              );
+            }
+          },
+        },
+      },
+    },
     emailAndPassword: {
       enabled: true,
       requireEmailVerification: true,

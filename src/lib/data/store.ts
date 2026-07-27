@@ -57,6 +57,7 @@ import type {
   AccessTokenStatusSnapshot as PrismaAccessTokenStatusSnapshot,
   EventStatus as PrismaEventStatus,
   InviteHashAlgorithm as PrismaInviteHashAlgorithm,
+  InvitationSource as PrismaInvitationSource,
   MaterialCategoryReviewStatus as PrismaMaterialCategoryReviewStatus,
   MaterialCategory as PrismaMaterialCategory,
   MaterialReviewRunStatus as PrismaMaterialReviewRunStatus,
@@ -86,6 +87,8 @@ export type AccessTokenStatusSnapshot =
 
 export type EventStatus = "SUCCESS" | "FAIL";
 
+export type InvitationSource = "OPS" | "ACCOUNT";
+
 export type UploadKind = "RESUME" | "MATERIAL";
 
 export type UploadFailureStage = "INTENT" | "PUT" | "CONFIRM";
@@ -102,6 +105,7 @@ type InvitationRecord = {
   tokenHash: string;
   hashAlgorithm: InviteHashAlgorithm;
   tokenStatus: "ACTIVE" | "EXPIRED" | "DISABLED";
+  source: InvitationSource;
   expiredAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
@@ -1178,6 +1182,7 @@ export async function createInvitationGenerationBatch(input: {
         tokenHash: invitationInput.tokenHash,
         hashAlgorithm: input.hashAlgorithm,
         tokenStatus: "ACTIVE",
+        source: "OPS",
         expiredAt: invitationInput.expiredAt,
         createdAt: now,
         updatedAt: now,
@@ -1235,6 +1240,7 @@ export async function createInvitationGenerationBatch(input: {
         tokenHash: invitationInput.tokenHash,
         hashAlgorithm: input.hashAlgorithm as PrismaInviteHashAlgorithm,
         tokenStatus: "ACTIVE" as const,
+        source: "OPS" as PrismaInvitationSource,
         expiredAt: invitationInput.expiredAt,
         createdAt,
         updatedAt: createdAt,
@@ -1382,6 +1388,82 @@ export async function createApplication(input: {
       applicationStatus: input.applicationStatus ?? "INIT",
       currentStep: input.currentStep ?? "intro",
     },
+  });
+}
+
+export async function findShadowInvitationByEmail(email: string) {
+  if (getRuntimeMode() === "memory") {
+    return (
+      getMemoryStore().invitations.find(
+        (item) => item.source === "ACCOUNT" && item.email === email,
+      ) ?? null
+    );
+  }
+
+  const prisma = await getPrisma();
+  return prisma.expertInvitation.findFirst({
+    where: { source: "ACCOUNT", email },
+  });
+}
+
+/**
+ * Creates the account-track shadow invitation and its application atomically.
+ * The token hash is random and its plaintext is never persisted or exposed, so
+ * the shadow invitation can never be used through any invite-link path.
+ */
+export async function createShadowInvitationWithApplication(input: {
+  expertId: string;
+  email: string;
+  tokenHash: string;
+}) {
+  if (getRuntimeMode() === "memory") {
+    const store = getMemoryStore();
+    const now = new Date();
+    const invitation: InvitationRecord = {
+      id: createId("invitation"),
+      expertId: input.expertId,
+      email: input.email,
+      tokenHash: input.tokenHash,
+      hashAlgorithm: "SHA256",
+      tokenStatus: "ACTIVE",
+      source: "ACCOUNT",
+      expiredAt: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    store.invitations.push(invitation);
+
+    const application = await createApplication({
+      expertId: input.expertId,
+      invitationId: invitation.id,
+    });
+
+    return { invitation, application };
+  }
+
+  const prisma = await getPrisma();
+  return prisma.$transaction(async (tx) => {
+    const invitation = await tx.expertInvitation.create({
+      data: {
+        expertId: input.expertId,
+        email: input.email,
+        tokenHash: input.tokenHash,
+        hashAlgorithm: "SHA256",
+        tokenStatus: "ACTIVE",
+        source: "ACCOUNT",
+        expiredAt: null,
+      },
+    });
+    const application = await tx.application.create({
+      data: {
+        expertId: input.expertId,
+        invitationId: invitation.id,
+        applicationStatus: "INIT",
+        currentStep: "intro",
+      },
+    });
+
+    return { invitation, application };
   });
 }
 

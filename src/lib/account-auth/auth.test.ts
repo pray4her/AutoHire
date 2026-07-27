@@ -8,6 +8,11 @@ vi.hoisted(() => {
 });
 
 import { createRecordingEmailSender } from "@/lib/email/transport";
+import { resetEnvForTests } from "@/lib/env";
+import {
+  findOpenApplicationByInvitationId,
+  findShadowInvitationByEmail,
+} from "@/lib/data/store";
 import {
   ACCOUNT_AUTH_OTP_EXPIRES_IN_SECONDS,
   ACCOUNT_AUTH_SESSION_EXPIRES_IN_SECONDS,
@@ -80,5 +85,46 @@ describe("createAccountAuthOptions", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0]?.to).toBe("new-expert@example.com");
     expect(calls[0]?.subject).toContain("112233");
+  });
+
+  it("creates the shadow invitation and application from the user create hook", async () => {
+    const originalMode = process.env.APP_RUNTIME_MODE;
+    process.env.APP_RUNTIME_MODE = "memory";
+    resetEnvForTests();
+    (
+      globalThis as typeof globalThis & { __autohireStore?: unknown }
+    ).__autohireStore = undefined;
+
+    try {
+      const options = createAccountAuthOptions();
+      const after = options.databaseHooks?.user?.create?.after;
+      expect(after).toBeDefined();
+
+      await after!(
+        { id: "user_hook_test", email: "hook@example.com" } as Parameters<
+          NonNullable<typeof after>
+        >[0],
+      );
+
+      const invitation = await findShadowInvitationByEmail("hook@example.com");
+      expect(invitation).toMatchObject({
+        expertId: "account_user_hook_test",
+        email: "hook@example.com",
+        source: "ACCOUNT",
+        tokenStatus: "ACTIVE",
+        expiredAt: null,
+      });
+
+      const application = await findOpenApplicationByInvitationId(
+        invitation!.id,
+      );
+      expect(application).toMatchObject({
+        invitationId: invitation!.id,
+        applicationStatus: "INIT",
+      });
+    } finally {
+      process.env.APP_RUNTIME_MODE = originalMode;
+      resetEnvForTests();
+    }
   });
 });

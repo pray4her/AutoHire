@@ -3,6 +3,7 @@ import { z } from "zod";
 export const expertFilesListQuerySchema = z.object({
   q: z.string().trim().optional().default(""),
   status: z.enum(["all", "submitted", "unsubmitted"]).default("all"),
+  source: z.enum(["all", "OPS", "ACCOUNT"]).default("all"),
   startDate: z
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)

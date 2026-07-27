@@ -1,4 +1,5 @@
 import type { ApplicationSnapshot } from "@/features/application/types";
+import { ensureAccountApplication } from "@/lib/account-auth/shadow-invitation";
 import {
   createOrRestoreApplication,
   createSessionForApplication,
@@ -21,7 +22,7 @@ type ApplyEntryAccessGranted = {
   readonly kind: "granted";
   readonly snapshot: ApplicationSnapshot;
   readonly sessionToken: string | null;
-  readonly source: "session_cookie" | "token";
+  readonly source: "session_cookie" | "token" | "account";
 };
 
 type ApplyEntryAccessRejected = {
@@ -40,7 +41,9 @@ export async function resolveApplyEntryAccessFromToken(
 ): Promise<ApplyEntryAccessResult> {
   const invitation = await resolveInviteToken(token);
 
-  if (!invitation) {
+  // Shadow invitations belong to the account track: their token plaintext is
+  // never exposed, and any token resolving to one must not log in via link.
+  if (!invitation || invitation.source === "ACCOUNT") {
     return {
       kind: "rejected",
       code: "INVALID_TOKEN",
@@ -151,5 +154,43 @@ export async function resolveApplyEntryAccessFromSessionCookie(
     snapshot,
     sessionToken: null,
     source: "session_cookie",
+  };
+}
+
+export type AccountSessionIdentity = {
+  readonly userId: string;
+  readonly email: string;
+};
+
+/**
+ * Account-track entry: resolves the Better Auth account to its shadow
+ * invitation's application (creating it lazily when the registration hook
+ * did not run) and issues the same application session the link track uses,
+ * so the whole downstream flow converges on the shared application data.
+ */
+export async function resolveApplyEntryAccessFromAccountSession(
+  identity: AccountSessionIdentity,
+): Promise<ApplyEntryAccessResult> {
+  const { application } = await ensureAccountApplication({
+    userId: identity.userId,
+    email: identity.email,
+  });
+  const snapshot = await getSnapshot(application.id);
+  const sessionToken = await createSessionForApplication(application.id);
+
+  if (!snapshot || !sessionToken) {
+    return {
+      kind: "rejected",
+      code: "SESSION_INIT_FAILED",
+      message: "Unable to initialize the application session.",
+      status: 500,
+    };
+  }
+
+  return {
+    kind: "granted",
+    snapshot,
+    sessionToken,
+    source: "account",
   };
 }

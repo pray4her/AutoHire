@@ -1,6 +1,8 @@
-import { cookies } from "next/headers";
+import Link from "next/link";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
+import { Button } from "@/components/ui/button";
 import {
   PageFrame,
   PageShell,
@@ -21,6 +23,7 @@ import {
   resolveRouteFromStatus,
   shouldRedirectFromApply,
 } from "@/features/application/route";
+import { getAccountSessionFromHeaders } from "@/lib/account-auth/request-session";
 import { getSessionCookieName } from "@/lib/auth/session";
 
 type ApplyEntryPageProps = {
@@ -87,6 +90,15 @@ function buildExpertSessionRedirectUrl(token: string) {
   return `/api/expert-session?${params.toString()}` as const;
 }
 
+function buildAccountBootstrapRedirectUrl() {
+  const params = new URLSearchParams({
+    account: "1",
+    redirectTo: "/apply?invite=1",
+  });
+
+  return `/api/expert-session?${params.toString()}` as const;
+}
+
 function ApplyEntryAccessError({
   code,
 }: {
@@ -108,6 +120,13 @@ function ApplyEntryAccessError({
             title={copy.title}
             description={copy.description}
           />
+          {code === "SESSION_REQUIRED" ? (
+            <div className="mt-6 flex justify-center">
+              <Button nativeButton={false} render={<Link href="/login" />}>
+                登录账号，继续你的申报
+              </Button>
+            </div>
+          ) : null}
         </div>
       </PageShell>
     </PageFrame>
@@ -152,6 +171,20 @@ export default async function ApplyEntryPage({
   if (access.kind === "rejected") {
     if (access.code === "EXPIRED_TOKEN") {
       redirect(EXPIRED_INVITE_APPLY_PATH);
+    }
+
+    if (access.code === "SESSION_REQUIRED") {
+      // Account track: a signed-in account converges onto its shadow
+      // invitation's application through the bootstrap route (which sets the
+      // application session cookie). Everyone else keeps the link-track
+      // guidance banner, now with a login entry point.
+      const accountIdentity = await getAccountSessionFromHeaders(
+        await headers(),
+      );
+
+      if (accountIdentity) {
+        redirect(buildAccountBootstrapRedirectUrl());
+      }
     }
 
     if (isBannerAccessErrorCode(access.code)) {

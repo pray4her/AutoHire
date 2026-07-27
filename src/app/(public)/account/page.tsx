@@ -1,6 +1,8 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { connection } from "next/server";
 
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -29,14 +31,17 @@ export default async function AccountPage() {
       title="我的账号"
       subtitle="你已登录账号轨。"
       cardTitle="账号信息"
-      cardDescription="申报上下文（影子邀请与申报）将在后续版本自动关联到此账号。"
+      cardDescription="你的申报已关联到此账号，可随时回访继续填写或查询状态。"
     >
       <Card className="border-0 shadow-none">
         <CardHeader className="px-0 pt-0">
           <CardTitle className="text-base">登录邮箱</CardTitle>
           <CardDescription>{session.user.email}</CardDescription>
         </CardHeader>
-        <CardContent className="px-0 pb-0">
+        <CardContent className="flex items-center gap-3 px-0 pb-0">
+          <Button nativeButton={false} render={<Link href="/apply" />}>
+            进入我的申报
+          </Button>
           <SignOutButton />
         </CardContent>
       </Card>

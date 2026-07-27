@@ -1,4 +1,5 @@
 import { getRuntimeMode } from "@/lib/env";
+import type { InvitationSource } from "@/lib/data/store";
 import {
   OPS_EXPORT_DEFAULT_LOOKBACK_DAYS,
 } from "@/lib/ops-expert-files/constants";
@@ -20,6 +21,7 @@ export type ExpertFilesListItem = {
   screeningContactEmail: string | null;
   screeningWorkEmail: string | null;
   invitationEmail: string | null;
+  invitationSource: InvitationSource;
   applicationStatus: string;
   isSubmitted: boolean;
   resumeUploadedAt: string | null;
@@ -97,6 +99,9 @@ export async function listExpertFiles(
         if (query.status === "unsubmitted" && app.applicationStatus === "SUBMITTED") {
           return false;
         }
+        if (query.source !== "all" && app.invitationSource !== query.source) {
+          return false;
+        }
         return matchesKeyword(
           {
             customerNo: app.customerNo,
@@ -130,6 +135,7 @@ export async function listExpertFiles(
         screeningContactEmail: app.screeningContactEmail,
         screeningWorkEmail: app.screeningWorkEmail,
         invitationEmail: app.invitationEmail,
+        invitationSource: app.invitationSource,
         applicationStatus: app.applicationStatus,
         isSubmitted: app.applicationStatus === "SUBMITTED",
         resumeUploadedAt: app.resumeUploadedAt?.toISOString() ?? null,
@@ -150,6 +156,9 @@ export async function listExpertFiles(
       : {}),
     ...(query.status === "unsubmitted"
       ? { applicationStatus: { not: "SUBMITTED" as const } }
+      : {}),
+    ...(query.source !== "all"
+      ? { invitation: { source: query.source } }
       : {}),
     ...(query.q
       ? {
@@ -190,7 +199,7 @@ export async function listExpertFiles(
     prisma.application.count({ where }),
     prisma.application.findMany({
       where,
-      include: { invitation: { select: { email: true } } },
+      include: { invitation: { select: { email: true, source: true } } },
       orderBy: { resumeUploadedAt: "desc" },
       skip: (query.page - 1) * query.pageSize,
       take: query.pageSize,
@@ -209,6 +218,7 @@ export async function listExpertFiles(
       screeningContactEmail: row.screeningContactEmail,
       screeningWorkEmail: row.screeningWorkEmail,
       invitationEmail: row.invitation.email,
+      invitationSource: row.invitation.source,
       applicationStatus: row.applicationStatus,
       isSubmitted: row.applicationStatus === "SUBMITTED",
       resumeUploadedAt: row.resumeUploadedAt?.toISOString() ?? null,
@@ -217,59 +227,53 @@ export async function listExpertFiles(
   };
 }
 
+type MemoryStoreShape = {
+  applications: Array<{
+    id: string;
+    expertId: string;
+    customerNo?: string | null;
+    applicationStatus: string;
+    screeningPassportFullName: string | null;
+    screeningContactEmail: string | null;
+    screeningWorkEmail: string | null;
+    resumeUploadedAt: Date | null;
+    submittedAt: Date | null;
+    invitationId: string;
+  }>;
+  invitations: Array<{
+    id: string;
+    email: string | null;
+    source: InvitationSource;
+  }>;
+};
+
+function readMemoryStore() {
+  return (globalThis as unknown as { __autohireStore?: MemoryStoreShape })
+    .__autohireStore;
+}
+
 async function listMemoryApplications(storeModule: typeof import("@/lib/data/store")) {
   // Access via known sample IDs + any created at runtime by scanning through getApplicationById is insufficient.
   // Use prisma-less: read global store through a helper we add — fall back to empty if unavailable.
-  const maybeStore = (
-    globalThis as unknown as {
-      __autohireStore?: {
-        applications: Array<{
-          id: string;
-          expertId: string;
-          customerNo?: string | null;
-          applicationStatus: string;
-          screeningPassportFullName: string | null;
-          screeningContactEmail: string | null;
-          screeningWorkEmail: string | null;
-          resumeUploadedAt: Date | null;
-          submittedAt: Date | null;
-          invitationId: string;
-        }>;
-        invitations: Array<{ id: string; email: string | null }>;
-      };
-    }
-  ).__autohireStore;
-
-  if (!maybeStore) {
+  if (!readMemoryStore()) {
     // Force init by touching a known sample
     await storeModule.getApplicationById("app_intro");
   }
 
-  const store = (
-    globalThis as unknown as {
-      __autohireStore: {
-        applications: Array<{
-          id: string;
-          expertId: string;
-          customerNo?: string | null;
-          applicationStatus: string;
-          screeningPassportFullName: string | null;
-          screeningContactEmail: string | null;
-          screeningWorkEmail: string | null;
-          resumeUploadedAt: Date | null;
-          submittedAt: Date | null;
-          invitationId: string;
-        }>;
-        invitations: Array<{ id: string; email: string | null }>;
-      };
-    }
-  ).__autohireStore;
+  const store = readMemoryStore();
+
+  if (!store) {
+    return [];
+  }
 
   return store.applications.map((app) => ({
     ...app,
     invitationEmail:
       store.invitations.find((item) => item.id === app.invitationId)?.email ??
       null,
+    invitationSource:
+      store.invitations.find((item) => item.id === app.invitationId)?.source ??
+      ("OPS" as const),
   }));
 }
 
@@ -296,6 +300,7 @@ export async function resolveExportableApplicationIds(input: {
     const listed = await listExpertFiles({
       q: input.filter?.q ?? "",
       status: input.filter?.status ?? "all",
+      source: "all",
       startDate: input.filter?.startDate,
       endDate: input.filter?.endDate,
       page: 1,
@@ -309,6 +314,7 @@ export async function resolveExportableApplicationIds(input: {
         const next = await listExpertFiles({
           q: input.filter?.q ?? "",
           status: input.filter?.status ?? "all",
+          source: "all",
           startDate: input.filter?.startDate,
           endDate: input.filter?.endDate,
           page,

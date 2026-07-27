@@ -18,6 +18,11 @@ enum InviteHashAlgorithm {
   SHA512
 }
 
+enum InvitationSource {
+  OPS
+  ACCOUNT
+}
+
 enum ApplicationStatus {
   INIT
   INTRO_VIEWED
@@ -211,6 +216,7 @@ model ExpertInvitation {
   tokenHash     String              @unique
   hashAlgorithm InviteHashAlgorithm @default(SHA256)
   tokenStatus   TokenStatus         @default(ACTIVE)
+  source        InvitationSource    @default(OPS)
   expiredAt     DateTime?
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
@@ -221,6 +227,7 @@ model ExpertInvitation {
 
   @@index([expertId])
   @@index([hashAlgorithm])
+  @@index([source])
 }
 
 model InvitationGenerationBatch {

@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { NextRequest } from "next/server";
 
 import { GET as expertSessionGet } from "@/app/api/expert-session/route";
@@ -6,7 +6,16 @@ import {
   getSessionCookieName,
   verifySessionToken,
 } from "@/lib/auth/session";
+import { hashInviteToken } from "@/lib/auth/token";
 import { getApplicationById, listInviteAccessLogs } from "@/lib/data/store";
+
+const getAccountSessionFromHeadersMock = vi.fn();
+
+vi.mock("@/lib/account-auth/request-session", () => ({
+  getAccountSessionFromHeaders: (
+    ...args: Parameters<typeof getAccountSessionFromHeadersMock>
+  ) => getAccountSessionFromHeadersMock(...args),
+}));
 
 function resetMemoryStore() {
   (
@@ -16,9 +25,38 @@ function resetMemoryStore() {
   ).__autohireStore = undefined;
 }
 
+type MemoryInvitation = {
+  id: string;
+  expertId: string;
+  email: string | null;
+  tokenHash: string;
+  hashAlgorithm: "SHA256";
+  tokenStatus: "ACTIVE" | "EXPIRED" | "DISABLED";
+  source: "OPS" | "ACCOUNT";
+  expiredAt: Date | null;
+  createdAt: Date;
+  updatedAt: Date;
+};
+
+async function memoryStore() {
+  // Force the sample store to initialize, then hand back the live reference.
+  await getApplicationById("app_intro");
+
+  return (
+    globalThis as typeof globalThis & {
+      __autohireStore: {
+        invitations: MemoryInvitation[];
+        applications: Array<{ id: string; invitationId: string }>;
+      };
+    }
+  ).__autohireStore;
+}
+
 describe("GET /api/expert-session", () => {
   beforeEach(() => {
     resetMemoryStore();
+    getAccountSessionFromHeadersMock.mockReset();
+    getAccountSessionFromHeadersMock.mockResolvedValue(null);
   });
 
   it("logs invalid invite access attempts", async () => {
@@ -303,5 +341,165 @@ describe("GET /api/expert-session", () => {
     const setCookie = restoredResponse.headers.get("set-cookie") ?? "";
     expect(setCookie).toContain(`${getSessionCookieName()}=`);
     expect(setCookie.toLowerCase()).toMatch(/max-age=0/);
+  });
+
+  it("rejects tokens that resolve to a shadow (account-track) invitation", async () => {
+    const store = await memoryStore();
+    const now = new Date();
+    store.invitations.push({
+      id: "invitation_shadow_test",
+      expertId: "account_user_shadow",
+      email: "shadow@example.com",
+      tokenHash: hashInviteToken("shadow-plaintext-token"),
+      hashAlgorithm: "SHA256",
+      tokenStatus: "ACTIVE",
+      source: "ACCOUNT",
+      expiredAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const response = await expertSessionGet(
+      new NextRequest(
+        "http://localhost/api/expert-session?token=shadow-plaintext-token",
+      ),
+    );
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "INVALID_TOKEN",
+    });
+
+    const redirectResponse = await expertSessionGet(
+      new NextRequest(
+        "http://localhost/api/expert-session?token=shadow-plaintext-token&redirectTo=%2Fapply%3Finvite%3D1",
+      ),
+    );
+
+    expect(redirectResponse.status).toBe(307);
+    expect(redirectResponse.headers.get("location")).toBe(
+      "http://localhost:3000/apply?accessError=INVALID_TOKEN",
+    );
+
+    const storeAfter = await memoryStore();
+    expect(
+      storeAfter.applications.some(
+        (item) => item.invitationId === "invitation_shadow_test",
+      ),
+    ).toBe(false);
+  });
+
+  it("bootstraps an account session into the shared application session", async () => {
+    getAccountSessionFromHeadersMock.mockResolvedValue({
+      userId: "user_bootstrap",
+      email: "bootstrap@example.com",
+    });
+
+    const response = await expertSessionGet(
+      new NextRequest(
+        "http://localhost/api/expert-session?account=1&redirectTo=%2Fapply%3Finvite%3D1",
+      ),
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/apply?invite=1",
+    );
+
+    const setCookie = response.headers.get("set-cookie") ?? "";
+    expect(setCookie).toContain(`${getSessionCookieName()}=`);
+    expect(setCookie.toLowerCase()).not.toMatch(/max-age=0/);
+
+    const cookieValue =
+      setCookie.match(new RegExp(`${getSessionCookieName()}=([^;]+)`))?.[1] ??
+      "";
+    const session = verifySessionToken(cookieValue);
+    expect(session).not.toBeNull();
+
+    const store = await memoryStore();
+    const shadowInvitation = store.invitations.find(
+      (item) => item.source === "ACCOUNT",
+    );
+    expect(shadowInvitation).toMatchObject({
+      expertId: "account_user_bootstrap",
+      email: "bootstrap@example.com",
+      tokenStatus: "ACTIVE",
+      expiredAt: null,
+    });
+    expect(session?.invitationId).toBe(shadowInvitation?.id);
+
+    const application = store.applications.find(
+      (item) => item.invitationId === shadowInvitation?.id,
+    );
+    expect(application?.id).toBe(session?.applicationId);
+
+    // The issued cookie converges onto the standard session-restore path.
+    getAccountSessionFromHeadersMock.mockResolvedValue(null);
+    const restoredResponse = await expertSessionGet(
+      new NextRequest("http://localhost/api/expert-session", {
+        headers: { cookie: `${getSessionCookieName()}=${cookieValue}` },
+      }),
+    );
+    expect(restoredResponse.status).toBe(200);
+    await expect(restoredResponse.json()).resolves.toMatchObject({
+      applicationId: application?.id,
+    });
+  });
+
+  it("redirects account bootstrap to login when no account session exists", async () => {
+    const response = await expertSessionGet(
+      new NextRequest(
+        "http://localhost/api/expert-session?account=1&redirectTo=%2Fapply%3Finvite%3D1",
+      ),
+    );
+
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost:3000/login",
+    );
+  });
+
+  it("restores the account-track application when the cookie is missing", async () => {
+    getAccountSessionFromHeadersMock.mockResolvedValue({
+      userId: "user_restore",
+      email: "restore@example.com",
+    });
+
+    const response = await expertSessionGet(
+      new NextRequest("http://localhost/api/expert-session"),
+    );
+
+    expect(response.status).toBe(200);
+    const snapshot = await response.json();
+    expect(snapshot.applicationId).toBeTruthy();
+
+    const setCookie = response.headers.get("set-cookie") ?? "";
+    expect(setCookie).toContain(`${getSessionCookieName()}=`);
+
+    const store = await memoryStore();
+    const shadowInvitation = store.invitations.find(
+      (item) => item.source === "ACCOUNT" && item.email === "restore@example.com",
+    );
+    expect(shadowInvitation).toBeDefined();
+
+    // A second restore reuses the same shadow application (idempotent).
+    const secondResponse = await expertSessionGet(
+      new NextRequest("http://localhost/api/expert-session"),
+    );
+    expect(secondResponse.status).toBe(200);
+    await expect(secondResponse.json()).resolves.toMatchObject({
+      applicationId: snapshot.applicationId,
+    });
+  });
+
+  it("keeps rejecting cookie-less restores when no account session exists", async () => {
+    const response = await expertSessionGet(
+      new NextRequest("http://localhost/api/expert-session"),
+    );
+
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "SESSION_REQUIRED",
+    });
   });
 });

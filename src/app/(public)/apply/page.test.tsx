@@ -10,11 +10,14 @@ import ApplyEntryPage from "@/app/(public)/apply/page";
 import type { ApplicationSnapshot } from "@/features/application/types";
 
 const cookiesMock = vi.fn();
+const headersMock = vi.fn();
 const redirectMock = vi.fn();
 const resolveApplyEntryAccessFromSessionCookieMock = vi.fn();
+const getAccountSessionFromHeadersMock = vi.fn();
 
 vi.mock("next/headers", () => ({
   cookies: (...args: Parameters<typeof cookiesMock>) => cookiesMock(...args),
+  headers: (...args: Parameters<typeof headersMock>) => headersMock(...args),
 }));
 
 vi.mock("next/navigation", () => ({
@@ -80,6 +83,12 @@ vi.mock("@/lib/auth/session", () => ({
   getSessionCookieName: () => "autohire_session",
 }));
 
+vi.mock("@/lib/account-auth/request-session", () => ({
+  getAccountSessionFromHeaders: (
+    ...args: Parameters<typeof getAccountSessionFromHeadersMock>
+  ) => getAccountSessionFromHeadersMock(...args),
+}));
+
 const snapshot: ApplicationSnapshot = {
   applicationId: "app_001",
   expertId: "expert_001",
@@ -120,6 +129,8 @@ describe("ApplyEntryPage", () => {
     cookiesMock.mockResolvedValue({
       get: vi.fn().mockReturnValue({ value: "session_cookie_value" }),
     });
+    headersMock.mockResolvedValue(new Headers());
+    getAccountSessionFromHeadersMock.mockResolvedValue(null);
     resolveApplyEntryAccessFromSessionCookieMock.mockResolvedValue({
       kind: "granted",
       snapshot,
@@ -148,7 +159,7 @@ describe("ApplyEntryPage", () => {
     );
   });
 
-  it("renders a controlled access error instead of the full intro when no session exists", async () => {
+  it("keeps the link-track guidance banner and offers a login entry when no session exists", async () => {
     resolveApplyEntryAccessFromSessionCookieMock.mockResolvedValue({
       kind: "rejected",
       code: "SESSION_REQUIRED",
@@ -166,6 +177,35 @@ describe("ApplyEntryPage", () => {
     expect(
       screen.queryByText("apply-entry-client"),
     ).not.toBeInTheDocument();
+    const loginCta = screen.getByText("登录账号，继续你的申报");
+    expect(loginCta.closest("a")).toHaveAttribute("href", "/login");
+    expect(redirectMock).not.toHaveBeenCalled();
+  });
+
+  it("routes signed-in account users through the account bootstrap", async () => {
+    resolveApplyEntryAccessFromSessionCookieMock.mockResolvedValue({
+      kind: "rejected",
+      code: "SESSION_REQUIRED",
+      message: "No valid session was found. Please reopen the invitation link.",
+      status: 401,
+    });
+    getAccountSessionFromHeadersMock.mockResolvedValue({
+      userId: "user_1",
+      email: "account@example.com",
+    });
+    redirectMock.mockImplementation(() => {
+      throw new Error("redirect");
+    });
+
+    await expect(
+      ApplyEntryPage({
+        searchParams: Promise.resolve({}),
+      }),
+    ).rejects.toThrow("redirect");
+
+    expect(redirectMock).toHaveBeenCalledWith(
+      "/api/expert-session?account=1&redirectTo=%2Fapply%3Finvite%3D1",
+    );
   });
 
   it("renders the client entry after server-side access validation succeeds", async () => {

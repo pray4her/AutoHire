@@ -6,8 +6,9 @@
  *
  * Gated: only runs when AUTH_DB_TEST_URL is set, e.g.
  *   AUTH_DB_TEST_URL="postgresql://..." bunx vitest run src/lib/account-auth/auth.integration.test.ts
- * The target database must have migration 0028_better_auth_account_track
- * applied. The test wipes the four Better Auth tables before and after.
+ * The target database must have migrations 0028_better_auth_account_track and
+ * 0029_invitation_source applied. The test wipes the four Better Auth tables
+ * and the shadow invitation/application rows it creates, before and after.
  */
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 
@@ -62,6 +63,10 @@ function latestOtp() {
 }
 
 async function wipeAccountAuthTables() {
+  await prisma.application.deleteMany({
+    where: { invitation: { email: TEST_EMAIL } },
+  });
+  await prisma.expertInvitation.deleteMany({ where: { email: TEST_EMAIL } });
   await prisma.session.deleteMany();
   await prisma.account.deleteMany();
   await prisma.verification.deleteMany();
@@ -112,6 +117,23 @@ describe.skipIf(!RUN)("account-auth integration (real Postgres)", () => {
     expect(calls).toHaveLength(1);
     expect(calls[0]?.to).toBe(TEST_EMAIL);
     const registrationOtp = latestOtp();
+
+    // 1c. Registration bootstraps the account-track application context: a
+    //     shadow invitation bound to the registered email (source ACCOUNT,
+    //     token never exposed) plus the INIT application attached to it.
+    const shadowInvitation = await prisma.expertInvitation.findFirst({
+      where: { email: TEST_EMAIL, source: "ACCOUNT" },
+    });
+    expect(shadowInvitation).not.toBeNull();
+    expect(shadowInvitation!.tokenStatus).toBe("ACTIVE");
+    expect(shadowInvitation!.expiredAt).toBeNull();
+    const shadowApplication = await prisma.application.findUnique({
+      where: { invitationId: shadowInvitation!.id },
+    });
+    expect(shadowApplication).toMatchObject({
+      expertId: `account_${user!.id}`,
+      applicationStatus: "INIT",
+    });
 
     // 1b. Sign-in before verification is rejected (the login form relies on
     //     this 403 to offer resending the code).

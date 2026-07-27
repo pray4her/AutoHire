@@ -59,6 +59,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { OPS_EXPORT_DEFAULT_LOOKBACK_DAYS } from "@/lib/ops-expert-files/constants";
+import type { InvitationSource } from "@/lib/data/store";
 
 type ListItem = {
   applicationId: string;
@@ -67,6 +68,7 @@ type ListItem = {
   screeningContactEmail: string | null;
   screeningWorkEmail: string | null;
   invitationEmail: string | null;
+  invitationSource: InvitationSource;
   applicationStatus: string;
   isSubmitted: boolean;
   resumeUploadedAt: string | null;
@@ -164,6 +166,7 @@ export function ExpertFilesPanel() {
   const [status, setStatus] = useState<"all" | "submitted" | "unsubmitted">(
     "all",
   );
+  const [source, setSource] = useState<"all" | "OPS" | "ACCOUNT">("all");
   const [startDate, setStartDate] = useState(defaultStartDate);
   const [endDate, setEndDate] = useState(() =>
     new Date().toISOString().slice(0, 10),
@@ -203,6 +206,7 @@ export function ExpertFilesPanel() {
       const params = new URLSearchParams({
         q,
         status,
+        source,
         startDate,
         endDate,
         page: String(page),
@@ -222,7 +226,7 @@ export function ExpertFilesPanel() {
     } finally {
       setLoading(false);
     }
-  }, [q, status, startDate, endDate, page]);
+  }, [q, status, source, startDate, endDate, page]);
 
   const loadJobs = useCallback(async () => {
     try {
@@ -525,7 +529,7 @@ export function ExpertFilesPanel() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <FieldGroup className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <FieldGroup className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
             <Field>
               <FieldLabel htmlFor="expert-q">姓名 / 邮箱 / 客户编号</FieldLabel>
               <Input
@@ -557,6 +561,28 @@ export function ExpertFilesPanel() {
                     <SelectItem value="all">全部</SelectItem>
                     <SelectItem value="submitted">已提交</SelectItem>
                     <SelectItem value="unsubmitted">未提交</SelectItem>
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+            </Field>
+            <Field>
+              <FieldLabel>来源</FieldLabel>
+              <Select
+                value={source}
+                onValueChange={(value) => {
+                  if (value === "all" || value === "OPS" || value === "ACCOUNT") {
+                    setSource(value);
+                  }
+                }}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    <SelectItem value="all">全部来源</SelectItem>
+                    <SelectItem value="OPS">邀请链接</SelectItem>
+                    <SelectItem value="ACCOUNT">账号注册</SelectItem>
                   </SelectGroup>
                 </SelectContent>
               </Select>
@@ -628,6 +654,7 @@ export function ExpertFilesPanel() {
                 <TableHead>客户编号</TableHead>
                 <TableHead>姓名</TableHead>
                 <TableHead>邮箱</TableHead>
+                <TableHead>来源</TableHead>
                 <TableHead>状态</TableHead>
                 <TableHead>填写时间</TableHead>
                 <TableHead>提交时间</TableHead>
@@ -656,6 +683,19 @@ export function ExpertFilesPanel() {
                       "—"}
                   </TableCell>
                   <TableCell>
+                    <Badge
+                      variant={
+                        item.invitationSource === "ACCOUNT"
+                          ? "default"
+                          : "outline"
+                      }
+                    >
+                      {item.invitationSource === "ACCOUNT"
+                        ? "账号注册"
+                        : "邀请链接"}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
                     <Badge variant={item.isSubmitted ? "default" : "secondary"}>
                       {item.isSubmitted ? "已提交" : "进行中"}
                     </Badge>
@@ -676,7 +716,7 @@ export function ExpertFilesPanel() {
               ))}
               {items.length === 0 && !loading ? (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-muted-foreground">
+                  <TableCell colSpan={9} className="text-muted-foreground">
                     该范围内暂无申请记录。
                   </TableCell>
                 </TableRow>
