@@ -17,6 +17,7 @@ type SignupFormProps = {
   initialEmail?: string;
   initialStep?: "credentials" | "verify";
   referralPlaintextToken?: string;
+  nextPath?: string;
 };
 
 function defaultNameFromEmail(email: string) {
@@ -27,6 +28,7 @@ export function SignupForm({
   initialEmail = "",
   initialStep = "credentials",
   referralPlaintextToken,
+  nextPath,
 }: SignupFormProps) {
   const router = useRouter();
   const [step, setStep] = useState<"credentials" | "verify">(initialStep);
@@ -75,7 +77,7 @@ export function SignupForm({
         throw new Error(otpErrorMessage(error, "验证失败。"));
       }
       toast.success("邮箱验证成功，已为你登录。");
-      router.replace("/account");
+      router.replace((nextPath ?? "/account") as "/apply/resume" | "/account");
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "验证失败。");
@@ -177,7 +179,10 @@ export function SignupForm({
         </Button>
         <p className="text-muted-foreground text-center text-sm">
           已有账号？{" "}
-          <Link href="/login" className="text-primary underline">
+          <Link
+            href={nextPath ? `/login?next=${encodeURIComponent(nextPath)}` : "/login"}
+            className="text-primary underline"
+          >
             直接登录
           </Link>
         </p>

@@ -4,6 +4,7 @@ import type { Route } from "next";
 export const OPS_LOGIN_REDIRECT_TARGETS = [
   "/ops/expert-files",
   "/ops/invitations",
+  "/ops/referrals",
 ] as const satisfies ReadonlyArray<Route>;
 
 export type OpsLoginRedirectTarget =

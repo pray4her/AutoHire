@@ -1,10 +1,6 @@
 import { randomUUID } from "node:crypto";
 
 import { getRuntimeMode } from "@/lib/env";
-import {
-  referralDisplayFieldSelectionSchema,
-  type ReferralDisplayField,
-} from "@/lib/referral-tokens/schemas";
 import type { ReferralTokenRecord } from "@/lib/referral-tokens/types";
 
 export type ReferralClickAccessResult =
@@ -38,13 +34,6 @@ function clickLogMemoryStore(): ReferralClickLogMemoryStore {
   return globalThis.__autohireReferralClickLogStore;
 }
 
-export function parsePublicReferralDisplayFields(
-  value: unknown,
-): readonly ReferralDisplayField[] | null {
-  const parsed = referralDisplayFieldSelectionSchema.safeParse(value);
-  return parsed.success ? parsed.data : null;
-}
-
 export async function findReferralTokenByHash(
   tokenHash: string,
 ): Promise<ReferralTokenRecord | null> {
@@ -64,15 +53,7 @@ export async function findReferralTokenByHash(
     return null;
   }
 
-  const displayFields = parsePublicReferralDisplayFields(record.displayFields);
-  if (!displayFields) {
-    return null;
-  }
-
-  return {
-    ...record,
-    displayFields,
-  };
+  return record;
 }
 
 export async function recordReferralClick(input: {

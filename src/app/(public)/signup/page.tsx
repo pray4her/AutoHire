@@ -15,18 +15,19 @@ type SignupPageProps = {
     step?: string;
     email?: string;
     referral?: string;
+    next?: string;
   }>;
 };
 
 export default async function SignupPage({ searchParams }: SignupPageProps) {
   await connection();
 
+  const params = await searchParams;
   const session = await getAccountSession();
   if (session) {
-    redirect("/account");
+    redirect(params.next === "/apply/resume" ? params.next : "/account");
   }
 
-  const params = await searchParams;
   const initialEmail = typeof params.email === "string" ? params.email : "";
   const initialStep = params.step === "verify" ? "verify" : "credentials";
   const referralPlaintextToken = isReferralPlaintextToken(params.referral)
@@ -44,6 +45,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
         initialEmail={initialEmail}
         initialStep={initialStep}
         referralPlaintextToken={referralPlaintextToken}
+        nextPath={params.next === "/apply/resume" ? params.next : undefined}
       />
     </AuthPageShell>
   );

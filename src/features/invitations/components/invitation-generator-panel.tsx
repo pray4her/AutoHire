@@ -349,6 +349,20 @@ export function InvitationGeneratorPanel() {
             </CardDescription>
             <CardAction>
               <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push("/ops/referrals")}
+                >
+                  推荐链接
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => router.push("/ops/invitations")}
+                >
+                  邀请生成
+                </Button>
                 <Badge variant="secondary">已登录</Badge>
                 <Button
                   variant="outline"

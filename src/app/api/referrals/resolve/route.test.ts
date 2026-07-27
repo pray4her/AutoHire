@@ -1,232 +1,93 @@
+import { describe, expect, it } from "vitest";
 import { NextRequest } from "next/server";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { z } from "zod";
 
-import { GET } from "@/app/api/referrals/resolve/route";
-import { getApplicationById } from "@/lib/data/store";
-import { resetEnvForTests } from "@/lib/env";
+import { GET as resolveReferral } from "@/app/api/referrals/resolve/route";
+import { GET as captureContext } from "@/app/api/referrals/context/route";
 import { createReferralTokenRecord } from "@/lib/referral-tokens/repository";
-import { disableActiveReferralToken } from "@/lib/referral-tokens/repository";
-import { hashReferralToken } from "@/lib/referral-tokens/token";
+import { issueReferralTokenMaterial } from "@/lib/referral-tokens/token";
+import { REFERRAL_CONTEXT_COOKIE_NAME } from "@/lib/referral-tokens/context-cookie";
+import { setupReferralTokenRouteTests } from "@/app/api/ops/referral-tokens/referral-token-route-fixture";
 
-const REFERRAL_TOKEN = "a".repeat(64);
-const originalEnv = { ...process.env };
+setupReferralTokenRouteTests();
 
-const clickLogStoreSchema = z.object({
-  logs: z.array(
-    z.object({
-      tokenHash: z.string(),
-      accessResult: z.string(),
-      ipRaw: z.string().nullable(),
-      userAgent: z.string().nullable(),
-      createdAt: z.date(),
-    }),
-  ),
-});
-
-async function seedReferralToken(input: {
-  readonly applicationId: string;
-  readonly displayFields: readonly (
-    | "NAME"
-    | "TITLE"
-    | "ORGANIZATION"
-    | "EMAIL"
-    | "PHONE"
-  )[];
-  readonly expiredAt?: Date;
-}): Promise<void> {
-  const application = await getApplicationById(input.applicationId);
-  if (!application) {
-    throw new Error(
-      `Missing referral test application: ${input.applicationId}`,
-    );
-  }
-
-  await createReferralTokenRecord({
-    applicationId: application.id,
-    expertId: application.expertId,
-    tokenHash: hashReferralToken(REFERRAL_TOKEN),
-    displayFields: input.displayFields,
-    expiredAt: input.expiredAt ?? new Date("2099-01-01T00:00:00.000Z"),
+async function seedToken(input?: {
+  status?: "ACTIVE" | "DISABLED";
+  expiredAt?: Date;
+}) {
+  const issued = issueReferralTokenMaterial();
+  const record = await createReferralTokenRecord({
+    referrerEmail: "referrer@example.com",
+    referrerDisplayName: "王五",
+    tokenHash: issued.tokenHash,
+    plaintextToken: issued.plaintextToken,
+    expiredAt: input?.expiredAt ?? issued.expiredAt,
     createdBy: "ops-test",
-    createdAt: new Date("2026-07-27T00:00:00.000Z"),
+    createdAt: issued.createdAt,
   });
+  if (!record) throw new Error("seed failed");
+  if (input?.status === "DISABLED") {
+    const { disableReferralTokenById } = await import(
+      "@/lib/referral-tokens/repository"
+    );
+    await disableReferralTokenById(record.id);
+  }
+  return { record, plaintextToken: issued.plaintextToken };
 }
 
-describe("public referral resolver route", () => {
-  beforeEach(() => {
-    process.env = {
-      ...originalEnv,
-      APP_RUNTIME_MODE: "memory",
-      APP_BASE_URL: "https://example.test",
-      INVITE_TOKEN_SECRET: "public-referral-route-secret",
-    };
-    resetEnvForTests();
-    globalThis.__autohireStore = undefined;
-    globalThis.__autohireReferralTokenStore = undefined;
-    Reflect.deleteProperty(globalThis, "__autohireReferralClickLogStore");
-  });
-
-  afterEach(() => {
-    process.env = { ...originalEnv };
-    resetEnvForTests();
-    globalThis.__autohireStore = undefined;
-    globalThis.__autohireReferralTokenStore = undefined;
-    Reflect.deleteProperty(globalThis, "__autohireReferralClickLogStore");
-  });
-
-  it("returns only fields selected by ops when the token is valid", async () => {
-    // Given
-    await seedReferralToken({
-      applicationId: "app_progress",
-      displayFields: ["NAME"],
-    });
-
-    // When
-    const response = await GET(
+describe("GET /api/referrals/resolve", () => {
+  it("returns VALID without referrer PII and records a click", async () => {
+    const { plaintextToken } = await seedToken();
+    const response = await resolveReferral(
       new NextRequest(
-        `http://localhost/api/referrals/resolve?t=${REFERRAL_TOKEN}`,
+        `http://localhost/api/referrals/resolve?t=${plaintextToken}`,
+        { headers: { "x-forwarded-for": "203.0.113.10" } },
       ),
     );
-
-    // Then
     expect(response.status).toBe(200);
-    await expect(response.json()).resolves.toEqual({
-      status: "VALID",
-      expert: { name: "Progress Expert" },
-    });
+    const payload = await response.json();
+    expect(payload).toEqual({ status: "VALID" });
+    expect(payload).not.toHaveProperty("expert");
+    expect(payload).not.toHaveProperty("referrerEmail");
+
+    const logs =
+      (
+        globalThis as typeof globalThis & {
+          __autohireReferralClickLogStore?: {
+            logs: Array<{ accessResult: string }>;
+          };
+        }
+      ).__autohireReferralClickLogStore?.logs ?? [];
+    expect(logs.at(-1)?.accessResult).toBe("VALID");
   });
 
-  it("returns selected fields from the expert resume extraction", async () => {
-    // Given
-    await seedReferralToken({
-      applicationId: "app_extraction_review",
-      displayFields: ["NAME", "TITLE", "EMAIL", "PHONE"],
-    });
-
-    // When
-    const response = await GET(
+  it("returns UNAVAILABLE for disabled tokens", async () => {
+    const { plaintextToken } = await seedToken({ status: "DISABLED" });
+    const response = await resolveReferral(
       new NextRequest(
-        `http://localhost/api/referrals/resolve?t=${REFERRAL_TOKEN}`,
+        `http://localhost/api/referrals/resolve?t=${plaintextToken}`,
       ),
     );
-
-    // Then
-    await expect(response.json()).resolves.toEqual({
-      status: "VALID",
-      expert: {
-        name: "Extraction Review Expert",
-        title: "Associate Professor",
-        email: "extraction.review@example.com",
-        phone: "+1 555 010 5000",
-      },
+    expect(response.status).toBe(410);
+    await expect(response.json()).resolves.toMatchObject({
+      status: "UNAVAILABLE",
     });
   });
+});
 
-  it("falls back to a dignified expert label when profile data is missing", async () => {
-    // Given
-    await seedReferralToken({
-      applicationId: "app_intro",
-      displayFields: ["NAME", "TITLE", "ORGANIZATION", "EMAIL", "PHONE"],
-    });
-
-    // When
-    const response = await GET(
+describe("GET /api/referrals/context", () => {
+  it("sets referral cookie and redirects to signup with resume next", async () => {
+    const { plaintextToken } = await seedToken();
+    const response = await captureContext(
       new NextRequest(
-        `http://localhost/api/referrals/resolve?t=${REFERRAL_TOKEN}`,
+        `http://localhost/api/referrals/context?t=${plaintextToken}`,
       ),
     );
-
-    // Then
-    await expect(response.json()).resolves.toEqual({
-      status: "VALID",
-      expert: { name: "一位 GESF 专家" },
-    });
-  });
-
-  it("records a valid click with the token hash and request context", async () => {
-    // Given
-    await seedReferralToken({
-      applicationId: "app_progress",
-      displayFields: ["NAME"],
-    });
-
-    // When
-    const beforeRequest = new Date();
-    await GET(
-      new NextRequest(
-        `http://localhost/api/referrals/resolve?t=${REFERRAL_TOKEN}`,
-        {
-          headers: {
-            "x-forwarded-for": "203.0.113.42, 10.0.0.1",
-            "user-agent": "referral-route-test",
-          },
-        },
-      ),
+    expect(response.status).toBe(307);
+    expect(response.headers.get("location")).toBe(
+      "http://localhost/signup?next=%2Fapply%2Fresume",
     );
-
-    // Then
-    const store = clickLogStoreSchema.parse(
-      Reflect.get(globalThis, "__autohireReferralClickLogStore"),
-    );
-    expect(store.logs).toHaveLength(1);
-    expect(store.logs[0]).toMatchObject({
-      tokenHash: hashReferralToken(REFERRAL_TOKEN),
-      accessResult: "VALID",
-      ipRaw: "203.0.113.42",
-      userAgent: "referral-route-test",
-    });
-    expect(store.logs[0]?.createdAt.getTime()).toBeGreaterThanOrEqual(
-      beforeRequest.getTime(),
+    expect(response.headers.get("set-cookie")).toContain(
+      `${REFERRAL_CONTEXT_COOKIE_NAME}=${plaintextToken}`,
     );
   });
-
-  it.each([
-    { scenario: "missing", expectedResult: "INVALID" },
-    { scenario: "expired", expectedResult: "EXPIRED" },
-    { scenario: "disabled", expectedResult: "DISABLED" },
-  ] as const)(
-    "uses one unavailable response for a $scenario referral token",
-    async ({ scenario, expectedResult }) => {
-      // Given
-      if (scenario !== "missing") {
-        await seedReferralToken({
-          applicationId: "app_progress",
-          displayFields: ["NAME"],
-          expiredAt:
-            scenario === "expired"
-              ? new Date("2020-01-01T00:00:00.000Z")
-              : undefined,
-        });
-      }
-      if (scenario === "disabled") {
-        await disableActiveReferralToken("expert_progress");
-      }
-
-      // When
-      const response = await GET(
-        new NextRequest(
-          `http://localhost/api/referrals/resolve?t=${REFERRAL_TOKEN}`,
-        ),
-      );
-
-      // Then
-      expect(response.status).toBe(410);
-      await expect(response.json()).resolves.toEqual({
-        status: "UNAVAILABLE",
-        code: "REFERRAL_LINK_UNAVAILABLE",
-      });
-      const store = clickLogStoreSchema.parse(
-        Reflect.get(globalThis, "__autohireReferralClickLogStore"),
-      );
-      expect(store.logs).toHaveLength(1);
-      expect(store.logs[0]).toMatchObject({
-        tokenHash: hashReferralToken(REFERRAL_TOKEN),
-        accessResult: expectedResult,
-        ipRaw: null,
-        userAgent: null,
-        createdAt: expect.any(Date),
-      });
-    },
-  );
 });

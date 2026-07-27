@@ -1,25 +1,30 @@
 import { describe, expect, it } from "vitest";
 
-import {
-  type ReferralTokenRecord,
-  toReferralTokenView,
-} from "@/lib/referral-tokens/types";
+import { toReferralProgressStage } from "@/lib/referral-tokens/progress-stage";
+import { toReferralTokenView, type ReferralTokenRecord } from "@/lib/referral-tokens/types";
+
+describe("toReferralProgressStage", () => {
+  it("maps statuses to coarse ops labels", () => {
+    expect(toReferralProgressStage("INIT")).toBe("已注册未上传");
+    expect(toReferralProgressStage("CV_UPLOADED")).toBe("简历中");
+    expect(toReferralProgressStage("SUBMITTED")).toBe("已提交");
+  });
+});
 
 describe("toReferralTokenView", () => {
-  it("reports an active database record as expired after its deadline", () => {
+  it("marks time-expired ACTIVE tokens as EXPIRED", () => {
     const record: ReferralTokenRecord = {
-      id: "referral-token-expired",
-      applicationId: "application-1",
-      expertId: "expert-1",
+      id: "rt-1",
+      referrerEmail: "a@example.com",
+      referrerDisplayName: null,
       tokenHash: "hash",
-      displayFields: ["NAME"],
+      plaintextToken: "a".repeat(64),
       status: "ACTIVE",
-      expiredAt: new Date("2000-01-01T00:00:00.000Z"),
+      expiredAt: new Date(Date.now() - 1000),
       createdBy: "ops",
-      createdAt: new Date("1999-01-01T00:00:00.000Z"),
-      updatedAt: new Date("1999-01-01T00:00:00.000Z"),
+      createdAt: new Date(Date.now() - 10_000),
+      updatedAt: new Date(Date.now() - 10_000),
     };
-
     expect(toReferralTokenView(record).status).toBe("EXPIRED");
   });
 });

@@ -501,6 +501,20 @@ export function ExpertFilesPanel() {
             <Button
               variant="outline"
               size="sm"
+              onClick={() => router.push("/ops/referrals")}
+            >
+              推荐链接
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => router.push("/ops/invitations")}
+            >
+              邀请生成
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
               onClick={() => setPasswordOpen(true)}
             >
               <KeyRound data-icon="inline-start" />

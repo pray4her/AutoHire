@@ -8,31 +8,25 @@ import { getOpsExpertFilesCookieName } from "@/lib/ops-expert-files/session";
 
 const originalEnv = { ...process.env };
 
-type StoredReferralToken = {
+export type StoredReferralToken = {
   readonly id: string;
+  readonly referrerEmail: string;
+  readonly referrerDisplayName: string | null;
   readonly tokenHash: string;
+  readonly plaintextToken: string;
   readonly status: "ACTIVE" | "DISABLED";
   readonly createdBy: string;
 };
 
 function resetMemoryStores(): void {
-  (
-    globalThis as typeof globalThis & {
-      __autohireStore?: unknown;
-      __autohireReferralTokenStore?: unknown;
-      __autohireReferralClickLogStore?: unknown;
-    }
-  ).__autohireStore = undefined;
-  (
-    globalThis as typeof globalThis & {
-      __autohireReferralTokenStore?: unknown;
-    }
-  ).__autohireReferralTokenStore = undefined;
-  (
-    globalThis as typeof globalThis & {
-      __autohireReferralClickLogStore?: unknown;
-    }
-  ).__autohireReferralClickLogStore = undefined;
+  const globals = globalThis as typeof globalThis & {
+    __autohireStore?: unknown;
+    __autohireReferralTokenStore?: unknown;
+    __autohireReferralClickLogStore?: unknown;
+  };
+  globals.__autohireStore = undefined;
+  globals.__autohireReferralTokenStore = undefined;
+  globals.__autohireReferralClickLogStore = undefined;
 }
 
 export function setupReferralTokenRouteTests(): void {
@@ -92,45 +86,4 @@ export async function authCookieHeader(): Promise<string> {
     )?.[1] ?? "";
   expect(cookieValue).toBeTruthy();
   return `${getOpsExpertFilesCookieName()}=${cookieValue}`;
-}
-
-export function createPostRequest(
-  body: unknown,
-  cookie: string,
-  applicationId = "app_intro",
-): NextRequest {
-  return new NextRequest(
-    `http://localhost/api/ops/referral-tokens/${applicationId}`,
-    {
-      method: "POST",
-      headers: {
-        cookie,
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(body),
-    },
-  );
-}
-
-export async function seedSecondApplicationForExpert(
-  applicationId: string,
-): Promise<void> {
-  const { getApplicationById } = await import("@/lib/data/store");
-  await getApplicationById("app_intro");
-  const store = (
-    globalThis as typeof globalThis & {
-      __autohireStore?: {
-        readonly applications: Array<
-          { id: string; expertId: string } & Record<string, unknown>
-        >;
-      };
-    }
-  ).__autohireStore;
-  const original = store?.applications.find(
-    (application) => application.id === "app_intro",
-  );
-  if (!store || !original) {
-    throw new Error("Referral route fixture could not find app_intro.");
-  }
-  store.applications.push({ ...original, id: applicationId });
 }

@@ -1,13 +1,11 @@
-import type { ReferralDisplayField } from "@/lib/referral-tokens/schemas";
-
 export const REFERRAL_TOKEN_DEFAULT_LIFETIME_DAYS = 90;
 
 export type ReferralTokenRecord = {
   readonly id: string;
-  readonly applicationId: string;
-  readonly expertId: string;
+  readonly referrerEmail: string;
+  readonly referrerDisplayName: string | null;
   readonly tokenHash: string;
-  readonly displayFields: readonly ReferralDisplayField[];
+  readonly plaintextToken: string;
   readonly status: "ACTIVE" | "DISABLED";
   readonly expiredAt: Date;
   readonly createdBy: string;
@@ -40,9 +38,9 @@ export function toReferralTokenView(
 ): ReferralTokenView {
   return {
     id: record.id,
-    applicationId: record.applicationId,
-    expertId: record.expertId,
-    displayFields: record.displayFields,
+    referrerEmail: record.referrerEmail,
+    referrerDisplayName: record.referrerDisplayName,
+    plaintextToken: record.plaintextToken,
     status:
       record.status === "ACTIVE" && record.expiredAt.getTime() <= Date.now()
         ? "EXPIRED"

@@ -171,10 +171,10 @@ describe("createAccountAuthOptions", () => {
       );
       const issued = issueReferralTokenMaterial();
       const record = await createReferralTokenRecord({
-        applicationId: "app_intro",
-        expertId: "expert_init",
+        referrerEmail: "referrer@example.com",
+        referrerDisplayName: "推荐人",
         tokenHash: issued.tokenHash,
-        displayFields: ["NAME"],
+        plaintextToken: issued.plaintextToken,
         expiredAt: issued.expiredAt,
         createdBy: "ops",
         createdAt: issued.createdAt,

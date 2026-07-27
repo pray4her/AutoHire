@@ -205,12 +205,8 @@ export async function listExpertFiles(
         invitation: { select: { email: true, source: true } },
         referralAttribution: {
           select: {
-            referrerApplication: {
-              select: {
-                screeningPassportFullName: true,
-                invitation: { select: { email: true } },
-              },
-            },
+            referrerDisplayName: true,
+            referrerEmail: true,
           },
         },
       },
@@ -234,9 +230,8 @@ export async function listExpertFiles(
       invitationEmail: row.invitation.email,
       invitationSource: row.invitation.source,
       referredByExpertName:
-        row.referralAttribution?.referrerApplication
-          .screeningPassportFullName ??
-        row.referralAttribution?.referrerApplication.invitation.email ??
+        row.referralAttribution?.referrerDisplayName ??
+        row.referralAttribution?.referrerEmail ??
         null,
       applicationStatus: row.applicationStatus,
       isSubmitted: row.applicationStatus === "SUBMITTED",
@@ -279,22 +274,7 @@ function resolveMemoryReferrerName(
   if (!token) {
     return null;
   }
-  const store = readMemoryStore();
-  if (!store) {
-    return null;
-  }
-  const referrer = store.applications.find(
-    (app) => app.id === token.applicationId,
-  );
-  if (!referrer) {
-    return null;
-  }
-  return (
-    referrer.screeningPassportFullName ??
-    store.invitations.find((item) => item.id === referrer.invitationId)
-      ?.email ??
-    null
-  );
+  return token.referrerDisplayName ?? token.referrerEmail;
 }
 
 function readMemoryStore() {

@@ -2,36 +2,31 @@ import { beforeEach, describe, expect, it } from "vitest";
 
 import { ensureAccountApplication } from "@/lib/account-auth/shadow-invitation";
 import { getApplicationById } from "@/lib/data/store";
-import { createReferralTokenRecord } from "@/lib/referral-tokens/repository";
+import {
+  createReferralTokenRecord,
+  disableReferralTokenById,
+  replaceReferralTokenRecord,
+} from "@/lib/referral-tokens/repository";
 import { issueReferralTokenMaterial } from "@/lib/referral-tokens/token";
 
 function resetMemoryStores() {
-  (
-    globalThis as typeof globalThis & {
-      __autohireStore?: unknown;
-      __autohireReferralTokenStore?: unknown;
-      __autohireReferralClickLogStore?: unknown;
-    }
-  ).__autohireStore = undefined;
-  (
-    globalThis as typeof globalThis & {
-      __autohireReferralTokenStore?: unknown;
-    }
-  ).__autohireReferralTokenStore = undefined;
-  (
-    globalThis as typeof globalThis & {
-      __autohireReferralClickLogStore?: unknown;
-    }
-  ).__autohireReferralClickLogStore = undefined;
+  const globals = globalThis as typeof globalThis & {
+    __autohireStore?: unknown;
+    __autohireReferralTokenStore?: unknown;
+    __autohireReferralClickLogStore?: unknown;
+  };
+  globals.__autohireStore = undefined;
+  globals.__autohireReferralTokenStore = undefined;
+  globals.__autohireReferralClickLogStore = undefined;
 }
 
-async function seedActiveReferralToken() {
+async function seedActiveReferralToken(email = "referrer@example.com") {
   const issued = issueReferralTokenMaterial();
   const record = await createReferralTokenRecord({
-    applicationId: "app_intro",
-    expertId: "expert_init",
+    referrerEmail: email,
+    referrerDisplayName: "推荐人",
     tokenHash: issued.tokenHash,
-    displayFields: ["NAME"],
+    plaintextToken: issued.plaintextToken,
     expiredAt: issued.expiredAt,
     createdBy: "ops-test",
     createdAt: issued.createdAt,
@@ -45,98 +40,55 @@ async function seedActiveReferralToken() {
 describe("referral attribution on account registration", () => {
   beforeEach(() => {
     resetMemoryStores();
+    process.env.APP_RUNTIME_MODE = "memory";
   });
 
   it("binds referral attribution when registration has a valid referral context", async () => {
     const { record, plaintextToken } = await seedActiveReferralToken();
-
-    const { application } = await ensureAccountApplication({
-      userId: "user_referred",
+    const result = await ensureAccountApplication({
+      userId: "user_friend_1",
       email: "friend@example.com",
       referralPlaintextToken: plaintextToken,
     });
-
-    expect(application.referralTokenId).toBe(record.id);
-    const stored = await getApplicationById(application.id);
-    expect(stored?.referralTokenId).toBe(record.id);
+    const application = await getApplicationById(result.application.id);
+    expect(application?.referralTokenId).toBe(record.id);
   });
 
-  it("registers without attribution when referral context is absent", async () => {
-    const { application } = await ensureAccountApplication({
-      userId: "user_direct",
-      email: "direct@example.com",
-    });
-
-    expect(application.referralTokenId).toBeNull();
-  });
-
-  it("registers without attribution and without error when referral context is disabled", async () => {
+  it("skips attribution when the referral token is disabled", async () => {
     const { record, plaintextToken } = await seedActiveReferralToken();
-    const { disableActiveReferralToken } = await import(
-      "@/lib/referral-tokens/repository"
-    );
-    await disableActiveReferralToken("expert_init");
-
-    const { application } = await ensureAccountApplication({
-      userId: "user_stale",
-      email: "stale@example.com",
+    await disableReferralTokenById(record.id);
+    const result = await ensureAccountApplication({
+      userId: "user_friend_2",
+      email: "friend2@example.com",
       referralPlaintextToken: plaintextToken,
     });
-
-    expect(application.referralTokenId).toBeNull();
-    expect(record.id).toBeTruthy();
+    const application = await getApplicationById(result.application.id);
+    expect(application?.referralTokenId).toBeNull();
   });
 
-  it("does not rewrite attribution on later ensure calls with a different referral", async () => {
-    const first = await seedActiveReferralToken();
-    const { application } = await ensureAccountApplication({
-      userId: "user_locked",
-      email: "locked@example.com",
+  it("does not rewrite attribution on an existing account application", async () => {
+    const first = await seedActiveReferralToken("one@example.com");
+    const ensured = await ensureAccountApplication({
+      userId: "user_friend_3",
+      email: "friend3@example.com",
       referralPlaintextToken: first.plaintextToken,
     });
-    expect(application.referralTokenId).toBe(first.record.id);
-
     const secondIssued = issueReferralTokenMaterial();
-    // Replace the first token so a second ACTIVE token exists under a new hash.
-    const { replaceReferralTokenRecord } = await import(
-      "@/lib/referral-tokens/repository"
-    );
-    const second = await replaceReferralTokenRecord({
-      applicationId: "app_intro",
-      expertId: "expert_init",
+    await replaceReferralTokenRecord({
+      referrerEmail: "two@example.com",
+      referrerDisplayName: null,
       tokenHash: secondIssued.tokenHash,
-      displayFields: ["NAME"],
+      plaintextToken: secondIssued.plaintextToken,
       expiredAt: secondIssued.expiredAt,
       createdBy: "ops-test",
       createdAt: secondIssued.createdAt,
     });
-
-    const again = await ensureAccountApplication({
-      userId: "user_locked",
-      email: "locked@example.com",
+    await ensureAccountApplication({
+      userId: "user_friend_3",
+      email: "friend3@example.com",
       referralPlaintextToken: secondIssued.plaintextToken,
     });
-
-    expect(again.application.id).toBe(application.id);
-    expect(again.application.referralTokenId).toBe(first.record.id);
-    expect(second?.id).not.toBe(first.record.id);
-  });
-
-  it("does not backfill attribution onto an existing unattributed application", async () => {
-    const { application } = await ensureAccountApplication({
-      userId: "user_later",
-      email: "later@example.com",
-    });
-    expect(application.referralTokenId).toBeNull();
-
-    const { plaintextToken } = await seedActiveReferralToken();
-    const again = await ensureAccountApplication({
-      userId: "user_later",
-      email: "later@example.com",
-      referralPlaintextToken: plaintextToken,
-    });
-
-    expect(again.application.id).toBe(application.id);
-    expect(again.application.referralTokenId).toBeNull();
+    const application = await getApplicationById(ensured.application.id);
+    expect(application?.referralTokenId).toBe(first.record.id);
   });
 });

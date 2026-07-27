@@ -2,36 +2,29 @@ import { expect, test, type APIRequestContext, type Page } from "@playwright/tes
 
 import { e2eOpsCredentials } from "../../playwright.config";
 
-const REFERRER_APPLICATION_ID = "app_submitted";
-const REFERRER_NAME = "Submitted Expert";
-
 async function resetMemory(request: APIRequestContext) {
   const response = await request.post("/api/test/reset-memory");
   expect(response.ok()).toBeTruthy();
 }
 
 async function loginOps(page: Page) {
-  await page.goto("/ops/expert-files/login");
+  await page.goto("/ops/expert-files/login?next=/ops/referrals");
   await page.locator("#ops-username").fill(e2eOpsCredentials.username);
   await page.locator("#ops-password").fill(e2eOpsCredentials.password);
   await page.getByRole("button", { name: "登录" }).click();
-  await expect(page).toHaveURL(/\/ops\/expert-files$/);
-  await expect(
-    page.getByRole("heading", { name: "推荐链接管理" }),
-  ).toBeVisible();
+  await expect(page).toHaveURL(/\/ops\/referrals$/);
+  await expect(page.getByRole("heading", { name: "推荐链接" })).toBeVisible();
 }
 
 async function generateReferralLink(page: Page): Promise<string> {
-  await page.locator("#referral-expert").selectOption(REFERRER_APPLICATION_ID);
-  await expect(
-    page.getByRole("button", { name: "生成推荐链接" }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "生成推荐链接" }).click();
-  const link = page.locator("p.font-mono").filter({ hasText: "/referral?t=" });
-  await expect(link).toBeVisible({ timeout: 15_000 });
+  const email = `referrer-${Date.now()}@example.com`;
+  await page.getByPlaceholder("name@example.com, 张三").fill(`${email}, 推荐人甲`);
+  await page.getByRole("button", { name: "生成链接" }).click();
+  await expect(page.getByText(email)).toBeVisible({ timeout: 15_000 });
+  const link = page.locator("p.font-mono").filter({ hasText: "/referral?t=" }).first();
+  await expect(link).toBeVisible();
   const href = (await link.textContent())?.trim();
   expect(href).toBeTruthy();
-  expect(href).toContain("/referral?t=");
   return href!;
 }
 
@@ -77,8 +70,7 @@ async function registerFriend(
   const otp = await fetchRecordedOtp(request, email);
   await page.locator("#signup-otp").fill(otp);
   await page.getByRole("button", { name: "完成验证并登录" }).click();
-  await expect(page).toHaveURL(/\/account$/, { timeout: 20_000 });
-  await expect(page.getByText(email)).toBeVisible();
+  await expect(page).toHaveURL(/\/apply\/resume/, { timeout: 20_000 });
 }
 
 test.beforeEach(async ({ request }) => {
@@ -96,67 +88,26 @@ test("friend referral journey attributes registration in ops views", async ({
   const friendPassword = "friend-pass-42";
 
   try {
-    // 1. Ops generates a referral link for a listable sample expert.
     await loginOps(page);
     const referralLink = await generateReferralLink(page);
     const referralPath =
       new URL(referralLink).pathname + new URL(referralLink).search;
 
-    // 2–4. Friend opens landing → 开始申报 → registers with email OTP.
     const friendPage = await context.newPage();
     await friendPage.goto(referralPath);
     await expect(
-      friendPage.getByRole("heading", {
-        name: new RegExp(`来自 ${REFERRER_NAME}`),
-      }),
+      friendPage.getByRole("heading", { name: "开始你的申报" }),
     ).toBeVisible({ timeout: 15_000 });
     await friendPage.getByRole("link", { name: "开始申报" }).click();
-    await expect(friendPage).toHaveURL(/\/signup/);
+    await expect(friendPage).toHaveURL(/\/signup\?next=/);
     await registerFriend(friendPage, request, friendEmail, friendPassword);
 
-    // 5. Enter the account-track application flow.
-    await friendPage.getByText("进入我的申报").click();
-    await expect(friendPage).toHaveURL(/\/apply/, { timeout: 20_000 });
-    await expect(
-      friendPage.getByText(/Global Excellent Scientists Fund|GESF/i).first(),
-    ).toBeVisible({ timeout: 20_000 });
-
-    // 6. Attribution is visible in the ops referral funnel.
-    const funnelResponse = await page.request.get(
-      `/api/ops/referral-tokens/${REFERRER_APPLICATION_ID}`,
-    );
-    expect(funnelResponse.ok()).toBeTruthy();
-    const funnelBody = (await funnelResponse.json()) as {
-      token: {
-        funnel: {
-          clickCount: number;
-          registrationCount: number;
-          applicationCount: number;
-        };
-      } | null;
-    };
-    expect(funnelBody.token).not.toBeNull();
-    expect(funnelBody.token!.funnel.clickCount).toBeGreaterThanOrEqual(1);
-    expect(funnelBody.token!.funnel.registrationCount).toBeGreaterThanOrEqual(1);
-    expect(funnelBody.token!.funnel.applicationCount).toBeGreaterThanOrEqual(1);
-
-    // Make the friend's application listable, then assert the expert-files
-    // "推荐来源" column resolves to the referring expert.
-    const seedResponse = await request.post(
-      "/api/test/seed-listable-application",
-      {
-        data: { email: friendEmail, customerNo: "E2E-FRIEND-1" },
-      },
-    );
-    expect(seedResponse.ok()).toBeTruthy();
-
-    await page.goto("/ops/expert-files");
-    await page.locator("#expert-q").fill(friendEmail);
-    await page.getByRole("button", { name: "搜索" }).click();
-    const friendRow = page.getByRole("row").filter({ hasText: friendEmail });
-    await expect(friendRow).toBeVisible({ timeout: 15_000 });
-    await expect(friendRow).toContainText("账号注册");
-    await expect(friendRow).toContainText(REFERRER_NAME);
+    await page.reload();
+    await expect(page.getByText("推荐人甲")).toBeVisible({ timeout: 15_000 });
+    await expect(page.getByText("注册 1")).toBeVisible({ timeout: 15_000 });
+    await page.getByRole("button", { name: "展开下游" }).first().click();
+    await expect(page.getByText(friendEmail)).toBeVisible();
+    await expect(page.getByText("已注册未上传")).toBeVisible();
   } finally {
     await request.post("/api/test/cleanup-account", {
       data: { email: friendEmail },

@@ -1,14 +1,14 @@
-import { getApplicationById } from "@/lib/data/store";
 import { getEnv } from "@/lib/env";
 import { getReferralTokenFunnel } from "@/lib/referral-tokens/attribution";
 import {
   createReferralTokenRecord,
-  disableActiveReferralToken,
-  findReferralTokenForExpert,
+  disableReferralTokenById,
+  findActiveReferralTokenByEmail,
+  findReferralTokenById,
+  listReferralTokens,
+  renewReferralTokenById,
   replaceReferralTokenRecord,
-  renewActiveReferralToken,
 } from "@/lib/referral-tokens/repository";
-import type { ReferralDisplayField } from "@/lib/referral-tokens/schemas";
 import { issueReferralTokenMaterial } from "@/lib/referral-tokens/token";
 import {
   REFERRAL_TOKEN_DEFAULT_LIFETIME_DAYS,
@@ -17,128 +17,91 @@ import {
   type ReferralTokenRecord,
 } from "@/lib/referral-tokens/types";
 
-export class ReferralTokenNotFoundError extends Error {
-  constructor() {
-    super("未找到该专家档案。");
-    this.name = "ReferralTokenNotFoundError";
-  }
-}
-
-export class ActiveReferralTokenExistsError extends Error {
-  constructor() {
-    super("该专家已有有效的推荐 token。");
-    this.name = "ActiveReferralTokenExistsError";
-  }
-}
-
 export class ReferralTokenUnavailableError extends Error {
   constructor() {
-    super("该专家没有可操作的推荐 token。");
+    super("该推荐链接不可操作。");
     this.name = "ReferralTokenUnavailableError";
   }
 }
 
-async function toOpsReferralTokenView(
-  record: ReferralTokenRecord,
-): Promise<ReferralTokenOpsView> {
+function referralLink(plaintextToken: string) {
+  return `${new URL(getEnv().APP_BASE_URL).origin}/referral?t=${encodeURIComponent(plaintextToken)}`;
+}
+
+async function toOpsView(record: ReferralTokenRecord): Promise<ReferralTokenOpsView> {
+  return { ...toReferralTokenView(record), funnel: await getReferralTokenFunnel(record.id) };
+}
+
+async function generated(record: ReferralTokenRecord) {
   return {
-    ...toReferralTokenView(record),
-    funnel: await getReferralTokenFunnel(record.id),
+    token: await toOpsView(record),
+    plaintextToken: record.plaintextToken,
+    referralLink: referralLink(record.plaintextToken),
   };
 }
 
-export async function getReferralToken(applicationId: string) {
-  const application = await getApplicationById(applicationId);
-  if (!application) {
-    return null;
-  }
-  const token = await findReferralTokenForExpert(application.expertId);
-  if (!token) {
-    return null;
-  }
-  return toOpsReferralTokenView(token);
-}
-
-async function requireReferralApplication(applicationId: string) {
-  const application = await getApplicationById(applicationId);
-  if (!application) {
-    throw new ReferralTokenNotFoundError();
-  }
-  return application;
-}
-
-async function presentGeneratedReferralToken(
-  record: ReferralTokenRecord,
-  plaintextToken: string,
-) {
-  return {
-    token: await toOpsReferralTokenView(record),
-    plaintextToken,
-    referralLink: `${new URL(getEnv().APP_BASE_URL).origin}/referral?t=${encodeURIComponent(plaintextToken)}`,
-  };
-}
-
-export async function generateReferralToken(input: {
-  readonly applicationId: string;
-  readonly displayFields: readonly ReferralDisplayField[];
-  readonly createdBy: string;
+export async function batchGenerateReferralTokens(input: {
+  entries: readonly { email: string; displayName?: string }[];
+  createdBy: string;
 }) {
-  const application = await requireReferralApplication(input.applicationId);
-  const issued = issueReferralTokenMaterial();
-
-  const record = await createReferralTokenRecord({
-    applicationId: application.id,
-    expertId: application.expertId,
-    tokenHash: issued.tokenHash,
-    displayFields: input.displayFields,
-    expiredAt: issued.expiredAt,
-    createdBy: input.createdBy,
-    createdAt: issued.createdAt,
-  });
-  if (!record) {
-    throw new ActiveReferralTokenExistsError();
+  const results = [];
+  for (const entry of input.entries) {
+    const issued = issueReferralTokenMaterial();
+    const record = await createReferralTokenRecord({
+      referrerEmail: entry.email,
+      referrerDisplayName: entry.displayName ?? null,
+      tokenHash: issued.tokenHash,
+      plaintextToken: issued.plaintextToken,
+      expiredAt: issued.expiredAt,
+      createdBy: input.createdBy,
+      createdAt: issued.createdAt,
+    });
+    if (record) {
+      results.push({ skipped: false as const, ...(await generated(record)) });
+      continue;
+    }
+    const existing = await findActiveReferralTokenByEmail(entry.email);
+    if (existing) {
+      results.push({ skipped: true as const, ...(await generated(existing)) });
+    }
   }
-
-  return presentGeneratedReferralToken(record, issued.plaintextToken);
+  return { results };
 }
 
-export async function disableReferralToken(applicationId: string) {
-  const application = await requireReferralApplication(applicationId);
-  const record = await disableActiveReferralToken(application.expertId);
-  if (!record) {
-    throw new ReferralTokenUnavailableError();
-  }
-  return toOpsReferralTokenView(record);
+export async function listReferralTokensWithFunnels() {
+  return Promise.all((await listReferralTokens()).map(toOpsView));
 }
 
-export async function renewReferralToken(applicationId: string) {
-  const application = await requireReferralApplication(applicationId);
-  const record = await renewActiveReferralToken({
-    expertId: application.expertId,
+export async function disableReferralToken(tokenId: string) {
+  const record = await disableReferralTokenById(tokenId);
+  if (!record) throw new ReferralTokenUnavailableError();
+  return toOpsView(record);
+}
+
+export async function renewReferralToken(tokenId: string) {
+  const record = await renewReferralTokenById({
+    id: tokenId,
     lifetimeDays: REFERRAL_TOKEN_DEFAULT_LIFETIME_DAYS,
   });
-  if (!record) {
-    throw new ReferralTokenUnavailableError();
-  }
-  return toOpsReferralTokenView(record);
+  if (!record) throw new ReferralTokenUnavailableError();
+  return toOpsView(record);
 }
 
 export async function regenerateReferralToken(input: {
-  readonly applicationId: string;
-  readonly displayFields: readonly ReferralDisplayField[];
-  readonly createdBy: string;
+  tokenId: string;
+  createdBy: string;
 }) {
-  const application = await requireReferralApplication(input.applicationId);
+  const existing = await findReferralTokenById(input.tokenId);
+  if (!existing) throw new ReferralTokenUnavailableError();
   const issued = issueReferralTokenMaterial();
   const record = await replaceReferralTokenRecord({
-    applicationId: application.id,
-    expertId: application.expertId,
+    referrerEmail: existing.referrerEmail,
+    referrerDisplayName: existing.referrerDisplayName,
     tokenHash: issued.tokenHash,
-    displayFields: input.displayFields,
+    plaintextToken: issued.plaintextToken,
     expiredAt: issued.expiredAt,
     createdBy: input.createdBy,
     createdAt: issued.createdAt,
   });
-
-  return presentGeneratedReferralToken(record, issued.plaintextToken);
+  return generated(record);
 }

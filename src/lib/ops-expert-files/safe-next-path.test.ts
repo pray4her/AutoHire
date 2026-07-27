@@ -7,6 +7,9 @@ describe("resolveSafeOpsNextPath", () => {
     expect(resolveSafeOpsNextPath("/ops/invitations", "/ops/expert-files")).toBe(
       "/ops/invitations",
     );
+    expect(resolveSafeOpsNextPath("/ops/referrals", "/ops/expert-files")).toBe(
+      "/ops/referrals",
+    );
   });
 
   it("rejects external, non-ops, or unknown ops paths", () => {

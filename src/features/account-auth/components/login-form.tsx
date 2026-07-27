@@ -11,7 +11,7 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { authClient } from "@/lib/account-auth/client";
 
-export function LoginForm() {
+export function LoginForm({ nextPath }: { nextPath?: string }) {
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -30,7 +30,8 @@ export function LoginForm() {
             type: "email-verification",
           });
           toast.success("邮箱尚未验证，验证码已重新发送。");
-          router.push(`/signup?step=verify&email=${encodeURIComponent(email)}`);
+          const next = nextPath ? `&next=${encodeURIComponent(nextPath)}` : "";
+          router.push(`/signup?step=verify&email=${encodeURIComponent(email)}${next}`);
           return;
         }
         throw new Error(
@@ -40,7 +41,7 @@ export function LoginForm() {
         );
       }
       toast.success("登录成功。");
-      router.replace("/account");
+      router.replace((nextPath ?? "/account") as "/apply/resume" | "/account");
       router.refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "登录失败。");
@@ -82,7 +83,10 @@ export function LoginForm() {
           <Link href="/forgot-password" className="text-primary underline">
             忘记密码
           </Link>
-          <Link href="/signup" className="text-primary underline">
+          <Link
+            href={nextPath ? `/signup?next=${encodeURIComponent(nextPath)}` : "/signup"}
+            className="text-primary underline"
+          >
             注册账号
           </Link>
         </div>

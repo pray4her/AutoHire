@@ -1,6 +1,7 @@
 import { getRuntimeMode } from "@/lib/env";
 import { findReferralTokenByHash } from "@/lib/referral-tokens/public-repository";
 import { hashReferralToken } from "@/lib/referral-tokens/token";
+import { toReferralProgressStage } from "@/lib/referral-tokens/progress-stage";
 
 export type ReferralTokenFunnel = {
   readonly clickCount: number;
@@ -75,4 +76,57 @@ export async function getReferralTokenFunnel(
     registrationCount: applicationCount,
     applicationCount,
   };
+}
+
+export async function listReferralDownstream(referralTokenId: string) {
+  if (getRuntimeMode() === "memory") {
+    const store = (
+      globalThis as typeof globalThis & {
+        __autohireStore?: {
+          applications: Array<{
+            id: string;
+            invitationId: string;
+            screeningContactEmail: string | null;
+            screeningWorkEmail: string | null;
+            applicationStatus: string;
+            referralTokenId: string | null;
+          }>;
+          invitations: Array<{ id: string; email: string | null }>;
+        };
+      }
+    ).__autohireStore;
+    const apps = store?.applications ?? [];
+    const invitations = store?.invitations ?? [];
+    return apps
+      .filter((app) => app.referralTokenId === referralTokenId)
+      .map((app) => ({
+        applicationId: app.id,
+        email:
+          app.screeningContactEmail ??
+          app.screeningWorkEmail ??
+          invitations.find((item) => item.id === app.invitationId)?.email ??
+          null,
+        progressStage: toReferralProgressStage(app.applicationStatus),
+      }));
+  }
+  const { prisma } = await import("@/lib/db/prisma");
+  const applications = await prisma.application.findMany({
+    where: { referralTokenId },
+    select: {
+      id: true,
+      screeningContactEmail: true,
+      screeningWorkEmail: true,
+      applicationStatus: true,
+      invitation: { select: { email: true } },
+    },
+    orderBy: { createdAt: "desc" },
+  });
+  return applications.map((app) => ({
+    applicationId: app.id,
+    email:
+      app.screeningContactEmail ??
+      app.screeningWorkEmail ??
+      app.invitation.email,
+    progressStage: toReferralProgressStage(app.applicationStatus),
+  }));
 }

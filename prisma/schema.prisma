@@ -315,7 +315,6 @@ model Application {
   accessLogs                   InviteAccessLog[]
   fileUploadAttempts           FileUploadAttempt[]
   askAiChatSessions            AskAiChatSession[]
-  referralTokens               ReferralToken[] @relation("ReferrerApplicationTokens")
   referralTokenId              String?
   referralAttribution          ReferralToken?  @relation("AttributedApplications", fields: [referralTokenId], references: [id], onDelete: SetNull)
 
@@ -333,23 +332,21 @@ model Application {
 }
 
 model ReferralToken {
-  id            String              @id @default(cuid())
-  applicationId String
-  expertId      String
-  tokenHash     String              @unique
-  displayFields Json
-  status        ReferralTokenStatus @default(ACTIVE)
-  expiredAt     DateTime
-  createdBy     String
-  createdAt     DateTime            @default(now())
-  updatedAt     DateTime            @updatedAt
+  id                  String              @id @default(cuid())
+  referrerEmail       String
+  referrerDisplayName String?
+  tokenHash           String              @unique
+  plaintextToken      String
+  status              ReferralTokenStatus @default(ACTIVE)
+  expiredAt           DateTime
+  createdBy           String
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
 
-  referrerApplication     Application             @relation("ReferrerApplicationTokens", fields: [applicationId], references: [id], onDelete: Restrict)
-  attributedApplications  Application[]           @relation("AttributedApplications")
-  clickLogs               ReferralTokenClickLog[]
+  attributedApplications Application[]           @relation("AttributedApplications")
+  clickLogs              ReferralTokenClickLog[]
 
-  @@index([applicationId, createdAt])
-  @@index([expertId])
+  @@index([referrerEmail, createdAt])
   @@index([status, expiredAt])
 }
 
