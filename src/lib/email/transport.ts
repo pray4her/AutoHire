@@ -21,7 +21,6 @@ type RecordingEmailState = {
 };
 
 declare global {
-  // eslint-disable-next-line no-var
   var __autohireRecordingEmail: RecordingEmailState | undefined;
 }
 
