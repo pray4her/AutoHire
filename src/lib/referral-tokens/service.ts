@@ -1,5 +1,6 @@
 import { getApplicationById } from "@/lib/data/store";
 import { getEnv } from "@/lib/env";
+import { getReferralTokenFunnel } from "@/lib/referral-tokens/attribution";
 import {
   createReferralTokenRecord,
   disableActiveReferralToken,
@@ -12,6 +13,8 @@ import { issueReferralTokenMaterial } from "@/lib/referral-tokens/token";
 import {
   REFERRAL_TOKEN_DEFAULT_LIFETIME_DAYS,
   toReferralTokenView,
+  type ReferralTokenOpsView,
+  type ReferralTokenRecord,
 } from "@/lib/referral-tokens/types";
 
 export class ReferralTokenNotFoundError extends Error {
@@ -35,13 +38,25 @@ export class ReferralTokenUnavailableError extends Error {
   }
 }
 
+async function toOpsReferralTokenView(
+  record: ReferralTokenRecord,
+): Promise<ReferralTokenOpsView> {
+  return {
+    ...toReferralTokenView(record),
+    funnel: await getReferralTokenFunnel(record.id),
+  };
+}
+
 export async function getReferralToken(applicationId: string) {
   const application = await getApplicationById(applicationId);
   if (!application) {
     return null;
   }
   const token = await findReferralTokenForExpert(application.expertId);
-  return token ? toReferralTokenView(token) : null;
+  if (!token) {
+    return null;
+  }
+  return toOpsReferralTokenView(token);
 }
 
 async function requireReferralApplication(applicationId: string) {
@@ -52,12 +67,12 @@ async function requireReferralApplication(applicationId: string) {
   return application;
 }
 
-function presentGeneratedReferralToken(
-  record: Parameters<typeof toReferralTokenView>[0],
+async function presentGeneratedReferralToken(
+  record: ReferralTokenRecord,
   plaintextToken: string,
 ) {
   return {
-    token: toReferralTokenView(record),
+    token: await toOpsReferralTokenView(record),
     plaintextToken,
     referralLink: `${new URL(getEnv().APP_BASE_URL).origin}/referral?t=${encodeURIComponent(plaintextToken)}`,
   };
@@ -93,7 +108,7 @@ export async function disableReferralToken(applicationId: string) {
   if (!record) {
     throw new ReferralTokenUnavailableError();
   }
-  return toReferralTokenView(record);
+  return toOpsReferralTokenView(record);
 }
 
 export async function renewReferralToken(applicationId: string) {
@@ -105,7 +120,7 @@ export async function renewReferralToken(applicationId: string) {
   if (!record) {
     throw new ReferralTokenUnavailableError();
   }
-  return toReferralTokenView(record);
+  return toOpsReferralTokenView(record);
 }
 
 export async function regenerateReferralToken(input: {

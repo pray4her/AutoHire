@@ -104,6 +104,7 @@ describe("createAccountAuthOptions", () => {
         { id: "user_hook_test", email: "hook@example.com" } as Parameters<
           NonNullable<typeof after>
         >[0],
+        undefined,
       );
 
       const invitation = await findShadowInvitationByEmail("hook@example.com");
@@ -121,7 +122,81 @@ describe("createAccountAuthOptions", () => {
       expect(application).toMatchObject({
         invitationId: invitation!.id,
         applicationStatus: "INIT",
+        referralTokenId: null,
       });
+    } finally {
+      process.env.APP_RUNTIME_MODE = originalMode;
+      resetEnvForTests();
+    }
+  });
+
+  it("binds referral attribution from the referral context cookie in the create hook", async () => {
+    const originalMode = process.env.APP_RUNTIME_MODE;
+    process.env.APP_RUNTIME_MODE = "memory";
+    resetEnvForTests();
+    (
+      globalThis as typeof globalThis & {
+        __autohireStore?: unknown;
+        __autohireReferralTokenStore?: unknown;
+      }
+    ).__autohireStore = undefined;
+    (
+      globalThis as typeof globalThis & {
+        __autohireReferralTokenStore?: unknown;
+      }
+    ).__autohireReferralTokenStore = undefined;
+
+    try {
+      const { createReferralTokenRecord } = await import(
+        "@/lib/referral-tokens/repository"
+      );
+      const { issueReferralTokenMaterial } = await import(
+        "@/lib/referral-tokens/token"
+      );
+      const { REFERRAL_CONTEXT_COOKIE_NAME } = await import(
+        "@/lib/referral-tokens/context-cookie"
+      );
+      const issued = issueReferralTokenMaterial();
+      const record = await createReferralTokenRecord({
+        applicationId: "app_intro",
+        expertId: "expert_init",
+        tokenHash: issued.tokenHash,
+        displayFields: ["NAME"],
+        expiredAt: issued.expiredAt,
+        createdBy: "ops",
+        createdAt: issued.createdAt,
+      });
+      expect(record).not.toBeNull();
+
+      const options = createAccountAuthOptions();
+      const after = options.databaseHooks?.user?.create?.after;
+      expect(after).toBeDefined();
+
+      await after!(
+        { id: "user_referred", email: "referred@example.com" } as Parameters<
+          NonNullable<typeof after>
+        >[0],
+        {
+          request: {
+            headers: {
+              get(name: string) {
+                if (name.toLowerCase() === "cookie") {
+                  return `${REFERRAL_CONTEXT_COOKIE_NAME}=${issued.plaintextToken}`;
+                }
+                return null;
+              },
+            },
+          },
+        } as Parameters<NonNullable<typeof after>>[1],
+      );
+
+      const invitation = await findShadowInvitationByEmail(
+        "referred@example.com",
+      );
+      const application = await findOpenApplicationByInvitationId(
+        invitation!.id,
+      );
+      expect(application?.referralTokenId).toBe(record!.id);
     } finally {
       process.env.APP_RUNTIME_MODE = originalMode;
       resetEnvForTests();

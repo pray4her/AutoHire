@@ -316,6 +316,8 @@ model Application {
   fileUploadAttempts           FileUploadAttempt[]
   askAiChatSessions            AskAiChatSession[]
   referralTokens               ReferralToken[] @relation("ReferrerApplicationTokens")
+  referralTokenId              String?
+  referralAttribution          ReferralToken?  @relation("AttributedApplications", fields: [referralTokenId], references: [id], onDelete: SetNull)
 
   @@index([expertId])
   @@index([applicationStatus])
@@ -327,6 +329,7 @@ model Application {
   @@index([materialsEnteredAt])
   @@index([submittedAt])
   @@index([customerNo])
+  @@index([referralTokenId])
 }
 
 model ReferralToken {
@@ -341,8 +344,9 @@ model ReferralToken {
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
 
-  referrerApplication Application             @relation("ReferrerApplicationTokens", fields: [applicationId], references: [id], onDelete: Restrict)
-  clickLogs           ReferralTokenClickLog[]
+  referrerApplication     Application             @relation("ReferrerApplicationTokens", fields: [applicationId], references: [id], onDelete: Restrict)
+  attributedApplications  Application[]           @relation("AttributedApplications")
+  clickLogs               ReferralTokenClickLog[]
 
   @@index([applicationId, createdAt])
   @@index([expertId])

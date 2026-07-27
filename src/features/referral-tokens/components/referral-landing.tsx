@@ -80,10 +80,7 @@ export function ReferralLanding({
   }
 
   const { expert } = result;
-  const signupHref = {
-    pathname: "/signup",
-    query: { referral: referralToken },
-  };
+  const signupHref = `/api/referrals/context?t=${encodeURIComponent(referralToken)}`;
 
   return (
     <main

@@ -112,8 +112,10 @@ export function InvitationPreviewRows({
   const visibleItemsRef = useRef(visibleItems);
   const onSetDistributedRef = useRef(onSetDistributed);
 
-  visibleItemsRef.current = visibleItems;
-  onSetDistributedRef.current = onSetDistributed;
+  useEffect(() => {
+    visibleItemsRef.current = visibleItems;
+    onSetDistributedRef.current = onSetDistributed;
+  });
 
   function effectiveDistributed(
     item: InvitationGenerationItemSummary,

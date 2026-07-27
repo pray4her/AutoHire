@@ -20,6 +20,7 @@ function resetMemoryStores(): void {
     globalThis as typeof globalThis & {
       __autohireStore?: unknown;
       __autohireReferralTokenStore?: unknown;
+      __autohireReferralClickLogStore?: unknown;
     }
   ).__autohireStore = undefined;
   (
@@ -27,6 +28,11 @@ function resetMemoryStores(): void {
       __autohireReferralTokenStore?: unknown;
     }
   ).__autohireReferralTokenStore = undefined;
+  (
+    globalThis as typeof globalThis & {
+      __autohireReferralClickLogStore?: unknown;
+    }
+  ).__autohireReferralClickLogStore = undefined;
 }
 
 export function setupReferralTokenRouteTests(): void {

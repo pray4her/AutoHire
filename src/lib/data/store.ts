@@ -170,6 +170,7 @@ type ApplicationRecord = {
   screeningWorkEmail: string | null;
   screeningPhoneNumber: string | null;
   productInnovationDescription: string | null;
+  referralTokenId: string | null;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -614,6 +615,7 @@ function buildSampleStore(): PersistedStore {
         screeningWorkEmail: null,
         screeningPhoneNumber: null,
         productInnovationDescription: null,
+        referralTokenId: null,
         createdAt: now,
         updatedAt: now,
       },
@@ -639,6 +641,7 @@ function buildSampleStore(): PersistedStore {
         screeningWorkEmail: "progress.expert@university.edu",
         screeningPhoneNumber: "+1 555 010 1000",
         productInnovationDescription: null,
+        referralTokenId: null,
         createdAt: now,
         updatedAt: now,
       },
@@ -665,6 +668,7 @@ function buildSampleStore(): PersistedStore {
         screeningWorkEmail: null,
         screeningPhoneNumber: null,
         productInnovationDescription: null,
+        referralTokenId: null,
         createdAt: now,
         updatedAt: now,
       },
@@ -690,6 +694,7 @@ function buildSampleStore(): PersistedStore {
         screeningWorkEmail: null,
         screeningPhoneNumber: null,
         productInnovationDescription: null,
+        referralTokenId: null,
         createdAt: now,
         updatedAt: now,
       },
@@ -715,6 +720,7 @@ function buildSampleStore(): PersistedStore {
         screeningWorkEmail: "secondary.expert@university.edu",
         screeningPhoneNumber: "+1 555 010 4000",
         productInnovationDescription: null,
+        referralTokenId: null,
         createdAt: now,
         updatedAt: now,
       },
@@ -1348,6 +1354,7 @@ export async function createApplication(input: {
   invitationId: string;
   applicationStatus?: ApplicationStatus;
   currentStep?: string | null;
+  referralTokenId?: string | null;
 }) {
   if (getRuntimeMode() === "memory") {
     const application: ApplicationRecord = {
@@ -1372,6 +1379,7 @@ export async function createApplication(input: {
       screeningWorkEmail: null,
       screeningPhoneNumber: null,
       productInnovationDescription: null,
+      referralTokenId: input.referralTokenId ?? null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
@@ -1387,6 +1395,7 @@ export async function createApplication(input: {
       invitationId: input.invitationId,
       applicationStatus: input.applicationStatus ?? "INIT",
       currentStep: input.currentStep ?? "intro",
+      referralTokenId: input.referralTokenId ?? null,
     },
   });
 }
@@ -1415,6 +1424,7 @@ export async function createShadowInvitationWithApplication(input: {
   expertId: string;
   email: string;
   tokenHash: string;
+  referralTokenId?: string | null;
 }) {
   if (getRuntimeMode() === "memory") {
     const store = getMemoryStore();
@@ -1436,6 +1446,7 @@ export async function createShadowInvitationWithApplication(input: {
     const application = await createApplication({
       expertId: input.expertId,
       invitationId: invitation.id,
+      referralTokenId: input.referralTokenId ?? null,
     });
 
     return { invitation, application };
@@ -1460,6 +1471,7 @@ export async function createShadowInvitationWithApplication(input: {
         invitationId: invitation.id,
         applicationStatus: "INIT",
         currentStep: "intro",
+        referralTokenId: input.referralTokenId ?? null,
       },
     });
 

@@ -25,6 +25,16 @@ export type ReferralTokenView = Omit<
   readonly updatedAt: string;
 };
 
+export type ReferralTokenFunnelView = {
+  readonly clickCount: number;
+  readonly registrationCount: number;
+  readonly applicationCount: number;
+};
+
+export type ReferralTokenOpsView = ReferralTokenView & {
+  readonly funnel: ReferralTokenFunnelView;
+};
+
 export function toReferralTokenView(
   record: ReferralTokenRecord,
 ): ReferralTokenView {

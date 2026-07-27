@@ -22,6 +22,7 @@ export type ExpertFilesListItem = {
   screeningWorkEmail: string | null;
   invitationEmail: string | null;
   invitationSource: InvitationSource;
+  referredByExpertName: string | null;
   applicationStatus: string;
   isSubmitted: boolean;
   resumeUploadedAt: string | null;
@@ -136,6 +137,7 @@ export async function listExpertFiles(
         screeningWorkEmail: app.screeningWorkEmail,
         invitationEmail: app.invitationEmail,
         invitationSource: app.invitationSource,
+        referredByExpertName: resolveMemoryReferrerName(app.referralTokenId),
         applicationStatus: app.applicationStatus,
         isSubmitted: app.applicationStatus === "SUBMITTED",
         resumeUploadedAt: app.resumeUploadedAt?.toISOString() ?? null,
@@ -199,7 +201,19 @@ export async function listExpertFiles(
     prisma.application.count({ where }),
     prisma.application.findMany({
       where,
-      include: { invitation: { select: { email: true, source: true } } },
+      include: {
+        invitation: { select: { email: true, source: true } },
+        referralAttribution: {
+          select: {
+            referrerApplication: {
+              select: {
+                screeningPassportFullName: true,
+                invitation: { select: { email: true } },
+              },
+            },
+          },
+        },
+      },
       orderBy: { resumeUploadedAt: "desc" },
       skip: (query.page - 1) * query.pageSize,
       take: query.pageSize,
@@ -219,6 +233,11 @@ export async function listExpertFiles(
       screeningWorkEmail: row.screeningWorkEmail,
       invitationEmail: row.invitation.email,
       invitationSource: row.invitation.source,
+      referredByExpertName:
+        row.referralAttribution?.referrerApplication
+          .screeningPassportFullName ??
+        row.referralAttribution?.referrerApplication.invitation.email ??
+        null,
       applicationStatus: row.applicationStatus,
       isSubmitted: row.applicationStatus === "SUBMITTED",
       resumeUploadedAt: row.resumeUploadedAt?.toISOString() ?? null,
@@ -239,6 +258,7 @@ type MemoryStoreShape = {
     resumeUploadedAt: Date | null;
     submittedAt: Date | null;
     invitationId: string;
+    referralTokenId: string | null;
   }>;
   invitations: Array<{
     id: string;
@@ -246,6 +266,36 @@ type MemoryStoreShape = {
     source: InvitationSource;
   }>;
 };
+
+function resolveMemoryReferrerName(
+  referralTokenId: string | null | undefined,
+): string | null {
+  if (!referralTokenId) {
+    return null;
+  }
+  const token = globalThis.__autohireReferralTokenStore?.tokens.find(
+    (item) => item.id === referralTokenId,
+  );
+  if (!token) {
+    return null;
+  }
+  const store = readMemoryStore();
+  if (!store) {
+    return null;
+  }
+  const referrer = store.applications.find(
+    (app) => app.id === token.applicationId,
+  );
+  if (!referrer) {
+    return null;
+  }
+  return (
+    referrer.screeningPassportFullName ??
+    store.invitations.find((item) => item.id === referrer.invitationId)
+      ?.email ??
+    null
+  );
+}
 
 function readMemoryStore() {
   return (globalThis as unknown as { __autohireStore?: MemoryStoreShape })

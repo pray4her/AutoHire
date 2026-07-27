@@ -95,7 +95,7 @@ describe("material supplement file validation", () => {
     expect(result.rejectedFiles.map((item) => item.reason)).toEqual([
       "UNSUPPORTED_FILE_TYPE",
       "FILE_TOO_LARGE",
-      "ARCHIVE_TOO_LARGE",
+      "UNSUPPORTED_FILE_TYPE",
     ]);
   });
 

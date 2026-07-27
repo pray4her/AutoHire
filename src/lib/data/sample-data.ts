@@ -129,6 +129,7 @@ export type SampleSubmittedApplicationRecord = {
     screeningWorkEmail: string;
     screeningPhoneNumber: string;
     productInnovationDescription: null;
+    referralTokenId: string | null;
     createdAt: Date;
     updatedAt: Date;
   };
@@ -206,6 +207,7 @@ export function getSampleSubmittedApplicationRecords(
       screeningWorkEmail: sample.workEmail,
       screeningPhoneNumber: sample.phoneNumber,
       productInnovationDescription: null,
+      referralTokenId: null,
       createdAt: now,
       updatedAt: now,
     },

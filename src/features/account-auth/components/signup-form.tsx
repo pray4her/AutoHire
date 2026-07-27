@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -9,12 +9,14 @@ import { Button } from "@/components/ui/button";
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
+import { captureReferralContextAction } from "@/features/account-auth/actions";
 import { authClient } from "@/lib/account-auth/client";
 import { otpErrorMessage } from "@/features/account-auth/error-messages";
 
 type SignupFormProps = {
   initialEmail?: string;
   initialStep?: "credentials" | "verify";
+  referralPlaintextToken?: string;
 };
 
 function defaultNameFromEmail(email: string) {
@@ -24,6 +26,7 @@ function defaultNameFromEmail(email: string) {
 export function SignupForm({
   initialEmail = "",
   initialStep = "credentials",
+  referralPlaintextToken,
 }: SignupFormProps) {
   const router = useRouter();
   const [step, setStep] = useState<"credentials" | "verify">(initialStep);
@@ -32,10 +35,20 @@ export function SignupForm({
   const [otp, setOtp] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    if (!referralPlaintextToken) {
+      return;
+    }
+    void captureReferralContextAction(referralPlaintextToken);
+  }, [referralPlaintextToken]);
+
   async function onSubmitCredentials(event: FormEvent) {
     event.preventDefault();
     setSubmitting(true);
     try {
+      if (referralPlaintextToken) {
+        await captureReferralContextAction(referralPlaintextToken);
+      }
       const { error } = await authClient.signUp.email({
         email,
         password,

@@ -8,6 +8,7 @@ import { createEmailSenderFromEnv } from "@/lib/email/transport";
 import { getEnv } from "@/lib/env";
 import { sendAccountAuthOtpEmail } from "@/lib/account-auth/emails";
 import { ensureAccountApplication } from "@/lib/account-auth/shadow-invitation";
+import { readReferralPlaintextFromCookieHeader } from "@/lib/referral-tokens/context-cookie";
 
 export const ACCOUNT_AUTH_OTP_EXPIRES_IN_SECONDS = 600;
 export const ACCOUNT_AUTH_SESSION_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 7;
@@ -34,11 +35,16 @@ export function createAccountAuthOptions(sender?: EmailSender) {
           // application attached to it. A failure here must not block the
           // sign-up response — the apply-entry account branch re-ensures the
           // context lazily on first visit.
-          after: async (user) => {
+          after: async (user, ctx) => {
             try {
+              const referralPlaintextToken =
+                readReferralPlaintextFromCookieHeader(
+                  ctx?.request?.headers?.get("cookie"),
+                );
               await ensureAccountApplication({
                 userId: user.id,
                 email: user.email,
+                referralPlaintextToken,
               });
             } catch (error) {
               console.error(

@@ -37,7 +37,7 @@ function uniqueArchiveName(
   folderPath: string,
   preferredName: string,
 ) {
-  let candidate = `${folderPath}/${preferredName}`;
+  const candidate = `${folderPath}/${preferredName}`;
   if (!used.has(candidate)) {
     used.add(candidate);
     return preferredName;

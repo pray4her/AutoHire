@@ -16,6 +16,13 @@ const referralTokenMetadataSchema = z.object({
   expiredAt: z.iso.datetime(),
   createdAt: z.iso.datetime(),
   updatedAt: z.iso.datetime(),
+  funnel: z
+    .object({
+      clickCount: z.number().int().nonnegative(),
+      registrationCount: z.number().int().nonnegative(),
+      applicationCount: z.number().int().nonnegative(),
+    })
+    .optional(),
 });
 
 const tokenResponseSchema = z.object({

@@ -61,13 +61,48 @@ export function ReferralTokenActions({
         </p>
       ) : null}
       {token ? (
-        <div className="bg-muted/45 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg px-3 py-2.5">
-          <Badge variant={token.status === "ACTIVE" ? "default" : "secondary"}>
-            {statusLabel}
-          </Badge>
-          <span className="text-muted-foreground text-sm">
-            失效时间：{formatExpiry(token.expiredAt)}
-          </span>
+        <div className="space-y-2">
+          <div className="bg-muted/45 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-lg px-3 py-2.5">
+            <Badge
+              variant={token.status === "ACTIVE" ? "default" : "secondary"}
+            >
+              {statusLabel}
+            </Badge>
+            <span className="text-muted-foreground text-sm">
+              失效时间：{formatExpiry(token.expiredAt)}
+            </span>
+          </div>
+          {token.funnel ? (
+            <div
+              className="grid grid-cols-3 gap-2 rounded-lg border border-slate-200/80 bg-slate-50/80 px-3 py-2.5 text-center dark:border-slate-700 dark:bg-slate-900/40"
+              aria-label="推荐转化漏斗"
+            >
+              <div>
+                <p className="text-muted-foreground text-xs tracking-wide uppercase">
+                  点击
+                </p>
+                <p className="font-heading mt-0.5 text-lg font-semibold tabular-nums">
+                  {token.funnel.clickCount}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs tracking-wide uppercase">
+                  注册
+                </p>
+                <p className="font-heading mt-0.5 text-lg font-semibold tabular-nums">
+                  {token.funnel.registrationCount}
+                </p>
+              </div>
+              <div>
+                <p className="text-muted-foreground text-xs tracking-wide uppercase">
+                  申报
+                </p>
+                <p className="font-heading mt-0.5 text-lg font-semibold tabular-nums">
+                  {token.funnel.applicationCount}
+                </p>
+              </div>
+            </div>
+          ) : null}
         </div>
       ) : !busy && expertSelected ? (
         <p className="text-muted-foreground text-sm">

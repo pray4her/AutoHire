@@ -17,6 +17,11 @@ export type ReferralTokenMetadata = {
   readonly expiredAt: string;
   readonly createdAt: string;
   readonly updatedAt: string;
+  readonly funnel?: {
+    readonly clickCount: number;
+    readonly registrationCount: number;
+    readonly applicationCount: number;
+  };
 };
 
 export type GeneratedReferralToken = {

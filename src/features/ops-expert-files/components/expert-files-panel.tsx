@@ -69,6 +69,7 @@ type ListItem = {
   screeningWorkEmail: string | null;
   invitationEmail: string | null;
   invitationSource: InvitationSource;
+  referredByExpertName: string | null;
   applicationStatus: string;
   isSubmitted: boolean;
   resumeUploadedAt: string | null;
@@ -655,6 +656,7 @@ export function ExpertFilesPanel() {
                 <TableHead>姓名</TableHead>
                 <TableHead>邮箱</TableHead>
                 <TableHead>来源</TableHead>
+                <TableHead>推荐来源</TableHead>
                 <TableHead>状态</TableHead>
                 <TableHead>填写时间</TableHead>
                 <TableHead>提交时间</TableHead>
@@ -695,6 +697,9 @@ export function ExpertFilesPanel() {
                         : "邀请链接"}
                     </Badge>
                   </TableCell>
+                  <TableCell className="max-w-[140px] truncate">
+                    {item.referredByExpertName ?? "—"}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={item.isSubmitted ? "default" : "secondary"}>
                       {item.isSubmitted ? "已提交" : "进行中"}
@@ -716,7 +721,7 @@ export function ExpertFilesPanel() {
               ))}
               {items.length === 0 && !loading ? (
                 <TableRow>
-                  <TableCell colSpan={9} className="text-muted-foreground">
+                  <TableCell colSpan={10} className="text-muted-foreground">
                     该范围内暂无申请记录。
                   </TableCell>
                 </TableRow>

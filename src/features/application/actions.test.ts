@@ -18,11 +18,15 @@ function resetMemoryStore() {
   ).__autohireStore = undefined;
 }
 
-function buildSessionCookie(applicationId = "app_submitted") {
+function buildSessionCookie(
+  applicationId = "app_submitted",
+  invitationId = "invitation_submitted",
+  expertId = "expert_submitted",
+) {
   const token = createSessionToken({
     applicationId,
-    invitationId: "invitation_submitted",
-    expertId: "expert_submitted",
+    invitationId,
+    expertId,
   });
   return `${getSessionCookieName()}=${token}`;
 }
@@ -41,9 +45,17 @@ describe("application server actions", () => {
     vi.mocked(headers).mockReset();
   });
 
-  function mockAuthorizedSession(applicationId = "app_submitted") {
+  function mockAuthorizedSession(
+    applicationId = "app_submitted",
+    invitationId = "invitation_submitted",
+    expertId = "expert_submitted",
+  ) {
     vi.mocked(cookies).mockResolvedValue({
-      get: vi.fn().mockReturnValue({ value: buildSessionCookie(applicationId).split("=")[1] }),
+      get: vi.fn().mockReturnValue({
+        value: buildSessionCookie(applicationId, invitationId, expertId).split(
+          "=",
+        )[1],
+      }),
     } as unknown as Awaited<ReturnType<typeof cookies>>);
     vi.mocked(headers).mockResolvedValue(
       new Headers({
@@ -141,7 +153,11 @@ describe("application server actions", () => {
     });
 
     it("supports feedback from the ineligible resume result", async () => {
-      mockAuthorizedSession("app_secondary");
+      mockAuthorizedSession(
+        "app_secondary",
+        "invitation_secondary",
+        "expert_secondary",
+      );
       await updateApplication("app_secondary", {
         applicationStatus: "INELIGIBLE",
         eligibilityResult: "INELIGIBLE",

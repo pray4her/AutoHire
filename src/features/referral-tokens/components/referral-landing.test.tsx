@@ -40,7 +40,7 @@ describe("ReferralLanding", () => {
     ).toBeGreaterThan(0);
     expect(screen.getByRole("link", { name: "开始申报" })).toHaveAttribute(
       "href",
-      `/signup?referral=${referralToken}`,
+      `/api/referrals/context?t=${referralToken}`,
     );
   });
 

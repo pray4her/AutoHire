@@ -9,6 +9,10 @@ import {
 import { getInvitationAccessBlockReason } from "@/lib/auth/invitation-access";
 import { verifySessionToken } from "@/lib/auth/session";
 import { findInvitationById } from "@/lib/data/store";
+import {
+  isReferralPlaintextToken,
+  REFERRAL_CONTEXT_COOKIE_NAME,
+} from "@/lib/referral-tokens/context-cookie";
 
 export type ApplyEntryAccessErrorCode =
   | "APPLICATION_NOT_FOUND"
@@ -168,12 +172,24 @@ export type AccountSessionIdentity = {
  * did not run) and issues the same application session the link track uses,
  * so the whole downstream flow converges on the shared application data.
  */
+async function readReferralContextFromNextCookies() {
+  try {
+    const { cookies } = await import("next/headers");
+    const value = (await cookies()).get(REFERRAL_CONTEXT_COOKIE_NAME)?.value;
+    return isReferralPlaintextToken(value) ? value : null;
+  } catch {
+    return null;
+  }
+}
+
 export async function resolveApplyEntryAccessFromAccountSession(
   identity: AccountSessionIdentity,
 ): Promise<ApplyEntryAccessResult> {
+  const referralPlaintextToken = await readReferralContextFromNextCookies();
   const { application } = await ensureAccountApplication({
     userId: identity.userId,
     email: identity.email,
+    referralPlaintextToken,
   });
   const snapshot = await getSnapshot(application.id);
   const sessionToken = await createSessionForApplication(application.id);

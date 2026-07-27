@@ -4,13 +4,18 @@ import { connection } from "next/server";
 import { AuthPageShell } from "@/features/account-auth/components/auth-page-shell";
 import { SignupForm } from "@/features/account-auth/components/signup-form";
 import { getAccountSession } from "@/lib/account-auth/session";
+import { isReferralPlaintextToken } from "@/lib/referral-tokens/context-cookie";
 
 export const metadata = {
   title: "注册账号",
 };
 
 type SignupPageProps = {
-  searchParams: Promise<{ step?: string; email?: string }>;
+  searchParams: Promise<{
+    step?: string;
+    email?: string;
+    referral?: string;
+  }>;
 };
 
 export default async function SignupPage({ searchParams }: SignupPageProps) {
@@ -24,6 +29,9 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
   const params = await searchParams;
   const initialEmail = typeof params.email === "string" ? params.email : "";
   const initialStep = params.step === "verify" ? "verify" : "credentials";
+  const referralPlaintextToken = isReferralPlaintextToken(params.referral)
+    ? params.referral
+    : undefined;
 
   return (
     <AuthPageShell
@@ -32,7 +40,11 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
       cardTitle="注册"
       cardDescription="填写邮箱与密码，我们会向你的邮箱发送 6 位验证码。"
     >
-      <SignupForm initialEmail={initialEmail} initialStep={initialStep} />
+      <SignupForm
+        initialEmail={initialEmail}
+        initialStep={initialStep}
+        referralPlaintextToken={referralPlaintextToken}
+      />
     </AuthPageShell>
   );
 }
