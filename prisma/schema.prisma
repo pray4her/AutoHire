@@ -12,6 +12,11 @@ enum TokenStatus {
   DISABLED
 }
 
+enum ReferralTokenStatus {
+  ACTIVE
+  DISABLED
+}
+
 enum InviteHashAlgorithm {
   SHA256
   SHA384
@@ -310,6 +315,7 @@ model Application {
   accessLogs                   InviteAccessLog[]
   fileUploadAttempts           FileUploadAttempt[]
   askAiChatSessions            AskAiChatSession[]
+  referralTokens               ReferralToken[] @relation("ReferrerApplicationTokens")
 
   @@index([expertId])
   @@index([applicationStatus])
@@ -321,6 +327,42 @@ model Application {
   @@index([materialsEnteredAt])
   @@index([submittedAt])
   @@index([customerNo])
+}
+
+model ReferralToken {
+  id            String              @id @default(cuid())
+  applicationId String
+  expertId      String
+  tokenHash     String              @unique
+  displayFields Json
+  status        ReferralTokenStatus @default(ACTIVE)
+  expiredAt     DateTime
+  createdBy     String
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  referrerApplication Application             @relation("ReferrerApplicationTokens", fields: [applicationId], references: [id], onDelete: Restrict)
+  clickLogs           ReferralTokenClickLog[]
+
+  @@index([applicationId, createdAt])
+  @@index([expertId])
+  @@index([status, expiredAt])
+}
+
+model ReferralTokenClickLog {
+  id              String       @id @default(cuid())
+  referralTokenId String?
+  tokenHash       String
+  accessResult    AccessResult
+  ipRaw           String?
+  userAgent       String?
+  createdAt       DateTime     @default(now())
+
+  referralToken ReferralToken? @relation(fields: [referralTokenId], references: [id], onDelete: SetNull)
+
+  @@index([referralTokenId, createdAt])
+  @@index([tokenHash, createdAt])
+  @@index([accessResult, createdAt])
 }
 
 model CustomerNoDailyCounter {
