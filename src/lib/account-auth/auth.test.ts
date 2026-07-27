@@ -39,6 +39,19 @@ describe("createAccountAuthOptions", () => {
     expect(typeof options.database).toBe("function");
   });
 
+  it("trusts both localhost and 127.0.0.1 loopback origins", () => {
+    process.env.BETTER_AUTH_URL = "http://localhost:3100";
+    resetEnvForTests();
+
+    const options = createAccountAuthOptions();
+    expect(options.trustedOrigins).toEqual(
+      expect.arrayContaining([
+        "http://localhost:3100",
+        "http://127.0.0.1:3100",
+      ]),
+    );
+  });
+
   it("enables email+password with required verification and sane session TTL", () => {
     const options = createAccountAuthOptions();
 

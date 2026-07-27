@@ -97,6 +97,8 @@ const envSchema = z.object({
   SMTP_USER: z.string().optional(),
   SMTP_PASS: z.string().optional(),
   EMAIL_FROM: z.string().email().optional(),
+  /** `recording` captures outbound mail in-process for e2e / local OTP hooks. */
+  EMAIL_TRANSPORT_MODE: z.enum(["smtp", "recording"]).default("smtp"),
 });
 
 let cachedEnv: z.infer<typeof envSchema> | undefined;
@@ -106,6 +108,7 @@ export function getEnv() {
     cachedEnv = envSchema.parse(process.env);
     assertProductionHttps(cachedEnv.APP_BASE_URL);
     assertProductionBetterAuthSecret(cachedEnv.BETTER_AUTH_SECRET);
+    assertProductionEmailTransportMode(cachedEnv.EMAIL_TRANSPORT_MODE);
   }
 
   return cachedEnv;
@@ -147,6 +150,20 @@ function assertProductionBetterAuthSecret(betterAuthSecret: string) {
   if (betterAuthSecret === DEFAULT_BETTER_AUTH_SECRET) {
     throw new Error(
       "BETTER_AUTH_SECRET must be set to a unique secret in production.",
+    );
+  }
+}
+
+function assertProductionEmailTransportMode(
+  emailTransportMode: "smtp" | "recording",
+) {
+  if (process.env.NODE_ENV !== "production") {
+    return;
+  }
+
+  if (emailTransportMode === "recording") {
+    throw new Error(
+      "EMAIL_TRANSPORT_MODE=recording is not allowed in production.",
     );
   }
 }

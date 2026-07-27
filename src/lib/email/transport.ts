@@ -15,6 +15,16 @@ export type EmailSender = {
   send(input: SendEmailInput): Promise<SendEmailResult>;
 };
 
+type RecordingEmailState = {
+  readonly sender: EmailSender;
+  readonly calls: SendEmailInput[];
+};
+
+declare global {
+  // eslint-disable-next-line no-var
+  var __autohireRecordingEmail: RecordingEmailState | undefined;
+}
+
 export function createEmailSender(
   sendImpl: EmailSender["send"],
 ): EmailSender {
@@ -30,6 +40,46 @@ export function createRecordingEmailSender() {
   });
 
   return { sender, calls };
+}
+
+function getRecordingState(): RecordingEmailState {
+  if (!globalThis.__autohireRecordingEmail) {
+    const recording = createRecordingEmailSender();
+    globalThis.__autohireRecordingEmail = {
+      sender: recording.sender,
+      calls: recording.calls,
+    };
+  }
+  return globalThis.__autohireRecordingEmail;
+}
+
+/** Shared recording sender for the live Next.js process (e2e / local OTP hooks). */
+export function getGlobalRecordingEmailSender(): EmailSender {
+  return getRecordingState().sender;
+}
+
+export function getRecordedEmails(): readonly SendEmailInput[] {
+  return getRecordingState().calls;
+}
+
+export function clearRecordedEmails(): void {
+  getRecordingState().calls.length = 0;
+}
+
+/** Latest 6-digit OTP mailed to `email`, or null when none recorded. */
+export function findLatestRecordedOtp(email: string): string | null {
+  const normalized = email.trim().toLowerCase();
+  for (let index = getRecordingState().calls.length - 1; index >= 0; index -= 1) {
+    const call = getRecordingState().calls[index];
+    if (!call || call.to.trim().toLowerCase() !== normalized) {
+      continue;
+    }
+    const match = call.text.match(/\b(\d{6})\b/);
+    if (match?.[1]) {
+      return match[1];
+    }
+  }
+  return null;
 }
 
 export function createNodemailerEmailSender(input: {
@@ -68,6 +118,10 @@ export function createNodemailerEmailSender(input: {
 
 export function createEmailSenderFromEnv(): EmailSender {
   const env = getEnv();
+
+  if (env.EMAIL_TRANSPORT_MODE === "recording") {
+    return getGlobalRecordingEmailSender();
+  }
 
   if (!env.SMTP_HOST || !env.SMTP_PORT || !env.EMAIL_FROM) {
     throw new Error("SMTP configuration is incomplete.");

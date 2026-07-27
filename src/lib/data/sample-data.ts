@@ -24,6 +24,7 @@ export type SampleSubmittedApplicationDefinition = {
   phoneNumber: string;
   employer: string;
   degree: string;
+  customerNo: string;
   resumeFileId: string;
   resumeFileName: string;
   analysisJobId: string;
@@ -44,6 +45,7 @@ export const SAMPLE_SUBMITTED_APPLICATIONS = [
     phoneNumber: "+1 555 010 3000",
     employer: "Example University",
     degree: "博士",
+    customerNo: "20200101001",
     resumeFileId: "resume_submitted",
     resumeFileName: "candidate-submitted.pdf",
     analysisJobId: "job_submitted",
@@ -62,6 +64,7 @@ export const SAMPLE_SUBMITTED_APPLICATIONS = [
     phoneNumber: "+1 555 010 3100",
     employer: "Reviewing University",
     degree: "博士",
+    customerNo: "20200101002",
     resumeFileId: "resume_supplement_reviewing",
     resumeFileName: "candidate-supplement-reviewing.pdf",
     analysisJobId: "job_supplement_reviewing",
@@ -80,6 +83,7 @@ export const SAMPLE_SUBMITTED_APPLICATIONS = [
     phoneNumber: "+1 555 010 3200",
     employer: "Required Institute",
     degree: "博士",
+    customerNo: "20200101003",
     resumeFileId: "resume_supplement_required",
     resumeFileName: "candidate-supplement-required.pdf",
     analysisJobId: "job_supplement_required",
@@ -98,6 +102,7 @@ export const SAMPLE_SUBMITTED_APPLICATIONS = [
     phoneNumber: "+1 555 010 3300",
     employer: "Satisfied Academy",
     degree: "博士",
+    customerNo: "20200101004",
     resumeFileId: "resume_supplement_satisfied",
     resumeFileName: "candidate-supplement-satisfied.pdf",
     analysisJobId: "job_supplement_satisfied",
@@ -129,6 +134,7 @@ export type SampleSubmittedApplicationRecord = {
     screeningWorkEmail: string;
     screeningPhoneNumber: string;
     productInnovationDescription: null;
+    customerNo: string;
     referralTokenId: string | null;
     createdAt: Date;
     updatedAt: Date;
@@ -207,6 +213,7 @@ export function getSampleSubmittedApplicationRecords(
       screeningWorkEmail: sample.workEmail,
       screeningPhoneNumber: sample.phoneNumber,
       productInnovationDescription: null,
+      customerNo: sample.customerNo,
       referralTokenId: null,
       createdAt: now,
       updatedAt: now,

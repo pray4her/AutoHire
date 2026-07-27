@@ -43,4 +43,15 @@ describe("getEnv", () => {
       "BETTER_AUTH_SECRET must be set to a unique secret in production.",
     );
   });
+
+  it("rejects recording email transport in production", () => {
+    process.env.NODE_ENV = "production";
+    process.env.APP_BASE_URL = "https://autohire.test";
+    process.env.BETTER_AUTH_SECRET = "production-secret-at-least-32-chars-long";
+    process.env.EMAIL_TRANSPORT_MODE = "recording";
+
+    expect(() => getEnv()).toThrowError(
+      "EMAIL_TRANSPORT_MODE=recording is not allowed in production.",
+    );
+  });
 });
