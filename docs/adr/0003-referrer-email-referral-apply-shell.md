@@ -1,8 +1,8 @@
 # 推荐挂 Referrer 邮箱、独立生成页、朋友走 apply 壳 + 账号门禁
 
-Status: accepted（取代 ADR-0002 中与本系统 Expert 档案绑定、专家介绍落地页、展示字段勾选相关的决策；单级裂变、当场归因、线下发送、不透明 token、每归属方单 ACTIVE 等仍然成立）
+Status: accepted（取代 ADR-0002 中与本系统 Expert 档案绑定、专家介绍落地页、展示字段勾选相关的决策；单级裂变、当场归因、线下发送、不透明 token 等仍然成立。「每邮箱至多一个 ACTIVE」的作用域由 [ADR-0004](./0004-multi-ops-account-referral-isolation.md) 收窄为每个 Ops Account 下每邮箱至多一个 ACTIVE）
 
-推荐人来自**内部另一套专家库**，不是本系统 Expert/Application。ops 在**独立生成页**用邮箱（及可选显示名，支持 Excel）批量生成 Referral Token；内部同事**线下**把链接发给 Referrer，再由其转发朋友。Token 持久化挂 `referrerEmail`（+ 可选显示名），**不**挂本系统 `applicationId`。每邮箱至多一个 ACTIVE；批量遇已有 ACTIVE 则跳过并报告。旧挂 applicationId 的 token/点击日志/归因外键**清空重来**。
+推荐人来自**内部另一套专家库**，不是本系统 Expert/Application。ops 在**独立生成页**用邮箱（及可选显示名，支持 Excel）批量生成 Referral Token；内部同事**线下**把链接发给 Referrer，再由其转发朋友。Token 持久化挂 `referrerEmail`（+ 可选显示名），**不**挂本系统 `applicationId`。同一 Ops Account 下每邮箱至多一个 ACTIVE（见 ADR-0004）；批量遇已有 ACTIVE 则跳过并报告。旧挂 applicationId 的 token/点击日志/归因外键**清空重来**。
 
 朋友打开推荐链接：看到与邀请入口相似的 **`/apply` 壳**（不展示推荐人信息、无专家介绍页）；点准备上传简历时**仅推荐链路**强制注册/登录；成功后默认回简历上传页（已有更后进度则按状态机）。注册前只保留推荐上下文（点击日志 + 归因 cookie），**不**建 Invitation/Application；注册成功后建影子邀请 + 申报并当场归因。已登录用户直达上传、**不补归因**。邀请链接轨行为零改动。ops 在生成页历史（Token 行展开下游账号 + 运营粗档进度）与专家档案「推荐来源」列查看转化。
 

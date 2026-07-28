@@ -3,7 +3,7 @@ import { hashPassword, verifyPassword } from "@/lib/ops-expert-files/password";
 import {
   createOpsExpertFilesCookie,
   createOpsExpertFilesOperatorDigest,
-  getOpsExpertFilesUsername,
+  isAllowedOpsExpertFilesUsername,
   peekOpsExpertFilesSession,
 } from "@/lib/ops-expert-files/session";
 import { getEnv, getRuntimeMode } from "@/lib/env";
@@ -108,8 +108,7 @@ async function updateAccountPassword(input: {
   });
 }
 
-async function ensureAccountExists() {
-  const username = getOpsExpertFilesUsername();
+async function ensureAccountExists(username: string) {
   const existing = await findAccountByUsername(username);
   if (existing) {
     return existing;
@@ -134,8 +133,7 @@ export async function loginOpsExpertFiles(input: {
   username: string;
   password: string;
 }) {
-  const expectedUsername = getOpsExpertFilesUsername();
-  if (input.username !== expectedUsername) {
+  if (!isAllowedOpsExpertFilesUsername(input.username)) {
     throw new OpsExpertFilesAuthError(
       "用户名或密码错误。",
       401,
@@ -143,7 +141,7 @@ export async function loginOpsExpertFiles(input: {
     );
   }
 
-  const account = await ensureAccountExists();
+  const account = await ensureAccountExists(input.username);
   const valid = await verifyPassword(input.password, account.passwordHash);
   if (!valid) {
     throw new OpsExpertFilesAuthError(
@@ -172,7 +170,7 @@ export async function verifyOpsExpertFilesSession(
     return null;
   }
 
-  if (payload.username !== getOpsExpertFilesUsername()) {
+  if (!isAllowedOpsExpertFilesUsername(payload.username)) {
     return null;
   }
 

@@ -27,18 +27,23 @@ export async function findReferralTokenById(id: string) {
   return prisma.referralToken.findUnique({ where: { id } });
 }
 
-export async function findActiveReferralTokenByEmail(referrerEmail: string) {
+export async function findActiveReferralTokenByEmail(
+  referrerEmail: string,
+  createdBy: string,
+) {
   if (getRuntimeMode() === "memory") {
     return (
       memoryStore().tokens.find(
         (token) =>
-          token.referrerEmail === referrerEmail && token.status === "ACTIVE",
+          token.referrerEmail === referrerEmail &&
+          token.createdBy === createdBy &&
+          token.status === "ACTIVE",
       ) ?? null
     );
   }
   const { prisma } = await import("@/lib/db/prisma");
   return prisma.referralToken.findFirst({
-    where: { referrerEmail, status: "ACTIVE" },
+    where: { referrerEmail, createdBy, status: "ACTIVE" },
     orderBy: { createdAt: "desc" },
   });
 }
@@ -67,6 +72,7 @@ export async function createReferralTokenRecord(
       store.tokens.some(
         (token) =>
           token.referrerEmail === input.referrerEmail &&
+          token.createdBy === input.createdBy &&
           token.status === "ACTIVE",
       )
     ) {
@@ -86,7 +92,11 @@ export async function createReferralTokenRecord(
   try {
     return await runReferralWriteTransaction(prisma, async (transaction) => {
       const active = await transaction.referralToken.findFirst({
-        where: { referrerEmail: input.referrerEmail, status: "ACTIVE" },
+        where: {
+          referrerEmail: input.referrerEmail,
+          createdBy: input.createdBy,
+          status: "ACTIVE",
+        },
         select: { id: true },
       });
       if (active) return null;
@@ -153,6 +163,7 @@ export async function replaceReferralTokenRecord(input: CreateInput) {
     for (const token of memoryStore().tokens) {
       if (
         token.referrerEmail === input.referrerEmail &&
+        token.createdBy === input.createdBy &&
         token.status === "ACTIVE"
       ) {
         Object.assign(token, {
@@ -173,7 +184,11 @@ export async function replaceReferralTokenRecord(input: CreateInput) {
   const { prisma } = await import("@/lib/db/prisma");
   return runReferralWriteTransaction(prisma, async (transaction) => {
     await transaction.referralToken.updateMany({
-      where: { referrerEmail: input.referrerEmail, status: "ACTIVE" },
+      where: {
+        referrerEmail: input.referrerEmail,
+        createdBy: input.createdBy,
+        status: "ACTIVE",
+      },
       data: { status: "DISABLED" },
     });
     return await transaction.referralToken.create({ data: input });

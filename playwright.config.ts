@@ -1,7 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const E2E_BASE_URL = "http://localhost:3100";
-const OPS_USERNAME = process.env.OPS_EXPERT_FILES_USERNAME || "ops";
+const OPS_USERNAME =
+  (process.env.OPS_EXPERT_FILES_USERNAME || "ops")
+    .split(",")
+    .map((part) => part.trim())
+    .find(Boolean) || "ops";
 const OPS_PASSWORD =
   process.env.OPS_EXPERT_FILES_INITIAL_PASSWORD || "e2e-ops-pass-123";
 

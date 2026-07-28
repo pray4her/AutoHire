@@ -52,8 +52,21 @@ export function getOpsExpertFilesCookieMaxAgeSeconds() {
   return getEnv().OPS_EXPERT_FILES_COOKIE_MAX_AGE_SECONDS;
 }
 
-export function getOpsExpertFilesUsername() {
-  return getEnv().OPS_EXPERT_FILES_USERNAME;
+/** Comma-separated Ops Account usernames from env (trimmed, de-duplicated). */
+export function getOpsExpertFilesUsernames(): string[] {
+  const seen = new Set<string>();
+  const usernames: string[] = [];
+  for (const part of getEnv().OPS_EXPERT_FILES_USERNAME.split(",")) {
+    const username = part.trim();
+    if (!username || seen.has(username)) continue;
+    seen.add(username);
+    usernames.push(username);
+  }
+  return usernames;
+}
+
+export function isAllowedOpsExpertFilesUsername(username: string) {
+  return getOpsExpertFilesUsernames().includes(username);
 }
 
 export function createOpsExpertFilesOperatorDigest(username: string) {

@@ -68,7 +68,10 @@ export async function batchGenerateReferralTokens(input: {
       results.push({ skipped: false as const, ...(await generated(record)) });
       continue;
     }
-    const existing = await findActiveReferralTokenByEmail(entry.email);
+    const existing = await findActiveReferralTokenByEmail(
+      entry.email,
+      input.createdBy,
+    );
     if (existing) {
       results.push({ skipped: true as const, ...(await generated(existing)) });
     }

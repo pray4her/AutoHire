@@ -258,4 +258,63 @@ describe("GET /api/ops/referral-tokens and PATCH lifecycle", () => {
     );
     expect(ownRenew.status).toBe(200);
   });
+
+  it("lets different Ops Accounts each hold an ACTIVE token for the same referrer email", async () => {
+    const opsCookie = await authCookieHeader("ops");
+    const aliceCookie = await authCookieHeader("alice");
+
+    const opsCreated = await generate(
+      new NextRequest("http://localhost/api/ops/referral-tokens/generate", {
+        method: "POST",
+        headers: { cookie: opsCookie, "content-type": "application/json" },
+        body: JSON.stringify({ entries: [{ email: "shared@example.com" }] }),
+      }),
+    );
+    expect(opsCreated.status).toBe(201);
+    const opsPayload = (await opsCreated.json()) as {
+      results: Array<{ skipped: boolean; plaintextToken: string; token: { id: string } }>;
+    };
+    expect(opsPayload.results[0]?.skipped).toBe(false);
+
+    const aliceCreated = await generate(
+      new NextRequest("http://localhost/api/ops/referral-tokens/generate", {
+        method: "POST",
+        headers: { cookie: aliceCookie, "content-type": "application/json" },
+        body: JSON.stringify({ entries: [{ email: "shared@example.com" }] }),
+      }),
+    );
+    expect(aliceCreated.status).toBe(201);
+    const alicePayload = (await aliceCreated.json()) as {
+      results: Array<{ skipped: boolean; plaintextToken: string; token: { id: string } }>;
+    };
+    expect(alicePayload.results[0]?.skipped).toBe(false);
+    expect(alicePayload.results[0]?.plaintextToken).not.toBe(
+      opsPayload.results[0]?.plaintextToken,
+    );
+
+    const opsList = await listTokens(
+      new NextRequest("http://localhost/api/ops/referral-tokens", {
+        headers: { cookie: opsCookie },
+      }),
+    );
+    const aliceList = await listTokens(
+      new NextRequest("http://localhost/api/ops/referral-tokens", {
+        headers: { cookie: aliceCookie },
+      }),
+    );
+    await expect(opsList.json()).resolves.toMatchObject({
+      items: [{ id: opsPayload.results[0]!.token.id }],
+    });
+    await expect(aliceList.json()).resolves.toMatchObject({
+      items: [{ id: alicePayload.results[0]!.token.id }],
+    });
+
+    expect(
+      storedReferralTokens().filter(
+        (token) =>
+          token.referrerEmail === "shared@example.com" &&
+          token.status === "ACTIVE",
+      ),
+    ).toHaveLength(2);
+  });
 });

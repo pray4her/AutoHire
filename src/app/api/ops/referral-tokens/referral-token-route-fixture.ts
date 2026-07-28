@@ -36,7 +36,7 @@ export function setupReferralTokenRouteTests(): void {
       APP_RUNTIME_MODE: "memory",
       APP_BASE_URL: "https://example.test",
       INVITE_TOKEN_SECRET: "ops-referral-route-secret",
-      OPS_EXPERT_FILES_USERNAME: "ops",
+      OPS_EXPERT_FILES_USERNAME: "ops,alice",
       OPS_EXPERT_FILES_INITIAL_PASSWORD: "initial-pass-123",
       OPS_EXPERT_FILES_COOKIE_NAME: "ops_ef_referral_test_cookie",
       OPS_EXPERT_FILES_COOKIE_MAX_AGE_SECONDS: "300",
@@ -66,13 +66,15 @@ export function storedReferralTokens(): readonly StoredReferralToken[] {
   );
 }
 
-export async function authCookieHeader(): Promise<string> {
+export async function authCookieHeader(
+  username = "ops",
+): Promise<string> {
   const response = await login(
     new NextRequest("http://localhost/api/ops/expert-files/auth/login", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        username: "ops",
+        username,
         password: "initial-pass-123",
       }),
     }),

@@ -27,11 +27,11 @@ _Avoid_: open sign-up, registered user flow
 _Avoid_: synthetic invite, auto invite
 
 **Referrer(推荐人)**:
-内部另一套专家库中的人,由 ops 用邮箱(及可选显示名)录入本系统,作为推荐链接的归属方。不是本系统的 Expert(申报者)。
+内部另一套专家库中的人,由 Ops 用邮箱(及可选显示名)录入本系统,作为推荐链接面向朋友的归属方。不是本系统的 Expert(申报者)。
 _Avoid_: Expert, 推荐专家(易与申报专家混淆), referring expert in AutoHire DB
 
 **Referral Token(推荐 token)**:
-与某位 Referrer(邮箱 + 可选显示名)绑定的不透明随机串,用于生成推荐链接。一条有效链可服务多名朋友。带过期时间,ops 可作废、续期、重新生成。不挂本系统 Application/Expert。
+与某位 Referrer(邮箱 + 可选显示名)绑定的不透明随机串,用于生成推荐链接。一条有效链可服务多名朋友。带过期时间;创建它的 Ops Account 可作废、续期、重新生成。不挂本系统 Application/Expert。同一 Ops Account 下同一 Referrer 邮箱至多一条 ACTIVE;不同 Ops Account 可各有一条。
 _Avoid_: expert token, referral code, invite token
 
 **Referral Link(推荐链接)**:
@@ -51,5 +51,9 @@ _Avoid_: referral chain, referral tracking(单级,不存在多级链)
 ### 角色
 
 **Ops(运营方)**:
-平台内部运营人员。管理邀请批次、专家档案、推荐人与推荐 token,通过独立的 ops 密码登录访问后台。
+平台内部运营人员这一角色。管理邀请批次、专家档案、推荐人与推荐 token;通过 Ops Account 登录共用的运营后台。邀请与专家档案对所有已登录 Ops 共享;推荐 token 按创建它的 Ops Account 隔离。
 _Avoid_: admin, staff, operator
+
+**Ops Account(运营账号)**:
+一名 Ops 的登录身份(用户名 + 密码)。由部署配置预置允许的用户名名单,共用初始密码,首次登录后各自改密。推荐 token 的创建归属落在 Ops Account 上;每个账号只能看见并操作自己创建的推荐链接,无跨账号特权视图。
+_Avoid_: operator, admin account, ops user
