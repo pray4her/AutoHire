@@ -177,7 +177,7 @@ describe("ApplyEntryPage", () => {
     expect(
       screen.queryByText("apply-entry-client"),
     ).not.toBeInTheDocument();
-    const loginCta = screen.getByText("登录账号，继续你的申报");
+    const loginCta = screen.getByText("Sign in to continue your application");
     expect(loginCta.closest("a")).toHaveAttribute("href", "/login");
     expect(redirectMock).not.toHaveBeenCalled();
   });

@@ -123,7 +123,7 @@ function ApplyEntryAccessError({
           {code === "SESSION_REQUIRED" ? (
             <div className="mt-6 flex justify-center">
               <Button nativeButton={false} render={<Link href="/login" />}>
-                登录账号，继续你的申报
+                Sign in to continue your application
               </Button>
             </div>
           ) : null}
