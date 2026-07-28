@@ -8,7 +8,7 @@ import { SignOutButton } from "@/features/account-auth/components/sign-out-butto
 import { getAccountSession } from "@/lib/account-auth/session";
 
 export const metadata = {
-  title: "我的账号",
+  title: "My Account",
 };
 
 export default async function AccountPage() {
@@ -21,17 +21,17 @@ export default async function AccountPage() {
 
   return (
     <AuthPageShell
-      title="我的账号"
-      subtitle="你的申报已关联到此账号，可随时回访继续填写或查询状态。"
+      title="My Account"
+      subtitle="Your application is linked to this account — return anytime to continue or check its status."
     >
       <div className="flex flex-col gap-4">
         <div className="flex flex-col gap-1">
-          <p className="text-sm font-medium">登录邮箱</p>
+          <p className="text-sm font-medium">Signed in as</p>
           <p className="text-muted-foreground text-sm">{session.user.email}</p>
         </div>
         <div className="flex items-center gap-3">
           <Button nativeButton={false} render={<Link href="/apply" />}>
-            进入我的申报
+            Go to My Application
           </Button>
           <SignOutButton />
         </div>

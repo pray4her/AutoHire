@@ -6,7 +6,12 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { authClient } from "@/lib/account-auth/client";
@@ -35,12 +40,12 @@ export function ResetPasswordForm({
         password,
       });
       if (error) {
-        throw new Error(otpErrorMessage(error, "重置失败。"));
+        throw new Error(otpErrorMessage(error, "Reset failed."));
       }
-      toast.success("密码已重置，请使用新密码登录。");
+      toast.success("Password reset. Sign in with your new password.");
       router.replace("/login");
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "重置失败。");
+      toast.error(error instanceof Error ? error.message : "Reset failed.");
     } finally {
       setSubmitting(false);
     }
@@ -50,7 +55,7 @@ export function ResetPasswordForm({
     <form onSubmit={onSubmit}>
       <FieldGroup className="gap-4">
         <Field>
-          <FieldLabel htmlFor="reset-email">邮箱</FieldLabel>
+          <FieldLabel htmlFor="reset-email">Email</FieldLabel>
           <Input
             id="reset-email"
             type="email"
@@ -61,7 +66,7 @@ export function ResetPasswordForm({
           />
         </Field>
         <Field>
-          <FieldLabel htmlFor="reset-otp">邮箱验证码</FieldLabel>
+          <FieldLabel htmlFor="reset-otp">Verification Code</FieldLabel>
           <Input
             id="reset-otp"
             inputMode="numeric"
@@ -73,7 +78,7 @@ export function ResetPasswordForm({
           />
         </Field>
         <Field>
-          <FieldLabel htmlFor="reset-password">新密码</FieldLabel>
+          <FieldLabel htmlFor="reset-password">New Password</FieldLabel>
           <Input
             id="reset-password"
             type="password"
@@ -83,16 +88,16 @@ export function ResetPasswordForm({
             onChange={(event) => setPassword(event.target.value)}
             required
           />
-          <p className="text-muted-foreground text-xs">至少 8 个字符。</p>
+          <FieldDescription>At least 8 characters.</FieldDescription>
         </Field>
         <Button type="submit" className="w-full" disabled={submitting}>
           {submitting ? <Spinner data-icon="inline-start" /> : null}
-          重置密码
+          Reset Password
         </Button>
         <p className="text-muted-foreground text-center text-sm">
-          想起来了？{" "}
+          Remembered it?{" "}
           <Link href="/login" className="text-primary underline">
-            返回登录
+            Back to sign in
           </Link>
         </p>
       </FieldGroup>

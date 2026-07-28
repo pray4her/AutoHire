@@ -4,7 +4,7 @@ import { AuthPageShell } from "@/features/account-auth/components/auth-page-shel
 import { ResetPasswordForm } from "@/features/account-auth/components/reset-password-form";
 
 export const metadata = {
-  title: "重置密码",
+  title: "Reset Password",
 };
 
 type ResetPasswordPageProps = {
@@ -21,8 +21,8 @@ export default async function ResetPasswordPage({
 
   return (
     <AuthPageShell
-      title="重置密码"
-      subtitle="输入邮箱收到的验证码并设置新密码。"
+      title="Reset password"
+      subtitle="Enter the code from your email and choose a new password."
     >
       <ResetPasswordForm initialEmail={initialEmail} />
     </AuthPageShell>

@@ -19,7 +19,7 @@ export function SignOutButton() {
       router.replace("/login");
       router.refresh();
     } catch {
-      toast.error("登出失败，请重试。");
+      toast.error("Sign-out failed. Please try again.");
       setSubmitting(false);
     }
   }
@@ -32,7 +32,7 @@ export function SignOutButton() {
       onClick={onSignOut}
     >
       {submitting ? <Spinner data-icon="inline-start" /> : null}
-      退出登录
+      Sign Out
     </Button>
   );
 }

@@ -24,12 +24,14 @@ export function ForgotPasswordForm() {
         type: "forget-password",
       });
       if (error) {
-        throw new Error(error.message ?? "发送失败。");
+        throw new Error(error.message ?? "Failed to send the code.");
       }
-      toast.success("重置验证码已发送到你的邮箱。");
+      toast.success(`Reset code sent to ${email}.`);
       router.push(`/reset-password?email=${encodeURIComponent(email)}`);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "发送失败。");
+      toast.error(
+        error instanceof Error ? error.message : "Failed to send the code.",
+      );
     } finally {
       setSubmitting(false);
     }
@@ -39,7 +41,7 @@ export function ForgotPasswordForm() {
     <form onSubmit={onSubmit}>
       <FieldGroup className="gap-4">
         <Field>
-          <FieldLabel htmlFor="forgot-email">邮箱</FieldLabel>
+          <FieldLabel htmlFor="forgot-email">Email</FieldLabel>
           <Input
             id="forgot-email"
             type="email"
@@ -51,7 +53,7 @@ export function ForgotPasswordForm() {
         </Field>
         <Button type="submit" className="w-full" disabled={submitting}>
           {submitting ? <Spinner data-icon="inline-start" /> : null}
-          发送重置验证码
+          Send Reset Code
         </Button>
       </FieldGroup>
     </form>
