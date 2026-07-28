@@ -33,10 +33,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
     : undefined;
 
   return (
-    <AuthPageShell
-      title="Create your account"
-      subtitle="Verify your email once — you're signed in right after."
-    >
+    <AuthPageShell title="Create your account">
       <SignupForm
         initialEmail={initialEmail}
         referralPlaintextToken={referralPlaintextToken}

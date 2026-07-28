@@ -12,12 +12,6 @@ import {
   FieldGroup,
   FieldLabel,
 } from "@/components/ui/field";
-import {
-  InputGroup,
-  InputGroupAddon,
-  InputGroupButton,
-  InputGroupInput,
-} from "@/components/ui/input-group";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { captureReferralContextAction } from "@/features/account-auth/actions";
@@ -161,31 +155,31 @@ export function SignupForm({
       <FieldGroup className="gap-4">
         <Field>
           <FieldLabel htmlFor="signup-email">Email</FieldLabel>
-          <InputGroup>
-            <InputGroupInput
+          <div className="flex items-center gap-2">
+            <Input
               id="signup-email"
               type="email"
               autoComplete="email"
-              placeholder="you@example.com"
+              className="flex-1"
               value={email}
               onChange={(event) => setEmail(event.target.value.trim())}
               required
             />
-            <InputGroupAddon align="inline-end">
-              <InputGroupButton
-                variant="outline"
-                disabled={sendingCode || countdown > 0 || !isValidEmail(email)}
-                onClick={() => void onSendCode()}
-              >
-                {sendingCode ? <Spinner data-icon="inline-start" /> : null}
-                {countdown > 0
-                  ? `${countdown}s`
-                  : codeSent
-                    ? "Resend"
-                    : "Send Code"}
-              </InputGroupButton>
-            </InputGroupAddon>
-          </InputGroup>
+            <Button
+              type="button"
+              variant="outline"
+              className="shrink-0"
+              disabled={sendingCode || countdown > 0 || !isValidEmail(email)}
+              onClick={() => void onSendCode()}
+            >
+              {sendingCode ? <Spinner data-icon="inline-start" /> : null}
+              {countdown > 0
+                ? `${countdown}s`
+                : codeSent
+                  ? "Resend"
+                  : "Send Code"}
+            </Button>
+          </div>
         </Field>
         <Field>
           <FieldLabel htmlFor="signup-password">Password</FieldLabel>

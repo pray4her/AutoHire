@@ -7,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 
 type AuthPageShellProps = {
   title: string;
-  subtitle: string;
+  subtitle?: string;
   children: ReactNode;
 };
 
@@ -98,30 +98,21 @@ export function AuthPageShell({
         initial={animate ? "hidden" : false}
         animate="show"
       >
-        <header className="flex flex-col items-center gap-4 text-center">
-          <motion.div
-            variants={itemVariants}
-            className="flex flex-col items-center gap-4"
-          >
-            <div className="flex size-12 items-center justify-center rounded-2xl bg-[linear-gradient(135deg,var(--primary),var(--primary-strong))] text-xl font-semibold text-white shadow-[0_12px_28px_rgba(10,25,47,0.28)]">
-              G
-            </div>
-            <p className="text-[0.7rem] font-medium tracking-[0.24em] text-[color:var(--foreground-soft)] uppercase">
-              GESF · Expert Application
-            </p>
-          </motion.div>
+        <header className="flex flex-col items-center gap-3 text-center">
           <motion.h1
             variants={itemVariants}
             className="font-heading text-3xl font-semibold tracking-[-0.03em] text-[color:var(--primary)]"
           >
             {title}
           </motion.h1>
-          <motion.p
-            variants={itemVariants}
-            className="max-w-sm text-sm leading-6 text-[color:var(--foreground-soft)]"
-          >
-            {subtitle}
-          </motion.p>
+          {subtitle ? (
+            <motion.p
+              variants={itemVariants}
+              className="max-w-sm text-sm leading-6 text-[color:var(--foreground-soft)]"
+            >
+              {subtitle}
+            </motion.p>
+          ) : null}
         </header>
 
         <motion.div variants={itemVariants} className="w-full">
