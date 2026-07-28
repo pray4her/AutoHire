@@ -35,9 +35,7 @@ export default async function SignupPage({ searchParams }: SignupPageProps) {
   return (
     <AuthPageShell
       title="Create your account"
-      subtitle="Sign up with your email — you will be signed in once the code is verified."
-      cardTitle="Sign Up"
-      cardDescription="Enter your email and password, then verify the 6-digit code we send you."
+      subtitle="Verify your email once — you're signed in right after."
     >
       <SignupForm
         initialEmail={initialEmail}

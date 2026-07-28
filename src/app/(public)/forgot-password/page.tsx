@@ -14,7 +14,6 @@ export default async function ForgotPasswordPage() {
     <AuthPageShell
       title="忘记密码"
       subtitle="输入注册邮箱，我们会发送重置验证码。"
-      cardTitle="找回密码"
     >
       <ForgotPasswordForm />
     </AuthPageShell>

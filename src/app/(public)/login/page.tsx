@@ -26,8 +26,7 @@ export default async function LoginPage({
   return (
     <AuthPageShell
       title="Welcome back"
-      subtitle="Sign in with your registered email and password to return to your application."
-      cardTitle="Sign In"
+      subtitle="Sign in to continue your application."
     >
       <LoginForm nextPath={nextPath} />
     </AuthPageShell>

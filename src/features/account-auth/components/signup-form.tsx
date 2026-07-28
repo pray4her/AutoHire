@@ -6,7 +6,18 @@ import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 import { Button } from "@/components/ui/button";
-import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
+import {
+  Field,
+  FieldDescription,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+} from "@/components/ui/input-group";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 import { captureReferralContextAction } from "@/features/account-auth/actions";
@@ -120,8 +131,7 @@ export function SignupForm({
       });
       // An account left unverified by an earlier attempt is fine here — the
       // OTP sign-in below completes verification. Any other failure aborts.
-      const accountAlreadyExisted =
-        signUpError?.code === "USER_ALREADY_EXISTS";
+      const accountAlreadyExisted = signUpError?.code === "USER_ALREADY_EXISTS";
       if (signUpError && !accountAlreadyExisted) {
         throw new Error(signUpError.message ?? "Sign-up failed.");
       }
@@ -151,31 +161,31 @@ export function SignupForm({
       <FieldGroup className="gap-4">
         <Field>
           <FieldLabel htmlFor="signup-email">Email</FieldLabel>
-          <div className="flex items-center gap-2">
-            <Input
+          <InputGroup>
+            <InputGroupInput
               id="signup-email"
               type="email"
               autoComplete="email"
-              className="flex-1"
+              placeholder="you@example.com"
               value={email}
               onChange={(event) => setEmail(event.target.value.trim())}
               required
             />
-            <Button
-              type="button"
-              variant="outline"
-              className="shrink-0"
-              disabled={sendingCode || countdown > 0 || !isValidEmail(email)}
-              onClick={() => void onSendCode()}
-            >
-              {sendingCode ? <Spinner data-icon="inline-start" /> : null}
-              {countdown > 0
-                ? `Resend in ${countdown}s`
-                : codeSent
-                  ? "Resend Code"
-                  : "Send Code"}
-            </Button>
-          </div>
+            <InputGroupAddon align="inline-end">
+              <InputGroupButton
+                variant="outline"
+                disabled={sendingCode || countdown > 0 || !isValidEmail(email)}
+                onClick={() => void onSendCode()}
+              >
+                {sendingCode ? <Spinner data-icon="inline-start" /> : null}
+                {countdown > 0
+                  ? `${countdown}s`
+                  : codeSent
+                    ? "Resend"
+                    : "Send Code"}
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
         </Field>
         <Field>
           <FieldLabel htmlFor="signup-password">Password</FieldLabel>
@@ -188,9 +198,7 @@ export function SignupForm({
             onChange={(event) => setPassword(event.target.value)}
             required
           />
-          <p className="text-muted-foreground text-xs">
-            At least 8 characters.
-          </p>
+          <FieldDescription>At least 8 characters.</FieldDescription>
         </Field>
         <Field>
           <FieldLabel htmlFor="signup-otp">Verification Code</FieldLabel>
@@ -203,11 +211,11 @@ export function SignupForm({
             onChange={(event) => setOtp(event.target.value.trim())}
             required
           />
-          <p className="text-muted-foreground text-xs">
+          <FieldDescription>
             {codeSent
-              ? `Enter the 6-digit code sent to ${email}. It is valid for 10 minutes.`
-              : 'Click "Send Code" to receive a 6-digit code by email.'}
-          </p>
+              ? `Sent to ${email} · valid for 10 minutes.`
+              : "We'll email you a 6-digit code."}
+          </FieldDescription>
         </Field>
         <Button
           type="submit"

@@ -23,7 +23,6 @@ export default async function ResetPasswordPage({
     <AuthPageShell
       title="重置密码"
       subtitle="输入邮箱收到的验证码并设置新密码。"
-      cardTitle="设置新密码"
     >
       <ResetPasswordForm initialEmail={initialEmail} />
     </AuthPageShell>
