@@ -1,5 +1,11 @@
-import { createOrRestoreApplication } from "@/lib/application/service";
-import { generateInvitePlaintextToken, hashInviteToken } from "@/lib/auth/token";
+import {
+  confirmIntro,
+  createOrRestoreApplication,
+} from "@/lib/application/service";
+import {
+  generateInvitePlaintextToken,
+  hashInviteToken,
+} from "@/lib/auth/token";
 import {
   createShadowInvitationWithApplication,
   findShadowInvitationByEmail,
@@ -19,7 +25,10 @@ export function buildAccountTrackExpertId(userId: string) {
  *
  * Optional referralPlaintextToken establishes Referral Attribution only when
  * creating a new application and the token is ACTIVE + unexpired. Existing
- * applications are never backfilled or rewritten.
+ * applications are never backfilled or rewritten. A referral-attributed
+ * application starts at INTRO_VIEWED: the introduction was already presented
+ * and confirmed on the referral landing, so registration continues straight
+ * to the CV upload page.
  */
 export async function ensureAccountApplication(input: {
   userId: string;
@@ -41,12 +50,24 @@ export async function ensureAccountApplication(input: {
   }
 
   try {
-    return await createShadowInvitationWithApplication({
+    const created = await createShadowInvitationWithApplication({
       expertId: buildAccountTrackExpertId(input.userId),
       email: input.email,
       tokenHash: hashInviteToken(generateInvitePlaintextToken()),
       referralTokenId,
     });
+    if (!referralTokenId) {
+      return created;
+    }
+    // The referral landing already presented the program introduction and the
+    // applicant confirmed it via "Continue to CV Submission", so a referral-
+    // attributed registration starts past the intro step and lands directly
+    // on the CV upload page instead of bouncing through /apply again.
+    const confirmed = await confirmIntro(created.application.id);
+    return {
+      invitation: created.invitation,
+      application: confirmed ?? created.application,
+    };
   } catch (error) {
     // A concurrent registration for the same email may have won the race on
     // the shadow-email unique index; fall back to the existing records.

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronRight } from "lucide-react";
 import { useRouter } from "next/navigation";
 
@@ -10,22 +10,31 @@ import {
   PageShell,
   StatusBanner,
 } from "@/components/ui/page-shell";
+import {
+  buildInviteNoticeStorageKey,
+  hasSeenInviteNotice,
+  rememberInviteNotice,
+} from "@/features/application/components/apply-entry-client-storage";
 import { ApplyEntryFooterNav } from "@/features/application/components/apply-entry-footer-nav";
 import {
   APPLICATION_DEADLINE_PILL,
   APPLY_ENTRY_ACCORDION_SECTION_CLASS,
+  FIXED_INVITATION_LINK_EXPIRATION_LABEL,
   INTRO_DESCRIPTION,
   type IntroSectionId,
 } from "@/features/application/components/apply-entry-intro-content";
 import { ApplyEntryProgramIntroduction } from "@/features/application/components/apply-entry-program-introduction";
+import { ApplyInviteNoticeDialog } from "@/features/application/components/apply-invite-notice-dialog";
 import { APPLICATION_FLOW_STEPS_WITH_INTRO } from "@/features/application/constants";
 import type { PublicReferralResult } from "@/lib/referral-tokens/public-service";
 
 /**
  * Referral links land on the same entry shell as the invitation /apply page:
- * program introduction plus a single "Continue to CV Submission" action. The
- * account gate lives behind that action (via /api/referrals/context), so no
- * invitation or application is created before registration.
+ * program introduction, the Important Notice dialog and a single "Continue to
+ * CV Submission" action. The account gate lives behind that action (via
+ * /api/referrals/context), so no invitation or application is created before
+ * registration; the confirmed intro is carried into registration, which
+ * continues straight to the CV upload page.
  */
 export function ReferralLanding({
   result,
@@ -39,6 +48,20 @@ export function ReferralLanding({
     () => new Set(["overview"]),
   );
   const [isNavigating, setIsNavigating] = useState(false);
+  const [isInviteNoticeOpen, setIsInviteNoticeOpen] = useState(false);
+
+  useEffect(() => {
+    if (result.status !== "VALID") {
+      return;
+    }
+    const storageKey = buildInviteNoticeStorageKey(null, referralToken);
+    if (!storageKey || hasSeenInviteNotice(storageKey)) {
+      return;
+    }
+    // Open after the first paint so hydration matches the server render.
+    const frame = requestAnimationFrame(() => setIsInviteNoticeOpen(true));
+    return () => cancelAnimationFrame(frame);
+  }, [referralToken, result.status]);
 
   function toggleSection(sectionId: IntroSectionId) {
     setOpenSections((current) => {
@@ -50,6 +73,16 @@ export function ReferralLanding({
       }
       return next;
     });
+  }
+
+  function handleInviteNoticeDismiss(dontShowAgain: boolean) {
+    if (dontShowAgain) {
+      const storageKey = buildInviteNoticeStorageKey(null, referralToken);
+      if (storageKey) {
+        rememberInviteNotice(storageKey);
+      }
+    }
+    setIsInviteNoticeOpen(false);
   }
 
   if (result.status === "UNAVAILABLE") {
@@ -90,6 +123,13 @@ export function ReferralLanding({
 
   return (
     <PageFrame>
+      <ApplyInviteNoticeDialog
+        invitationExpirationLabel={FIXED_INVITATION_LINK_EXPIRATION_LABEL}
+        isOpen={isInviteNoticeOpen}
+        onOpenChange={setIsInviteNoticeOpen}
+        onDismiss={handleInviteNoticeDismiss}
+      />
+
       <PageShell
         title="Global Excellent Scientists Fund"
         description={INTRO_DESCRIPTION}

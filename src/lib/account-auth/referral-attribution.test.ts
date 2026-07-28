@@ -54,6 +54,23 @@ describe("referral attribution on account registration", () => {
     expect(application?.referralTokenId).toBe(record.id);
   });
 
+  it("starts a referral-attributed application past the intro step", async () => {
+    const { plaintextToken } = await seedActiveReferralToken();
+    const result = await ensureAccountApplication({
+      userId: "user_friend_intro",
+      email: "friend-intro@example.com",
+      referralPlaintextToken: plaintextToken,
+    });
+    // The referral landing presents the introduction and the applicant
+    // confirms it there, so registration continues at the CV upload step
+    // instead of bouncing through /apply again.
+    const application = await getApplicationById(result.application.id);
+    expect(application).toMatchObject({
+      applicationStatus: "INTRO_VIEWED",
+      currentStep: "resume",
+    });
+  });
+
   it("skips attribution when the referral token is disabled", async () => {
     const { record, plaintextToken } = await seedActiveReferralToken();
     await disableReferralTokenById(record.id);
@@ -64,6 +81,7 @@ describe("referral attribution on account registration", () => {
     });
     const application = await getApplicationById(result.application.id);
     expect(application?.referralTokenId).toBeNull();
+    expect(application?.applicationStatus).toBe("INIT");
   });
 
   it("does not rewrite attribution on an existing account application", async () => {

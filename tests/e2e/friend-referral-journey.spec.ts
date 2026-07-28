@@ -82,13 +82,8 @@ async function registerFriend(
   await page.locator("#signup-otp").fill(otp);
   await page.getByRole("button", { name: "Create Account" }).click();
 
-  // A fresh application starts at INIT, so the flow state machine brings the
-  // friend to the apply entry page first; continuing from there reaches the
-  // CV upload page.
-  const understandButton = page.getByRole("button", { name: "I understand" });
-  await expect(understandButton).toBeVisible({ timeout: 20_000 });
-  await understandButton.click();
-  await page.getByRole("button", { name: "Continue to CV Submission" }).click();
+  // The intro was confirmed on the referral landing, so the referral-
+  // attributed registration continues straight to the CV upload page.
   await expect(page).toHaveURL(/\/apply\/resume/, { timeout: 20_000 });
 }
 
@@ -114,6 +109,13 @@ test("friend referral journey attributes registration in ops views", async ({
 
     const friendPage = await context.newPage();
     await friendPage.goto(referralPath);
+    // The referral landing mirrors the /apply entry, including the Important
+    // Notice dialog, which must be acknowledged before continuing.
+    const understandButton = friendPage.getByRole("button", {
+      name: "I understand",
+    });
+    await expect(understandButton).toBeVisible({ timeout: 15_000 });
+    await understandButton.click();
     const continueButton = friendPage.getByRole("button", {
       name: "Continue to CV Submission",
     });
