@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { ApplyFlowChrome } from "@/features/application/components/apply-flow-chrome";
 
-export default function ApplyLayout({
+export default function ReferralLayout({
   children,
 }: Readonly<{
   children: ReactNode;
