@@ -24,6 +24,7 @@
     "db:seed": "bun prisma/seed.ts",
     "oss:latest-expert-material": "bun scripts/latest-expert-material-oss.ts",
     "db:backfill-customer-no": "bun scripts/backfill-customer-no.ts",
+    "db:backfill-extraction-export": "bun scripts/backfill-extraction-export-supplement-requests.ts",
     "prepare": "husky"
   },
   "lint-staged": {
