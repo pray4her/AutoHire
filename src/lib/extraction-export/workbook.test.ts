@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import * as XLSX from "xlsx";
 
 import { ALL_CV_EXTRACTION_FIELD_ROWS } from "@/features/analysis/initial-cv-review-extract";
 import {
@@ -7,6 +8,7 @@ import {
 import {
   buildExtractionExportRow,
   buildExtractionExportWorkbookBuffer,
+  buildSupplementRequestExportRows,
   getExtractionExportColumnOrder,
   hashExtractionExportContent,
 } from "@/lib/extraction-export/workbook";
@@ -135,5 +137,152 @@ describe("extraction export workbook", () => {
     expect(Buffer.isBuffer(buffer)).toBe(true);
     expect(buffer.byteLength).toBeGreaterThan(0);
     expect(contentSha256).toMatch(/^[a-f0-9]{64}$/);
+  });
+
+  it("maps isLatest supplement requests into export rows with joined materials", () => {
+    const rows = buildSupplementRequestExportRows([
+      {
+        category: "IDENTITY",
+        title: "Passport bio page",
+        reason: "Unreadable scan",
+        suggestedMaterials: ["Passport bio page", "National ID"],
+        status: "PENDING",
+        isSatisfied: false,
+        satisfiedAt: null,
+      },
+      {
+        category: "EDUCATION",
+        title: "Degree certificate",
+        reason: null,
+        suggestedMaterials: [],
+        status: "SATISFIED",
+        isSatisfied: true,
+        satisfiedAt: new Date("2026-07-10T08:00:00.000Z"),
+      },
+    ]);
+
+    expect(rows).toEqual([
+      {
+        category: "IDENTITY",
+        title: "Passport bio page",
+        reason: "Unreadable scan",
+        suggested_materials: "Passport bio page; National ID",
+        status: "PENDING",
+        is_satisfied: "false",
+        satisfied_at: "",
+      },
+      {
+        category: "EDUCATION",
+        title: "Degree certificate",
+        reason: "",
+        suggested_materials: "",
+        status: "SATISFIED",
+        is_satisfied: "true",
+        satisfied_at: "2026-07-10T08:00:00.000Z",
+      },
+    ]);
+  });
+
+  it("always includes supplement_requests sheet, with headers only when empty", () => {
+    const empty = buildExtractionExportWorkbookBuffer({
+      applicationId: "app_001",
+      expertId: "expert_001",
+      eligibilityResult: "ELIGIBLE",
+      extractedFields: { name: "Jane" },
+      screening: {},
+      feedback: null,
+      supplementRequests: [],
+      exportedAt: new Date("2026-07-09T06:00:00.000Z"),
+    });
+
+    const emptyWorkbook = XLSX.read(empty.buffer, { type: "buffer" });
+    expect(emptyWorkbook.SheetNames).toEqual([
+      "extraction",
+      "supplement_requests",
+    ]);
+    expect(
+      XLSX.utils.sheet_to_json(emptyWorkbook.Sheets.supplement_requests!, {
+        header: 1,
+      }),
+    ).toEqual([
+      [
+        "category",
+        "title",
+        "reason",
+        "suggested_materials",
+        "status",
+        "is_satisfied",
+        "satisfied_at",
+      ],
+    ]);
+
+    const withRows = buildExtractionExportWorkbookBuffer({
+      applicationId: "app_001",
+      expertId: "expert_001",
+      eligibilityResult: "ELIGIBLE",
+      extractedFields: { name: "Jane" },
+      screening: {},
+      feedback: null,
+      supplementRequests: [
+        {
+          category: "IDENTITY",
+          title: "Passport bio page",
+          reason: "Missing",
+          suggestedMaterials: ["Passport"],
+          status: "PENDING",
+          isSatisfied: false,
+          satisfiedAt: null,
+        },
+      ],
+      exportedAt: new Date("2026-07-09T06:00:00.000Z"),
+    });
+
+    const populated = XLSX.read(withRows.buffer, { type: "buffer" });
+    expect(
+      XLSX.utils.sheet_to_json(populated.Sheets.supplement_requests!),
+    ).toEqual([
+      {
+        category: "IDENTITY",
+        title: "Passport bio page",
+        reason: "Missing",
+        suggested_materials: "Passport",
+        status: "PENDING",
+        is_satisfied: "false",
+        satisfied_at: "",
+      },
+    ]);
+  });
+
+  it("changes content hash when supplement requests change", () => {
+    const base = {
+      applicationId: "app_001",
+      expertId: "expert_001",
+      eligibilityResult: "ELIGIBLE" as const,
+      extractedFields: { name: "Jane" },
+      screening: {},
+      feedback: null,
+      exportedAt: new Date("2026-07-09T06:00:00.000Z"),
+    };
+
+    const withoutRequests = buildExtractionExportWorkbookBuffer({
+      ...base,
+      supplementRequests: [],
+    });
+    const withRequests = buildExtractionExportWorkbookBuffer({
+      ...base,
+      supplementRequests: [
+        {
+          category: "IDENTITY",
+          title: "Passport bio page",
+          reason: "Missing",
+          suggestedMaterials: ["Passport"],
+          status: "PENDING",
+          isSatisfied: false,
+          satisfiedAt: null,
+        },
+      ],
+    });
+
+    expect(withoutRequests.contentSha256).not.toBe(withRequests.contentSha256);
   });
 });

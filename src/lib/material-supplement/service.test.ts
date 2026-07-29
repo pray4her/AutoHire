@@ -3,10 +3,15 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 const trySendInitialMaterialReviewReportEmailMock = vi.hoisted(() =>
   vi.fn().mockResolvedValue("sent"),
 );
+const scheduleConfirmedExtractionExportMock = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/initial-material-review-report-email/orchestrator", () => ({
   trySendInitialMaterialReviewReportEmail:
     trySendInitialMaterialReviewReportEmailMock,
+}));
+
+vi.mock("@/lib/extraction-export/orchestrator", () => ({
+  scheduleConfirmedExtractionExport: scheduleConfirmedExtractionExportMock,
 }));
 
 import {
@@ -352,6 +357,7 @@ describe("material supplement review run sync", () => {
     vi.restoreAllMocks();
     trySendInitialMaterialReviewReportEmailMock.mockClear();
     trySendInitialMaterialReviewReportEmailMock.mockResolvedValue("sent");
+    scheduleConfirmedExtractionExportMock.mockClear();
   });
 
   it("returns a review run status with category states", async () => {
@@ -424,6 +430,10 @@ describe("material supplement review run sync", () => {
       "PATENT",
       "HONOR",
     ]);
+    expect(scheduleConfirmedExtractionExportMock).toHaveBeenCalledWith({
+      applicationId: "app_secondary",
+      trigger: "MATERIAL_REVIEW",
+    });
     expect(secondSync).toEqual({
       reviewRunId: initial.reviewRunId,
       status: "COMPLETED",

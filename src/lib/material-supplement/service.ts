@@ -22,6 +22,7 @@ import {
   updateMaterialReviewRun,
   createMaterialReviewRun,
 } from "@/lib/data/store";
+import { scheduleConfirmedExtractionExport } from "@/lib/extraction-export/orchestrator";
 import {
   createInitialMaterialReview,
   getMaterialReviewResult,
@@ -46,6 +47,15 @@ import type { z } from "zod";
 
 const REVIEW_PROCESSING_STATUSES: ReadonlySet<MaterialCategoryReviewStatus> =
   new Set(["QUEUED", "PROCESSING"]);
+
+function scheduleExtractionExportAfterMaterialReviewCompleted(
+  applicationId: string,
+) {
+  scheduleConfirmedExtractionExport({
+    applicationId,
+    trigger: "MATERIAL_REVIEW",
+  });
+}
 
 export function assertSupportedSupplementCategory(
   category: unknown,
@@ -381,6 +391,13 @@ export async function syncSupplementReviewRun(
     }
 
     if (
+      syncedResult.reviewRun.status === "COMPLETED" &&
+      syncedResult.updatedCategories.length > 0
+    ) {
+      scheduleExtractionExportAfterMaterialReviewCompleted(applicationId);
+    }
+
+    if (
       reviewRun.runNo === 1 &&
       reviewRun.triggerType === "INITIAL_SUBMISSION" &&
       syncedResult.reviewRun.status === "COMPLETED"
@@ -506,6 +523,15 @@ export async function acceptSupplementReviewCallback(
         code: SUPPLEMENT_INTERNAL_ERROR_CODES.SUPPLEMENT_REVIEW_RUN_NOT_FOUND,
         details: { reviewRunId },
       });
+    }
+
+    if (
+      savedResult.reviewRun.status === "COMPLETED" &&
+      savedResult.updatedCategories.length > 0
+    ) {
+      scheduleExtractionExportAfterMaterialReviewCompleted(
+        reviewRun.applicationId,
+      );
     }
 
     return {

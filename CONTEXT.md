@@ -57,3 +57,17 @@ _Avoid_: admin, staff, operator
 **Ops Account(运营账号)**:
 一名 Ops 的登录身份(用户名 + 密码)。由部署配置预置允许的用户名名单,共用初始密码,首次登录后各自改密。推荐 token 的创建归属落在 Ops Account 上;每个账号只能看见并操作自己创建的推荐链接,无跨账号特权视图。
 _Avoid_: operator, admin account, ops user
+
+### 抽取与材料审查
+
+**Extraction Export(抽取结果)**:
+一份申报的运营可读快照工作簿(`抽取结果.xlsx`):含简历抽取主表,以及当前全部 `isLatest` 补件需求表(含已满足);供档案导出消费。
+_Avoid_: 抽取 Excel, extraction workbook, 需求清单文件(不是独立文件)
+
+**Material Review(材料审查)**:
+按材料类别判断已上传证明是否足以支撑简历声明的审查过程。
+_Avoid_: 材料审核, 完整性检查, CV review(那是简历资格初审)
+
+**Supplement Request(补件需求)**:
+材料审查产出的一条可操作补件项(标题、原因、建议材料等);多条当前最新(`isLatest`,含已满足)补件需求合称需求清单。
+_Avoid_: 材料审查结果(笼统说法), 缺失材料清单, checklist, 审查 payload

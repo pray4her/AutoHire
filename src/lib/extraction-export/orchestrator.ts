@@ -4,6 +4,7 @@ import {
   getApplicationFeedbackByApplicationId,
   getLatestAnalysisResult,
   getLatestExtractionReview,
+  listLatestSupplementRequests,
 } from "@/lib/data/store";
 import { getEnv } from "@/lib/env";
 import {
@@ -89,7 +90,10 @@ async function loadAuthoritativeSnapshot(applicationId: string) {
     screeningPhoneNumber: application.screeningPhoneNumber,
   };
 
-  const feedback = await getApplicationFeedbackByApplicationId(applicationId);
+  const [feedback, latestSupplementRequests] = await Promise.all([
+    getApplicationFeedbackByApplicationId(applicationId),
+    listLatestSupplementRequests(applicationId),
+  ]);
 
   return {
     applicationId,
@@ -98,6 +102,15 @@ async function loadAuthoritativeSnapshot(applicationId: string) {
     extractedFields: mergeAuthoritativeExtractedFields(baseFields, screening),
     screening,
     feedback,
+    supplementRequests: latestSupplementRequests.map((request) => ({
+      category: request.category,
+      title: request.title,
+      reason: request.reason,
+      suggestedMaterials: request.suggestedMaterials,
+      status: request.status,
+      isSatisfied: request.isSatisfied,
+      satisfiedAt: request.satisfiedAt,
+    })),
   };
 }
 

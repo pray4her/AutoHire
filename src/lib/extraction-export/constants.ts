@@ -5,6 +5,8 @@ export const EXTRACTION_EXPORT_LEASE_MS = 60_000;
 export const EXTRACTION_EXPORT_DIRTY_RERUN_LIMIT = 5;
 
 export const EXTRACTION_EXPORT_SHEET_NAME = "extraction";
+export const EXTRACTION_EXPORT_SUPPLEMENT_REQUESTS_SHEET_NAME =
+  "supplement_requests";
 
 export const EXTRACTION_EXPORT_METADATA_COLUMNS = [
   "application_id",
@@ -19,7 +21,21 @@ export const EXTRACTION_EXPORT_FEEDBACK_COLUMNS = [
   "feedback_submitted_at",
 ] as const;
 
-export type ExtractionExportTrigger = "CONFIRM" | "RESULT" | "FEEDBACK";
+export const EXTRACTION_EXPORT_SUPPLEMENT_REQUEST_COLUMNS = [
+  "category",
+  "title",
+  "reason",
+  "suggested_materials",
+  "status",
+  "is_satisfied",
+  "satisfied_at",
+] as const;
+
+export type ExtractionExportTrigger =
+  | "CONFIRM"
+  | "RESULT"
+  | "FEEDBACK"
+  | "MATERIAL_REVIEW";
 
 export type ExtractionExportStatus =
   | "PENDING"

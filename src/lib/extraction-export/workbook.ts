@@ -10,7 +10,19 @@ import {
   EXTRACTION_EXPORT_FEEDBACK_COLUMNS,
   EXTRACTION_EXPORT_METADATA_COLUMNS,
   EXTRACTION_EXPORT_SHEET_NAME,
+  EXTRACTION_EXPORT_SUPPLEMENT_REQUEST_COLUMNS,
+  EXTRACTION_EXPORT_SUPPLEMENT_REQUESTS_SHEET_NAME,
 } from "@/lib/extraction-export/constants";
+
+export type ExtractionExportSupplementRequestInput = {
+  category: string;
+  title: string;
+  reason: string | null;
+  suggestedMaterials: unknown;
+  status: string;
+  isSatisfied: boolean;
+  satisfiedAt: Date | string | null;
+};
 
 export type ExtractionExportSnapshotInput = {
   applicationId: string;
@@ -28,6 +40,7 @@ export type ExtractionExportSnapshotInput = {
     comment: string | null;
     submittedAt: Date | string | null;
   } | null;
+  supplementRequests?: ExtractionExportSupplementRequestInput[];
   exportedAt?: Date;
 };
 
@@ -85,6 +98,14 @@ function preferScreeningContactFields(
   return merged;
 }
 
+function normalizeSuggestedMaterials(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value.filter((item): item is string => typeof item === "string");
+}
+
 export function buildExtractionExportRow(
   input: ExtractionExportSnapshotInput,
 ): Record<string, string> {
@@ -122,6 +143,22 @@ export function buildExtractionExportRow(
   return row;
 }
 
+export function buildSupplementRequestExportRows(
+  requests: ExtractionExportSupplementRequestInput[],
+): Array<Record<string, string>> {
+  return requests.map((request) => ({
+    category: toCellString(request.category),
+    title: toCellString(request.title),
+    reason: toCellString(request.reason),
+    suggested_materials: normalizeSuggestedMaterials(
+      request.suggestedMaterials,
+    ).join("; "),
+    status: toCellString(request.status),
+    is_satisfied: request.isSatisfied ? "true" : "false",
+    satisfied_at: toIsoUtc(request.satisfiedAt),
+  }));
+}
+
 export function getExtractionExportColumnOrder() {
   return [
     ...EXTRACTION_EXPORT_METADATA_COLUMNS,
@@ -130,16 +167,36 @@ export function getExtractionExportColumnOrder() {
   ];
 }
 
+export function getSupplementRequestExportColumnOrder() {
+  return [...EXTRACTION_EXPORT_SUPPLEMENT_REQUEST_COLUMNS];
+}
+
 /**
  * Content identity excludes `exported_at` so unchanged business data can skip
  * PutObject even though the timestamp column would otherwise always differ.
  */
-export function hashExtractionExportContent(row: Record<string, string>) {
+export function hashExtractionExportContent(
+  row: Record<string, string>,
+  supplementRows: Array<Record<string, string>> = [],
+) {
   const header = getExtractionExportColumnOrder().filter(
     (column) => column !== "exported_at",
   );
-  const payload = header.map((column) => `${column}=${row[column] ?? ""}`).join("\n");
-  return createHash("sha256").update(payload).digest("hex");
+  const extractionPayload = header
+    .map((column) => `${column}=${row[column] ?? ""}`)
+    .join("\n");
+  const supplementHeader = getSupplementRequestExportColumnOrder();
+  const supplementPayload = supplementRows
+    .map((supplementRow) =>
+      supplementHeader
+        .map((column) => `${column}=${supplementRow[column] ?? ""}`)
+        .join("|"),
+    )
+    .join("\n");
+
+  return createHash("sha256")
+    .update(`${extractionPayload}\n--\n${supplementPayload}`)
+    .digest("hex");
 }
 
 export function buildExtractionExportWorkbookBuffer(
@@ -155,10 +212,31 @@ export function buildExtractionExportWorkbookBuffer(
     EXTRACTION_EXPORT_SHEET_NAME,
   );
 
+  const supplementRows = buildSupplementRequestExportRows(
+    input.supplementRequests ?? [],
+  );
+  const supplementHeader = getSupplementRequestExportColumnOrder();
+  const supplementWorksheet =
+    supplementRows.length > 0
+      ? XLSX.utils.json_to_sheet(supplementRows, {
+          header: [...supplementHeader],
+        })
+      : XLSX.utils.aoa_to_sheet([[...supplementHeader]]);
+  XLSX.utils.book_append_sheet(
+    workbook,
+    supplementWorksheet,
+    EXTRACTION_EXPORT_SUPPLEMENT_REQUESTS_SHEET_NAME,
+  );
+
   const buffer: Buffer = XLSX.write(workbook, {
     bookType: "xlsx",
     type: "buffer",
   });
 
-  return { buffer, row, contentSha256: hashExtractionExportContent(row) };
+  return {
+    buffer,
+    row,
+    supplementRows,
+    contentSha256: hashExtractionExportContent(row, supplementRows),
+  };
 }

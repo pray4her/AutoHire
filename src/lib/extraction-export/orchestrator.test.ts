@@ -165,6 +165,54 @@ describe("extraction export orchestrator", () => {
     expect(writeStoredObjectMock).not.toHaveBeenCalled();
   });
 
+  it("re-uploads when latest supplement requests change content hash", async () => {
+    const { exportConfirmedExtractionWorkbook } = await import(
+      "@/lib/extraction-export/orchestrator"
+    );
+
+    await exportConfirmedExtractionWorkbook({
+      applicationId: "app_export",
+      trigger: "CONFIRM",
+    });
+    writeStoredObjectMock.mockClear();
+
+    globalThis.__autohireStore!.supplementRequests = [
+      {
+        id: "req_export",
+        applicationId: "app_export",
+        category: "IDENTITY",
+        reviewRunId: "run_export",
+        categoryReviewId: "cat_export",
+        title: "Passport bio page",
+        reason: "Missing",
+        suggestedMaterials: ["Passport"],
+        aiMessage: null,
+        status: "PENDING",
+        isLatest: true,
+        isSatisfied: false,
+        satisfiedAt: null,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      },
+    ] as never;
+
+    const second = await exportConfirmedExtractionWorkbook({
+      applicationId: "app_export",
+      trigger: "MATERIAL_REVIEW",
+    });
+
+    expect(second.kind).toBe("uploaded");
+    expect(writeStoredObjectMock).toHaveBeenCalledTimes(1);
+
+    const { getApplicationExtractionExportByApplicationId } = await import(
+      "@/lib/extraction-export/store"
+    );
+    const record = await getApplicationExtractionExportByApplicationId(
+      "app_export",
+    );
+    expect(record?.lastTrigger).toBe("MATERIAL_REVIEW");
+  });
+
   it("marks dirty when lease is held and later reruns after reclaim", async () => {
     const store = await import("@/lib/extraction-export/store");
     await store.ensureApplicationExtractionExport({

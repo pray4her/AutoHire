@@ -189,6 +189,7 @@ enum ApplicationExtractionExportTrigger {
   CONFIRM
   RESULT
   FEEDBACK
+  MATERIAL_REVIEW
 }
 
 enum OpsExportJobStatus {
