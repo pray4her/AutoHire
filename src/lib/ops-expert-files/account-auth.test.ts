@@ -118,49 +118,4 @@ describe("ops expert-files account auth", () => {
       code: "OPS_EXPERT_FILES_ACCOUNT_NOT_INITIALIZED",
     });
   });
-
-  it("allows any username on the configured Ops Account allowlist", async () => {
-    process.env.OPS_EXPERT_FILES_USERNAME = "ops, alice ,bob";
-    resetEnvForTests();
-
-    const alice = await loginOpsExpertFiles({
-      username: "alice",
-      password: "initial-pass-123",
-    });
-    const bob = await loginOpsExpertFiles({
-      username: "bob",
-      password: "initial-pass-123",
-    });
-
-    expect(alice.username).toBe("alice");
-    expect(bob.username).toBe("bob");
-    expect(alice.operatorDigest).not.toBe(bob.operatorDigest);
-    expect(await verifyOpsExpertFilesSession(alice.cookieValue)).toMatchObject({
-      username: "alice",
-    });
-    expect(await verifyOpsExpertFilesSession(bob.cookieValue)).toMatchObject({
-      username: "bob",
-    });
-  });
-
-  it("rejects sessions whose username leaves the allowlist", async () => {
-    process.env.OPS_EXPERT_FILES_USERNAME = "ops,alice";
-    resetEnvForTests();
-
-    const alice = await loginOpsExpertFiles({
-      username: "alice",
-      password: "initial-pass-123",
-    });
-
-    process.env.OPS_EXPERT_FILES_USERNAME = "ops";
-    resetEnvForTests();
-
-    expect(await verifyOpsExpertFilesSession(alice.cookieValue)).toBeNull();
-    await expect(
-      loginOpsExpertFiles({
-        username: "alice",
-        password: "initial-pass-123",
-      }),
-    ).rejects.toMatchObject({ code: "OPS_EXPERT_FILES_INVALID_CREDENTIALS" });
-  });
 });

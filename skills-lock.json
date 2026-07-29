@@ -12,6 +12,12 @@
       "sourceType": "github",
       "computedHash": "20cc3ad7431ddaa86a8560b65afde7ba016d14c37ddafa4eeb441e7fec77be1b"
     },
+    "context7-mcp": {
+      "source": "upstash/context7",
+      "sourceType": "github",
+      "skillPath": "skills/context7-mcp/SKILL.md",
+      "computedHash": "954151658cec03361a75b712d8611a551f4c929976b0540799bce84d900a351f"
+    },
     "data-analyst": {
       "source": "Shubhamsaboo/awesome-llm-apps",
       "sourceType": "github",

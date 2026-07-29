@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 
 import { jsonError } from "@/lib/http";
-import { requireOpsExpertFilesSession } from "@/lib/ops-expert-files/require-session";
+import { requireOpsReferralSession } from "@/lib/ops-referral-auth/require-session";
 import {
   listReferralDownstreamForOwner,
   ReferralTokenUnavailableError,
@@ -11,7 +11,7 @@ export async function GET(
   request: NextRequest,
   context: { params: Promise<{ tokenId: string }> },
 ): Promise<Response> {
-  const auth = await requireOpsExpertFilesSession(request);
+  const auth = await requireOpsReferralSession(request);
   if (auth.error) return auth.error;
   const { tokenId } = await context.params;
   try {

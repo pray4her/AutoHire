@@ -1,7 +1,7 @@
 import type { NextRequest } from "next/server";
 
 import { jsonError, parseJsonBody } from "@/lib/http";
-import { requireOpsExpertFilesSession } from "@/lib/ops-expert-files/require-session";
+import { requireOpsReferralSession } from "@/lib/ops-referral-auth/require-session";
 import { referralTokenActionSchema } from "@/lib/referral-tokens/schemas";
 import {
   disableReferralToken,
@@ -14,7 +14,7 @@ export async function PATCH(
   request: NextRequest,
   context: { params: Promise<{ tokenId: string }> },
 ): Promise<Response> {
-  const auth = await requireOpsExpertFilesSession(request);
+  const auth = await requireOpsReferralSession(request);
   if (auth.error) return auth.error;
   const parsed = referralTokenActionSchema.safeParse(
     await parseJsonBody<unknown>(request),

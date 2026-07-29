@@ -9,6 +9,8 @@ const envSchema = z.object({
   APP_RUNTIME_MODE: z.enum(["auto", "memory", "prisma"]).default("auto"),
   BETTER_AUTH_SECRET: z.string().min(32).default(DEFAULT_BETTER_AUTH_SECRET),
   BETTER_AUTH_URL: z.string().url().optional(),
+  /** Extra Origins allowed by Better Auth (comma-separated), e.g. LAN IPs. */
+  BETTER_AUTH_TRUSTED_ORIGINS: z.string().optional(),
   INVITE_TOKEN_SECRET: z.string().min(1).default("autohire-dev-secret"),
   SESSION_COOKIE_NAME: z.string().min(1).default("autohire_session"),
   SESSION_COOKIE_MAX_AGE_SECONDS: z.coerce
@@ -77,6 +79,17 @@ const envSchema = z.object({
     .min(1)
     .default("autohire_ops_expert_files_session"),
   OPS_EXPERT_FILES_COOKIE_MAX_AGE_SECONDS: z.coerce
+    .number()
+    .int()
+    .positive()
+    .default(28800),
+  OPS_REFERRAL_USERNAME: z.string().min(1).default("ops"),
+  OPS_REFERRAL_INITIAL_PASSWORD: z.string().optional().default(""),
+  OPS_REFERRAL_COOKIE_NAME: z
+    .string()
+    .min(1)
+    .default("autohire_ops_referral_session"),
+  OPS_REFERRAL_COOKIE_MAX_AGE_SECONDS: z.coerce
     .number()
     .int()
     .positive()

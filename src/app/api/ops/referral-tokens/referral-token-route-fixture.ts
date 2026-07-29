@@ -1,10 +1,10 @@
 import { NextRequest } from "next/server";
 import { afterEach, beforeEach, expect } from "vitest";
 
-import { POST as login } from "@/app/api/ops/expert-files/auth/login/route";
+import { POST as login } from "@/app/api/ops/referral-auth/login/route";
 import { resetEnvForTests } from "@/lib/env";
-import { resetOpsExpertFilesAccountsForTests } from "@/lib/ops-expert-files/account-auth";
-import { getOpsExpertFilesCookieName } from "@/lib/ops-expert-files/session";
+import { resetOpsReferralAccountsForTests } from "@/lib/ops-referral-auth/account-auth";
+import { getOpsReferralCookieName } from "@/lib/ops-referral-auth/session";
 
 const originalEnv = { ...process.env };
 
@@ -36,21 +36,21 @@ export function setupReferralTokenRouteTests(): void {
       APP_RUNTIME_MODE: "memory",
       APP_BASE_URL: "https://example.test",
       INVITE_TOKEN_SECRET: "ops-referral-route-secret",
-      OPS_EXPERT_FILES_USERNAME: "ops,alice",
-      OPS_EXPERT_FILES_INITIAL_PASSWORD: "initial-pass-123",
-      OPS_EXPERT_FILES_COOKIE_NAME: "ops_ef_referral_test_cookie",
-      OPS_EXPERT_FILES_COOKIE_MAX_AGE_SECONDS: "300",
+      OPS_REFERRAL_USERNAME: "ops,alice",
+      OPS_REFERRAL_INITIAL_PASSWORD: "initial-pass-123",
+      OPS_REFERRAL_COOKIE_NAME: "ops_ref_referral_test_cookie",
+      OPS_REFERRAL_COOKIE_MAX_AGE_SECONDS: "300",
     };
     resetEnvForTests();
     resetMemoryStores();
-    resetOpsExpertFilesAccountsForTests();
+    resetOpsReferralAccountsForTests();
   });
 
   afterEach(() => {
     process.env = { ...originalEnv };
     resetEnvForTests();
     resetMemoryStores();
-    resetOpsExpertFilesAccountsForTests();
+    resetOpsReferralAccountsForTests();
   });
 }
 
@@ -70,7 +70,7 @@ export async function authCookieHeader(
   username = "ops",
 ): Promise<string> {
   const response = await login(
-    new NextRequest("http://localhost/api/ops/expert-files/auth/login", {
+    new NextRequest("http://localhost/api/ops/referral-auth/login", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -84,8 +84,8 @@ export async function authCookieHeader(
   const setCookie = response.headers.get("set-cookie") ?? "";
   const cookieValue =
     setCookie.match(
-      new RegExp(`${getOpsExpertFilesCookieName()}=([^;]+)`),
+      new RegExp(`${getOpsReferralCookieName()}=([^;]+)`),
     )?.[1] ?? "";
   expect(cookieValue).toBeTruthy();
-  return `${getOpsExpertFilesCookieName()}=${cookieValue}`;
+  return `${getOpsReferralCookieName()}=${cookieValue}`;
 }

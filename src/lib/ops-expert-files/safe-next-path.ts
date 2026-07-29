@@ -1,10 +1,9 @@
 import type { Route } from "next";
 
-/** Allowed post-login destinations for shared ops password login. */
+/** Allowed post-login destinations for expert-files / invitations shared login. */
 export const OPS_LOGIN_REDIRECT_TARGETS = [
   "/ops/expert-files",
   "/ops/invitations",
-  "/ops/referrals",
 ] as const satisfies ReadonlyArray<Route>;
 
 export type OpsLoginRedirectTarget =

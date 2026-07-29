@@ -14,8 +14,21 @@ export const ACCOUNT_AUTH_OTP_EXPIRES_IN_SECONDS = 600;
 export const ACCOUNT_AUTH_SESSION_EXPIRES_IN_SECONDS = 60 * 60 * 24 * 7;
 export const ACCOUNT_AUTH_SESSION_UPDATE_AGE_SECONDS = 60 * 60 * 24;
 
-function accountAuthTrustedOrigins(baseURL: string): string[] {
-  const origins = new Set<string>([baseURL]);
+function parseTrustedOriginList(raw: string | undefined): string[] {
+  if (!raw?.trim()) {
+    return [];
+  }
+  return raw
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+}
+
+function accountAuthTrustedOrigins(
+  baseURL: string,
+  extraOrigins: string[] = [],
+): string[] {
+  const origins = new Set<string>([baseURL, ...extraOrigins]);
   try {
     const url = new URL(baseURL);
     if (url.hostname === "127.0.0.1") {
@@ -42,7 +55,10 @@ export function createAccountAuthOptions(sender?: EmailSender) {
     appName: env.APP_NAME,
     baseURL,
     secret: env.BETTER_AUTH_SECRET,
-    trustedOrigins: accountAuthTrustedOrigins(baseURL),
+    trustedOrigins: accountAuthTrustedOrigins(
+      baseURL,
+      parseTrustedOriginList(env.BETTER_AUTH_TRUSTED_ORIGINS),
+    ),
     database: prismaAdapter(prisma, { provider: "postgresql" }),
     databaseHooks: {
       user: {

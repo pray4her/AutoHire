@@ -1,20 +1,20 @@
 import { createId } from "@/lib/ops-expert-files/id";
 import { hashPassword, verifyPassword } from "@/lib/ops-expert-files/password";
 import {
-  createOpsExpertFilesCookie,
-  createOpsExpertFilesOperatorDigest,
-  getOpsExpertFilesUsername,
-  peekOpsExpertFilesSession,
-} from "@/lib/ops-expert-files/session";
+  createOpsReferralCookie,
+  createOpsReferralOperatorDigest,
+  isAllowedOpsReferralUsername,
+  peekOpsReferralSession,
+} from "@/lib/ops-referral-auth/session";
 import { getEnv, getRuntimeMode } from "@/lib/env";
 
-export class OpsExpertFilesAuthError extends Error {
+export class OpsReferralAuthError extends Error {
   readonly status: number;
   readonly code: string;
 
-  constructor(message: string, status = 400, code = "OPS_EXPERT_FILES_AUTH_ERROR") {
+  constructor(message: string, status = 400, code = "OPS_REFERRAL_AUTH_ERROR") {
     super(message);
-    this.name = "OpsExpertFilesAuthError";
+    this.name = "OpsReferralAuthError";
     this.status = status;
     this.code = code;
   }
@@ -31,14 +31,14 @@ type AccountRecord = {
 
 declare global {
   // eslint-disable-next-line no-var
-  var __autohireOpsExpertFilesAccounts: AccountRecord[] | undefined;
+  var __autohireOpsReferralAccounts: AccountRecord[] | undefined;
 }
 
 function getMemoryAccounts() {
-  if (!globalThis.__autohireOpsExpertFilesAccounts) {
-    globalThis.__autohireOpsExpertFilesAccounts = [];
+  if (!globalThis.__autohireOpsReferralAccounts) {
+    globalThis.__autohireOpsReferralAccounts = [];
   }
-  return globalThis.__autohireOpsExpertFilesAccounts;
+  return globalThis.__autohireOpsReferralAccounts;
 }
 
 async function findAccountByUsername(username: string) {
@@ -47,7 +47,7 @@ async function findAccountByUsername(username: string) {
   }
 
   const { prisma } = await import("@/lib/db/prisma");
-  return prisma.opsExpertFilesAccount.findUnique({ where: { username } });
+  return prisma.opsReferralAccount.findUnique({ where: { username } });
 }
 
 async function createAccount(input: {
@@ -56,7 +56,7 @@ async function createAccount(input: {
 }) {
   const now = new Date();
   const record: AccountRecord = {
-    id: createId("ops_ef_acct"),
+    id: createId("ops_ref_acct"),
     username: input.username,
     passwordHash: input.passwordHash,
     passwordVersion: 1,
@@ -70,7 +70,7 @@ async function createAccount(input: {
   }
 
   const { prisma } = await import("@/lib/db/prisma");
-  return prisma.opsExpertFilesAccount.create({
+  return prisma.opsReferralAccount.create({
     data: {
       id: record.id,
       username: record.username,
@@ -99,7 +99,7 @@ async function updateAccountPassword(input: {
   }
 
   const { prisma } = await import("@/lib/db/prisma");
-  return prisma.opsExpertFilesAccount.update({
+  return prisma.opsReferralAccount.update({
     where: { username: input.username },
     data: {
       passwordHash: input.passwordHash,
@@ -108,19 +108,18 @@ async function updateAccountPassword(input: {
   });
 }
 
-async function ensureAccountExists() {
-  const username = getOpsExpertFilesUsername();
+async function ensureAccountExists(username: string) {
   const existing = await findAccountByUsername(username);
   if (existing) {
     return existing;
   }
 
-  const initialPassword = getEnv().OPS_EXPERT_FILES_INITIAL_PASSWORD;
+  const initialPassword = getEnv().OPS_REFERRAL_INITIAL_PASSWORD;
   if (!initialPassword) {
-    throw new OpsExpertFilesAuthError(
-      "专家档案账号尚未初始化，请配置 OPS_EXPERT_FILES_INITIAL_PASSWORD。",
+    throw new OpsReferralAuthError(
+      "推荐后台账号尚未初始化，请配置 OPS_REFERRAL_INITIAL_PASSWORD。",
       503,
-      "OPS_EXPERT_FILES_ACCOUNT_NOT_INITIALIZED",
+      "OPS_REFERRAL_ACCOUNT_NOT_INITIALIZED",
     );
   }
 
@@ -130,49 +129,48 @@ async function ensureAccountExists() {
   });
 }
 
-export async function loginOpsExpertFiles(input: {
+export async function loginOpsReferral(input: {
   username: string;
   password: string;
 }) {
-  const expectedUsername = getOpsExpertFilesUsername();
-  if (input.username !== expectedUsername) {
-    throw new OpsExpertFilesAuthError(
+  if (!isAllowedOpsReferralUsername(input.username)) {
+    throw new OpsReferralAuthError(
       "用户名或密码错误。",
       401,
-      "OPS_EXPERT_FILES_INVALID_CREDENTIALS",
+      "OPS_REFERRAL_INVALID_CREDENTIALS",
     );
   }
 
-  const account = await ensureAccountExists();
+  const account = await ensureAccountExists(input.username);
   const valid = await verifyPassword(input.password, account.passwordHash);
   if (!valid) {
-    throw new OpsExpertFilesAuthError(
+    throw new OpsReferralAuthError(
       "用户名或密码错误。",
       401,
-      "OPS_EXPERT_FILES_INVALID_CREDENTIALS",
+      "OPS_REFERRAL_INVALID_CREDENTIALS",
     );
   }
 
   return {
     username: account.username,
     passwordVersion: account.passwordVersion,
-    cookieValue: createOpsExpertFilesCookie({
+    cookieValue: createOpsReferralCookie({
       username: account.username,
       passwordVersion: account.passwordVersion,
     }),
-    operatorDigest: createOpsExpertFilesOperatorDigest(account.username),
+    operatorDigest: createOpsReferralOperatorDigest(account.username),
   };
 }
 
-export async function verifyOpsExpertFilesSession(
+export async function verifyOpsReferralSession(
   cookieValue: string | undefined | null,
 ) {
-  const payload = peekOpsExpertFilesSession(cookieValue);
+  const payload = peekOpsReferralSession(cookieValue);
   if (!payload) {
     return null;
   }
 
-  if (payload.username !== getOpsExpertFilesUsername()) {
+  if (!isAllowedOpsReferralUsername(payload.username)) {
     return null;
   }
 
@@ -184,55 +182,55 @@ export async function verifyOpsExpertFilesSession(
   return {
     username: account.username,
     passwordVersion: account.passwordVersion,
-    operatorDigest: createOpsExpertFilesOperatorDigest(account.username),
+    operatorDigest: createOpsReferralOperatorDigest(account.username),
   };
 }
 
-export async function changeOpsExpertFilesPassword(input: {
+export async function changeOpsReferralPassword(input: {
   cookieValue: string | undefined | null;
   currentPassword: string;
   newPassword: string;
 }) {
   if (input.newPassword.length < 8) {
-    throw new OpsExpertFilesAuthError(
+    throw new OpsReferralAuthError(
       "新密码至少 8 位。",
       400,
-      "OPS_EXPERT_FILES_PASSWORD_TOO_SHORT",
+      "OPS_REFERRAL_PASSWORD_TOO_SHORT",
     );
   }
 
   if (input.newPassword === input.currentPassword) {
-    throw new OpsExpertFilesAuthError(
+    throw new OpsReferralAuthError(
       "新密码不能与当前密码相同。",
       400,
-      "OPS_EXPERT_FILES_PASSWORD_UNCHANGED",
+      "OPS_REFERRAL_PASSWORD_UNCHANGED",
     );
   }
 
-  const session = await verifyOpsExpertFilesSession(input.cookieValue);
+  const session = await verifyOpsReferralSession(input.cookieValue);
   if (!session) {
-    throw new OpsExpertFilesAuthError(
-      "需要有效的运营后台登录会话。",
+    throw new OpsReferralAuthError(
+      "需要有效的推荐后台登录会话。",
       401,
-      "OPS_EXPERT_FILES_SESSION_REQUIRED",
+      "OPS_REFERRAL_SESSION_REQUIRED",
     );
   }
 
   const account = await findAccountByUsername(session.username);
   if (!account) {
-    throw new OpsExpertFilesAuthError(
-      "需要有效的运营后台登录会话。",
+    throw new OpsReferralAuthError(
+      "需要有效的推荐后台登录会话。",
       401,
-      "OPS_EXPERT_FILES_SESSION_REQUIRED",
+      "OPS_REFERRAL_SESSION_REQUIRED",
     );
   }
 
   const valid = await verifyPassword(input.currentPassword, account.passwordHash);
   if (!valid) {
-    throw new OpsExpertFilesAuthError(
+    throw new OpsReferralAuthError(
       "当前密码不正确。",
       401,
-      "OPS_EXPERT_FILES_INVALID_CURRENT_PASSWORD",
+      "OPS_REFERRAL_INVALID_CURRENT_PASSWORD",
     );
   }
 
@@ -244,27 +242,27 @@ export async function changeOpsExpertFilesPassword(input: {
   });
 
   if (!updated) {
-    throw new OpsExpertFilesAuthError(
+    throw new OpsReferralAuthError(
       "修改密码失败。",
       500,
-      "OPS_EXPERT_FILES_PASSWORD_UPDATE_FAILED",
+      "OPS_REFERRAL_PASSWORD_UPDATE_FAILED",
     );
   }
 
   return {
     username: updated.username,
     passwordVersion: updated.passwordVersion,
-    cookieValue: createOpsExpertFilesCookie({
+    cookieValue: createOpsReferralCookie({
       username: updated.username,
       passwordVersion: updated.passwordVersion,
     }),
-    operatorDigest: createOpsExpertFilesOperatorDigest(updated.username),
+    operatorDigest: createOpsReferralOperatorDigest(updated.username),
   };
 }
 
-export function resetOpsExpertFilesAccountsForTests() {
+export function resetOpsReferralAccountsForTests() {
   if (process.env.NODE_ENV !== "test") {
     return;
   }
-  globalThis.__autohireOpsExpertFilesAccounts = [];
+  globalThis.__autohireOpsReferralAccounts = [];
 }

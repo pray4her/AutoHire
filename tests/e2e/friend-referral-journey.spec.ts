@@ -5,7 +5,7 @@ import {
   type Page,
 } from "@playwright/test";
 
-import { e2eOpsCredentials } from "../../playwright.config";
+import { e2eReferralOpsCredentials } from "../../playwright.config";
 
 async function resetMemory(request: APIRequestContext) {
   const response = await request.post("/api/test/reset-memory");
@@ -13,9 +13,9 @@ async function resetMemory(request: APIRequestContext) {
 }
 
 async function loginOps(page: Page) {
-  await page.goto("/ops/expert-files/login?next=/ops/referrals");
-  await page.locator("#ops-username").fill(e2eOpsCredentials.username);
-  await page.locator("#ops-password").fill(e2eOpsCredentials.password);
+  await page.goto("/ops/referrals/login");
+  await page.locator("#ops-username").fill(e2eReferralOpsCredentials.username);
+  await page.locator("#ops-password").fill(e2eReferralOpsCredentials.password);
   await page.getByRole("button", { name: "登录" }).click();
   await expect(page).toHaveURL(/\/ops\/referrals$/);
   await expect(page.getByText("推荐链接", { exact: true })).toBeVisible();

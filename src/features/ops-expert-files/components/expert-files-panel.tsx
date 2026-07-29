@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 
+import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -183,10 +184,6 @@ export function ExpertFilesPanel() {
   const [detail, setDetail] = useState<Record<string, unknown> | null>(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [passwordOpen, setPasswordOpen] = useState(false);
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [changingPassword, setChangingPassword] = useState(false);
   const [pendingExport, setPendingExport] = useState<{
     mode: "filter" | "ids";
     estimateToken: string;
@@ -438,43 +435,6 @@ export function ExpertFilesPanel() {
       router.refresh();
     } catch {
       toast.error("退出失败。");
-    }
-  }
-
-  async function submitChangePassword() {
-    if (newPassword.length < 8) {
-      toast.error("新密码至少 8 位。");
-      return;
-    }
-    if (newPassword !== confirmPassword) {
-      toast.error("两次输入的新密码不一致。");
-      return;
-    }
-
-    setChangingPassword(true);
-    try {
-      const response = await fetch(
-        "/api/ops/expert-files/auth/change-password",
-        {
-          method: "POST",
-          credentials: "include",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ currentPassword, newPassword }),
-        },
-      );
-      const payload = await response.json();
-      if (!response.ok) {
-        throw new Error(payload.error ?? "修改密码失败。");
-      }
-      toast.success("密码已更新。");
-      setPasswordOpen(false);
-      setCurrentPassword("");
-      setNewPassword("");
-      setConfirmPassword("");
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "修改密码失败。");
-    } finally {
-      setChangingPassword(false);
     }
   }
 
@@ -952,70 +912,11 @@ export function ExpertFilesPanel() {
           </DialogContent>
         </Dialog>
 
-        <Dialog
+        <ChangePasswordDialog
           open={passwordOpen}
-          onOpenChange={(open) => {
-            setPasswordOpen(open);
-            if (!open) {
-              setCurrentPassword("");
-              setNewPassword("");
-              setConfirmPassword("");
-            }
-          }}
-        >
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>修改密码</DialogTitle>
-              <DialogDescription>
-                修改成功后当前会话会刷新，其他已登录会话将失效。
-              </DialogDescription>
-            </DialogHeader>
-            <FieldGroup className="gap-4">
-              <Field>
-                <FieldLabel htmlFor="current-password">当前密码</FieldLabel>
-                <Input
-                  id="current-password"
-                  type="password"
-                  autoComplete="current-password"
-                  value={currentPassword}
-                  onChange={(event) => setCurrentPassword(event.target.value)}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="new-password">新密码</FieldLabel>
-                <Input
-                  id="new-password"
-                  type="password"
-                  autoComplete="new-password"
-                  value={newPassword}
-                  onChange={(event) => setNewPassword(event.target.value)}
-                />
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="confirm-password">确认新密码</FieldLabel>
-                <Input
-                  id="confirm-password"
-                  type="password"
-                  autoComplete="new-password"
-                  value={confirmPassword}
-                  onChange={(event) => setConfirmPassword(event.target.value)}
-                />
-              </Field>
-            </FieldGroup>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setPasswordOpen(false)}>
-                取消
-              </Button>
-              <Button
-                disabled={changingPassword}
-                onClick={() => void submitChangePassword()}
-              >
-                {changingPassword ? <Spinner data-icon="inline-start" /> : null}
-                保存
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
+          onOpenChange={setPasswordOpen}
+          endpoint="/api/ops/expert-files/auth/change-password"
+        />
       </div>
     </main>
   );

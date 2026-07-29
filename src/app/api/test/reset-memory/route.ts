@@ -13,6 +13,7 @@ function resetDevMemoryStores() {
     __autohireReferralTokenStore?: unknown;
     __autohireReferralClickLogStore?: unknown;
     __autohireOpsExpertFilesAccounts?: unknown;
+    __autohireOpsReferralAccounts?: unknown;
     __autohireCustomerNoCounters?: unknown;
   };
 
@@ -20,6 +21,7 @@ function resetDevMemoryStores() {
   globals.__autohireReferralTokenStore = undefined;
   globals.__autohireReferralClickLogStore = undefined;
   globals.__autohireOpsExpertFilesAccounts = undefined;
+  globals.__autohireOpsReferralAccounts = undefined;
   globals.__autohireCustomerNoCounters = undefined;
   clearRecordedEmails();
 }

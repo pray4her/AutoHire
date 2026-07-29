@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { LogOut, Share2 } from "lucide-react";
+import { KeyRound, LogOut, Share2 } from "lucide-react";
 import { toast } from "sonner";
 import * as XLSX from "xlsx";
 
+import { ChangePasswordDialog } from "@/components/change-password-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -73,6 +74,7 @@ export function ReferralOpsPanel() {
   const [downstream, setDownstream] = useState<Record<string, Downstream[]>>(
     {},
   );
+  const [passwordOpen, setPasswordOpen] = useState(false);
 
   const load = useCallback(async () => {
     const response = await fetch("/api/ops/referral-tokens", {
@@ -93,11 +95,11 @@ export function ReferralOpsPanel() {
 
   async function logout() {
     try {
-      await fetch("/api/ops/expert-files/auth/logout", {
+      await fetch("/api/ops/referral-auth/logout", {
         method: "POST",
         credentials: "include",
       });
-      router.replace("/ops/expert-files/login?next=/ops/referrals");
+      router.replace("/ops/referrals/login");
       router.refresh();
     } catch {
       toast.error("退出失败。");
@@ -129,7 +131,7 @@ export function ReferralOpsPanel() {
       await load();
       toast.success(
         skipped > 0
-          ? `新建 ${created} 条，跳过已有有效链接 ${skipped} 条。`
+          ? `新建 ${created} 条，跳过当前账号下已有有效链接 ${skipped} 条。`
           : `已生成 ${created} 条推荐链接。`,
       );
     } catch (error) {
@@ -235,10 +237,18 @@ export function ReferralOpsPanel() {
             </CardTitle>
             <CardDescription>
               输入推荐人邮箱（可选显示名），生成后由内部同事线下发给推荐人。系统不发送邮件。
-              同一邮箱仅保留一条有效链接；重复导入会跳过并保留现链。历史中可复制现有明文链接。
+              当前账号下同一邮箱仅保留一条有效链接；重复导入会跳过并保留现链。历史中可复制现有明文链接。
             </CardDescription>
             <CardAction>
               <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setPasswordOpen(true)}
+                >
+                  <KeyRound data-icon="inline-start" />
+                  修改密码
+                </Button>
                 <Badge variant="secondary">已登录</Badge>
                 <Button
                   variant="outline"
@@ -390,6 +400,12 @@ export function ReferralOpsPanel() {
             ))}
           </CardContent>
         </Card>
+
+        <ChangePasswordDialog
+          open={passwordOpen}
+          onOpenChange={setPasswordOpen}
+          endpoint="/api/ops/referral-auth/change-password"
+        />
       </div>
     </main>
   );

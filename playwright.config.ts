@@ -1,13 +1,16 @@
 import { defineConfig, devices } from "@playwright/test";
 
 const E2E_BASE_URL = "http://localhost:3100";
-const OPS_USERNAME =
-  (process.env.OPS_EXPERT_FILES_USERNAME || "ops")
+const OPS_USERNAME = process.env.OPS_EXPERT_FILES_USERNAME || "ops";
+const OPS_PASSWORD =
+  process.env.OPS_EXPERT_FILES_INITIAL_PASSWORD || "e2e-ops-pass-123";
+const OPS_REFERRAL_USERNAME =
+  (process.env.OPS_REFERRAL_USERNAME || "ops")
     .split(",")
     .map((part) => part.trim())
     .find(Boolean) || "ops";
-const OPS_PASSWORD =
-  process.env.OPS_EXPERT_FILES_INITIAL_PASSWORD || "e2e-ops-pass-123";
+const OPS_REFERRAL_PASSWORD =
+  process.env.OPS_REFERRAL_INITIAL_PASSWORD || "e2e-ops-pass-123";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -34,6 +37,8 @@ export default defineConfig({
       EMAIL_TRANSPORT_MODE: "recording",
       OPS_EXPERT_FILES_USERNAME: OPS_USERNAME,
       OPS_EXPERT_FILES_INITIAL_PASSWORD: OPS_PASSWORD,
+      OPS_REFERRAL_USERNAME: OPS_REFERRAL_USERNAME,
+      OPS_REFERRAL_INITIAL_PASSWORD: OPS_REFERRAL_PASSWORD,
     },
     port: 3100,
     reuseExistingServer: false,
@@ -43,4 +48,9 @@ export default defineConfig({
 export const e2eOpsCredentials = {
   username: OPS_USERNAME,
   password: OPS_PASSWORD,
+} as const;
+
+export const e2eReferralOpsCredentials = {
+  username: OPS_REFERRAL_USERNAME,
+  password: OPS_REFERRAL_PASSWORD,
 } as const;

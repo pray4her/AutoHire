@@ -22,7 +22,8 @@ export default async function InvitationsLoginPage() {
     <ExpertFilesLoginForm
       redirectTo="/ops/invitations"
       title="邀请链接登录"
-      subtitle="使用运营账号与密码进入邀请链接生成页。"
+        subtitle="使用运营账号与密码进入邀请链接生成页。"
+        description="与专家档案共用同一运营账号；与推荐链接页账号相互独立。"
     />
   );
 }

@@ -16,10 +16,10 @@ import {
 import { Field, FieldGroup, FieldLabel } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
-import type { OpsLoginRedirectTarget } from "@/lib/ops-expert-files/safe-next-path";
 
 type ExpertFilesLoginFormProps = {
-  redirectTo?: OpsLoginRedirectTarget;
+  redirectTo?: string;
+  loginPath?: string;
   title?: string;
   subtitle?: string;
   description?: string;
@@ -27,9 +27,10 @@ type ExpertFilesLoginFormProps = {
 
 export function ExpertFilesLoginForm({
   redirectTo = "/ops/expert-files",
+  loginPath = "/api/ops/expert-files/auth/login",
   title = "运营后台登录",
   subtitle = "使用运营账号与密码进入后台。",
-  description = "同一账号可用于专家档案、邀请令牌生成器等运营页面。",
+  description = "同一账号可用于专家档案与邀请令牌生成器。",
 }: ExpertFilesLoginFormProps) {
   const router = useRouter();
   const [username, setUsername] = useState("");
@@ -40,7 +41,7 @@ export function ExpertFilesLoginForm({
     event.preventDefault();
     setSubmitting(true);
     try {
-      const response = await fetch("/api/ops/expert-files/auth/login", {
+      const response = await fetch(loginPath, {
         method: "POST",
         credentials: "include",
         headers: { "content-type": "application/json" },

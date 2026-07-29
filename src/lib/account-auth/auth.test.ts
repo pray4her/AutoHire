@@ -41,6 +41,7 @@ describe("createAccountAuthOptions", () => {
 
   it("trusts both localhost and 127.0.0.1 loopback origins", () => {
     process.env.BETTER_AUTH_URL = "http://localhost:3100";
+    delete process.env.BETTER_AUTH_TRUSTED_ORIGINS;
     resetEnvForTests();
 
     const options = createAccountAuthOptions();
@@ -48,6 +49,23 @@ describe("createAccountAuthOptions", () => {
       expect.arrayContaining([
         "http://localhost:3100",
         "http://127.0.0.1:3100",
+      ]),
+    );
+  });
+
+  it("merges BETTER_AUTH_TRUSTED_ORIGINS into trustedOrigins", () => {
+    process.env.BETTER_AUTH_URL = "http://localhost:3100";
+    process.env.BETTER_AUTH_TRUSTED_ORIGINS =
+      "http://192.168.2.29:3000, http://192.168.3.43:3000";
+    resetEnvForTests();
+
+    const options = createAccountAuthOptions();
+    expect(options.trustedOrigins).toEqual(
+      expect.arrayContaining([
+        "http://localhost:3100",
+        "http://127.0.0.1:3100",
+        "http://192.168.2.29:3000",
+        "http://192.168.3.43:3000",
       ]),
     );
   });

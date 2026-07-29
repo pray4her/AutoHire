@@ -1,6 +1,6 @@
 # 多 Ops Account：推荐按创建者隔离，ACTIVE 唯一性按账号作用域
 
-Status: accepted（部分收窄 ADR-0003「每邮箱至多一个 ACTIVE」：改为每个 Ops Account 下每邮箱至多一个 ACTIVE）
+Status: accepted（部分收窄 ADR-0003「每邮箱至多一个 ACTIVE」：改为每个创建者账号下每邮箱至多一个 ACTIVE）。会话模型已被 [ADR-0005](./0005-split-referral-ops-auth.md) 收窄为推荐页独立鉴权。
 
 运营后台需要多名可登录身份（Ops Account），共用现有 `/ops/*` 会话，但推荐链接必须按创建者隔离：列表与作废/续期/重生/下游只对创建该 token 的 Ops Account 可见可写。邀请批次与专家档案仍全员共享。账号来自配置预置用户名名单 + 共用初始密码；无跨账号特权视图。移出名单即不能登录，已有推荐链仍有效且仍挂原创建者（交接靠保留账号或运维改归属）。历史 token 继续归属原用户名对应账号。
 

@@ -3,17 +3,17 @@ import { redirect } from "next/navigation";
 import { connection } from "next/server";
 
 import { ReferralOpsPanel } from "@/features/referral-tokens/components/referral-ops-panel";
-import { verifyOpsExpertFilesSession } from "@/lib/ops-expert-files/account-auth";
-import { getOpsExpertFilesCookieName } from "@/lib/ops-expert-files/session";
+import { verifyOpsReferralSession } from "@/lib/ops-referral-auth/account-auth";
+import { getOpsReferralCookieName } from "@/lib/ops-referral-auth/session";
 
 export default async function ReferralsPage() {
   await connection();
   const cookieStore = await cookies();
-  const session = await verifyOpsExpertFilesSession(
-    cookieStore.get(getOpsExpertFilesCookieName())?.value,
+  const session = await verifyOpsReferralSession(
+    cookieStore.get(getOpsReferralCookieName())?.value,
   );
   if (!session) {
-    redirect("/ops/expert-files/login?next=/ops/referrals");
+    redirect("/ops/referrals/login");
   }
   return <ReferralOpsPanel />;
 }
