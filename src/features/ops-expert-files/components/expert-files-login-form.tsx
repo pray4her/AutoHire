@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { FolderArchive } from "lucide-react";
 import { toast } from "sonner";
@@ -18,7 +19,7 @@ import { Input } from "@/components/ui/input";
 import { Spinner } from "@/components/ui/spinner";
 
 type ExpertFilesLoginFormProps = {
-  redirectTo?: string;
+  redirectTo?: Route;
   loginPath?: string;
   title?: string;
   subtitle?: string;
