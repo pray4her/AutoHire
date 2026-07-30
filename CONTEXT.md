@@ -38,6 +38,16 @@ _Avoid_: expert token, referral code, invite token
 包含推荐 token 的公开链接。由内部同事线下发给 Referrer,再由其转发给朋友;朋友打开后进入与邀请链接相似的申报入口体验(非专家介绍页)。
 _Avoid_: share link, forward link
 
+### 入口页面
+
+**Public Landing Page(公开落地页)**:
+无需邀请即可访问的公开营销页(位于 `/`),承担 GESF 项目介绍与获客职能;主转化动作是引导访客自助注册账号(即转入账号轨),不收集表单数据。仅英文。
+_Avoid_: 官网, homepage(它不是政府官网,也不是站点导航中心)
+
+**Apply Entry(申报入口)**:
+`/apply` 邀请制申报入口页,Expert 凭 Invitation 进入后看到的项目介绍与申报起点。与公开落地页是两个页面,互不替代。
+_Avoid_: 落地页, landing page(易与公开落地页混淆)
+
 ### 申报
 
 **Application(申报)**:
