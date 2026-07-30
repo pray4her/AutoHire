@@ -69,9 +69,12 @@ vi.mock("@/features/application/components/apply-entry-client", () => ({
   ),
 }));
 
-vi.mock("@/features/application/components/apply-expired-read-only-entry", () => ({
-  ApplyExpiredReadOnlyEntry: () => <div>expired-read-only-entry</div>,
-}));
+vi.mock(
+  "@/features/application/components/apply-expired-read-only-entry",
+  () => ({
+    ApplyExpiredReadOnlyEntry: () => <div>expired-read-only-entry</div>,
+  }),
+);
 
 vi.mock("@/features/application/server/apply-entry-access", () => ({
   resolveApplyEntryAccessFromSessionCookie: (
@@ -174,9 +177,7 @@ describe("ApplyEntryPage", () => {
     );
 
     expect(screen.getByText("Invitation required")).toBeInTheDocument();
-    expect(
-      screen.queryByText("apply-entry-client"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("apply-entry-client")).not.toBeInTheDocument();
     const loginCta = screen.getByText("Sign in to continue your application");
     expect(loginCta.closest("a")).toHaveAttribute("href", "/login");
     expect(redirectMock).not.toHaveBeenCalled();
@@ -249,6 +250,11 @@ describe("ApplyEntryPage", () => {
     );
 
     expect(screen.getByText("Invitation link invalid")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", {
+        name: "Learn about the Global Excellent Scientists Fund",
+      }),
+    ).toHaveAttribute("href", "/");
     expect(resolveApplyEntryAccessFromSessionCookieMock).not.toHaveBeenCalled();
   });
 

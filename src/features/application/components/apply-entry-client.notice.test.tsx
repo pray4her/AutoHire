@@ -149,6 +149,7 @@ describe("ApplyEntryClient invite notice", () => {
   });
 
   afterEach(() => {
+    vi.unstubAllEnvs();
     cleanup();
   });
 
@@ -159,8 +160,9 @@ describe("ApplyEntryClient invite notice", () => {
 
     await waitForInviteNotice();
     expect(screen.getByText("Don't show this again")).toBeInTheDocument();
-    expect(screen.getByRole("checkbox", { name: "Don't show this again" }))
-      .not.toBeChecked();
+    expect(
+      screen.getByRole("checkbox", { name: "Don't show this again" }),
+    ).not.toBeChecked();
 
     await user.click(screen.getByRole("button", { name: "I understand" }));
 
@@ -251,5 +253,72 @@ describe("ApplyEntryClient invite notice", () => {
     await waitFor(() => {
       expect(window.location.search).toBe("");
     });
+  });
+
+  it("shows the real invitation expiration date in the notice", async () => {
+    renderApplyEntryClient();
+
+    await waitForInviteNotice();
+
+    expect(
+      screen.getByText(/This link will remain valid until March 15, 2027\./),
+    ).toBeInTheDocument();
+  });
+
+  it("falls back to the invitation-email wording when the invite has no expiry", async () => {
+    render(
+      <ApplyEntryClient
+        initialSnapshot={{ ...snapshot, invitationLinkExpiresAt: null }}
+        openedFromInviteLink={false}
+      />,
+    );
+
+    await waitForInviteNotice();
+
+    expect(
+      screen.getByText(
+        "This link remains valid for the period stated in your invitation email.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("hides the sample-token hint outside development", async () => {
+    const user = userEvent.setup();
+    window.localStorage.setItem("apply-invite-notice-seen:invite_001", "seen");
+    postIntroConfirmMock.mockRejectedValueOnce(new Error("boom"));
+
+    renderApplyEntryClient();
+
+    await user.click(
+      screen.getByRole("button", { name: "Continue to CV Submission" }),
+    );
+
+    expect(
+      await screen.findByText("Unable to open the application entry"),
+    ).toBeInTheDocument();
+    expect(screen.getByText("boom")).toBeInTheDocument();
+    expect(
+      screen.queryByText(/For local testing, you can use the sample token/),
+    ).not.toBeInTheDocument();
+  });
+
+  it("shows the sample-token hint in development only", async () => {
+    vi.stubEnv("NODE_ENV", "development");
+    const user = userEvent.setup();
+    window.localStorage.setItem("apply-invite-notice-seen:invite_001", "seen");
+    postIntroConfirmMock.mockRejectedValueOnce(new Error("boom"));
+
+    renderApplyEntryClient();
+
+    await user.click(
+      screen.getByRole("button", { name: "Continue to CV Submission" }),
+    );
+
+    expect(
+      await screen.findByText(
+        /For local testing, you can use the sample token/,
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("sample-init-token")).toBeInTheDocument();
   });
 });

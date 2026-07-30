@@ -3,11 +3,7 @@ import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
-import {
-  PageFrame,
-  PageShell,
-  StatusBanner,
-} from "@/components/ui/page-shell";
+import { PageFrame, PageShell, StatusBanner } from "@/components/ui/page-shell";
 import { ApplyEntryClient } from "@/features/application/components/apply-entry-client";
 import { ApplyExpiredReadOnlyEntry } from "@/features/application/components/apply-expired-read-only-entry";
 import { EXPIRED_INVITE_APPLY_PATH } from "@/features/application/expired-invite-access";
@@ -99,11 +95,7 @@ function buildAccountBootstrapRedirectUrl() {
   return `/api/expert-session?${params.toString()}` as const;
 }
 
-function ApplyEntryAccessError({
-  code,
-}: {
-  code: ApplyEntryBannerErrorCode;
-}) {
+function ApplyEntryAccessError({ code }: { code: ApplyEntryBannerErrorCode }) {
   const copy = ACCESS_ERROR_COPY[code];
 
   return (
@@ -127,6 +119,14 @@ function ApplyEntryAccessError({
               </Button>
             </div>
           ) : null}
+          <div className="mt-6 flex justify-center">
+            <Link
+              href="/"
+              className="text-sm font-medium text-[color:var(--primary)] underline-offset-4 hover:underline"
+            >
+              Learn about the Global Excellent Scientists Fund
+            </Link>
+          </div>
         </div>
       </PageShell>
     </PageFrame>

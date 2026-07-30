@@ -6,7 +6,7 @@ import { listPublishedQaFaqEntries } from "@/lib/qa/faq-store";
 
 const APPLY_FLOW_BACKDROP_STYLE: CSSProperties = {
   backgroundImage:
-    'linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(244, 247, 251, 0.78) 38%, rgba(244, 247, 251, 0.7) 100%), url("/apply/entry-background.png")',
+    'linear-gradient(180deg, rgba(255, 255, 255, 0.7) 0%, rgba(244, 247, 251, 0.78) 38%, rgba(244, 247, 251, 0.7) 100%), url("/apply/entry-background.webp")',
   backgroundSize: "cover",
   backgroundPosition: "center",
   backgroundRepeat: "no-repeat",

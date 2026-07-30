@@ -8,9 +8,10 @@ export const PROCESS = [
 ] as const;
 
 export const INTRO_DESCRIPTION =
-  "The 2026 application cycle is now closed. We are currently preparing for the 2027 application. Due to the large volume of required documents, please contact us early to begin your preparations.";
+  "Preparations for the 2027 application cycle are now underway. Applications are accepted year-round — due to the large volume of required documents, please contact us early to begin your preparations.";
 
-export const APPLICATION_DEADLINE_PILL = "Applications are accepted year-round.";
+export const APPLICATION_DEADLINE_PILL =
+  "Applications are accepted year-round.";
 
 export const COMPETITIVE_PACKAGE_ITEMS = [
   "Annual Salary: ¥500K – ¥2M RMB (negotiable)",
@@ -94,8 +95,7 @@ export const INTRO_SECTION_ITEMS = [
   {
     id: "eligibility",
     title: "Eligibility",
-    summary:
-      "Young Talents, Innovative Talents, or Distinguished Engineers.",
+    summary: "Young Talents, Innovative Talents, or Distinguished Engineers.",
   },
   {
     id: "process",
@@ -146,8 +146,33 @@ export const PERSONALIZED_LINK_NOTICE_ITEMS = [
   },
 ] as const;
 
-/** Fixed date shown in the personalized-link notice dialog (not per-invite expiry). */
-export const FIXED_INVITATION_LINK_EXPIRATION_LABEL = "October 15, 2026";
+/** Fallback copy for the expiration notice item when the invite has no expiry date. */
+export const INVITATION_LINK_WITHOUT_EXPIRY_DESCRIPTION =
+  "This link remains valid for the period stated in your invitation email.";
+
+const INVITATION_LINK_EXPIRATION_FORMATTER = new Intl.DateTimeFormat("en-US", {
+  year: "numeric",
+  month: "long",
+  day: "numeric",
+  timeZone: "UTC",
+});
+
+/** Formats an ISO expiry timestamp from the entry payload as e.g. "March 15, 2027". */
+export function formatInvitationLinkExpirationLabel(
+  invitationLinkExpiresAt: string | null,
+): string | null {
+  if (!invitationLinkExpiresAt) {
+    return null;
+  }
+
+  const expiresAt = new Date(invitationLinkExpiresAt);
+
+  if (Number.isNaN(expiresAt.getTime())) {
+    return null;
+  }
+
+  return INVITATION_LINK_EXPIRATION_FORMATTER.format(expiresAt);
+}
 
 export type TopInfoItem = {
   readonly id: string;
@@ -204,44 +229,44 @@ export type Testimonial = {
 export const TESTIMONIAL_HIGHLIGHTS = [
   {
     id: "appreciation-letter-1",
-    src: "/apply/testimonials/appreciation-letter-1.png",
+    src: "/apply/testimonials/appreciation-letter-1.webp",
     alt: "Appreciation letter from an expert in Biomedical Sciences, Member of the Cuban Academy of Sciences",
-    width: 1005,
-    height: 549,
+    width: 1515,
+    height: 691,
   },
   {
     id: "appreciation-letter-2",
-    src: "/apply/testimonials/appreciation-letter-2.png",
+    src: "/apply/testimonials/appreciation-letter-2.webp",
     alt: "Appreciation letter from an expert in the scientific application of machine learning and computer vision, currently working at one of the 17 U.S. National Laboratories",
-    width: 850,
-    height: 314,
-  },
-  {
-    id: "appreciation-letter-3",
-    src: "/apply/testimonials/appreciation-letter-3.png",
-    alt: "Appreciation letter from an expert in the field of plant science, currently a tenured associate professor at a university ranked among the top 150 worldwide by QS",
-    width: 838,
-    height: 214,
-  },
-  {
-    id: "appreciation-letter-4",
-    src: "/apply/testimonials/appreciation-letter-4.png",
-    alt: "Appreciation letter from an expert in the field of biological sciences, currently a tenured full professor at a university ranked among the top 120 worldwide by QS",
-    width: 1515,
-    height: 527,
-  },
-  {
-    id: "appreciation-letter-5",
-    src: "/apply/testimonials/appreciation-letter-5.png",
-    alt: "Appreciation letter from a program participant",
     width: 1515,
     height: 563,
   },
   {
-    id: "appreciation-letter-6",
-    src: "/apply/testimonials/appreciation-letter-6.png",
-    alt: "Correspondence record with a selected candidate",
+    id: "appreciation-letter-3",
+    src: "/apply/testimonials/appreciation-letter-3.webp",
+    alt: "Appreciation letter from an expert in the field of plant science, currently a tenured associate professor at a university ranked among the top 150 worldwide by QS",
     width: 1515,
-    height: 691,
+    height: 527,
+  },
+  {
+    id: "appreciation-letter-4",
+    src: "/apply/testimonials/appreciation-letter-4.webp",
+    alt: "Appreciation letter from an expert in the field of biological sciences, currently a tenured full professor at a university ranked among the top 120 worldwide by QS",
+    width: 890,
+    height: 302,
+  },
+  {
+    id: "appreciation-letter-5",
+    src: "/apply/testimonials/appreciation-letter-5.webp",
+    alt: "Appreciation letter from a program participant",
+    width: 941,
+    height: 220,
+  },
+  {
+    id: "appreciation-letter-6",
+    src: "/apply/testimonials/appreciation-letter-6.webp",
+    alt: "Correspondence record with a selected candidate",
+    width: 1060,
+    height: 594,
   },
 ] as const satisfies readonly Testimonial[];

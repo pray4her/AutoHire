@@ -12,28 +12,42 @@ import {
 } from "@/components/ui/dialog";
 import { PRIVACY_STATEMENT_ITEMS } from "@/features/application/constants";
 
-export function PrivacyStatementDialog() {
+export function PrivacyStatementDialog({
+  triggerVariant = "button",
+}: {
+  readonly triggerVariant?: "button" | "link";
+} = {}) {
   const [open, setOpen] = useState(false);
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <Button
-        type="button"
-        variant="outline"
-        size="default"
-        className="min-h-10 gap-2 rounded-lg border-primary/20 bg-primary/10 px-4 text-[0.9rem] font-semibold tracking-[0.01em] text-primary hover:bg-primary/[0.14] hover:text-primary"
-        onClick={() => setOpen(true)}
-      >
-        <ShieldCheck
-          aria-hidden="true"
-          data-icon="inline-start"
-          className="size-4"
-        />
-        Privacy Statement
-      </Button>
-      <DialogContent
-        className="h-auto max-h-[min(42rem,calc(100vh-2rem))] gap-0 overflow-hidden rounded-[1.1rem] border-[color:var(--border)] bg-[color:var(--background-elevated)] p-0 sm:max-w-[40rem]"
-      >
+      {triggerVariant === "link" ? (
+        <Button
+          type="button"
+          variant="link"
+          size="default"
+          className="min-h-10 gap-2 px-2 text-[0.9rem] text-[color:var(--foreground-soft)] hover:text-[color:var(--primary)]"
+          onClick={() => setOpen(true)}
+        >
+          Privacy Statement
+        </Button>
+      ) : (
+        <Button
+          type="button"
+          variant="outline"
+          size="default"
+          className="border-primary/20 bg-primary/10 text-primary hover:bg-primary/[0.14] hover:text-primary min-h-10 gap-2 rounded-lg px-4 text-[0.9rem] font-semibold tracking-[0.01em]"
+          onClick={() => setOpen(true)}
+        >
+          <ShieldCheck
+            aria-hidden="true"
+            data-icon="inline-start"
+            className="size-4"
+          />
+          Privacy Statement
+        </Button>
+      )}
+      <DialogContent className="h-auto max-h-[min(42rem,calc(100vh-2rem))] gap-0 overflow-hidden rounded-[1.1rem] border-[color:var(--border)] bg-[color:var(--background-elevated)] p-0 sm:max-w-[40rem]">
         <div className="relative overflow-hidden">
           <div className="absolute inset-x-0 top-0 h-20 bg-[radial-gradient(circle_at_top,rgba(37,99,235,0.1),transparent_72%)]" />
           <div className="relative flex flex-col">

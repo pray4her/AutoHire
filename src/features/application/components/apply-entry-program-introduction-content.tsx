@@ -210,23 +210,6 @@ export function renderProgramIntroductionContent(sectionId: IntroSectionId) {
               laboratories to the market.
             </li>
           </ol>
-          {/* <div>
-            <p className="font-semibold text-[color:var(--foreground)]">
-              Our Service Outcomes and Industry Accreditation
-            </p>
-            <p className="mt-2">
-              Our services span over 200 cities and regions nationwide. To date,
-              we have organized more than 500 talent matching events, industry
-              forums, project roadshows and field inspection visits. We have
-              successfully matched over 5,000 high-level overseas talents with
-              domestic local governments, universities and enterprises. With our
-              professional support, more than 500 candidates have been admitted
-              to national, provincial and municipal talent programs. As a core
-              service partner of the GESF ecosystem, our professionalism and
-              comprehensive resource integration capabilities have earned
-              widespread recognition from all sectors.
-            </p>
-          </div> */}
         </div>
       );
     default:

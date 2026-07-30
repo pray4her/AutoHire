@@ -7,12 +7,15 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
-import { PERSONALIZED_LINK_NOTICE_ITEMS } from "@/features/application/components/apply-entry-intro-content";
+import {
+  INVITATION_LINK_WITHOUT_EXPIRY_DESCRIPTION,
+  PERSONALIZED_LINK_NOTICE_ITEMS,
+} from "@/features/application/components/apply-entry-intro-content";
 
 const DONT_SHOW_AGAIN_LABEL = "Don't show this again";
 
 type ApplyInviteNoticeDialogProps = {
-  readonly invitationExpirationLabel: string;
+  readonly invitationExpirationLabel: string | null;
   readonly isOpen: boolean;
   readonly onOpenChange: (nextOpen: boolean) => void;
   readonly onDismiss: (dontShowAgain: boolean) => void;
@@ -22,7 +25,7 @@ function ApplyInviteNoticeBody({
   invitationExpirationLabel,
   onDismiss,
 }: {
-  readonly invitationExpirationLabel: string;
+  readonly invitationExpirationLabel: string | null;
   readonly onDismiss: (dontShowAgain: boolean) => void;
 }) {
   const [dontShowAgain, setDontShowAgain] = useState(false);
@@ -45,10 +48,14 @@ function ApplyInviteNoticeBody({
         <div className="px-6 py-5 sm:px-8 sm:py-6">
           <ol className="flex flex-col gap-5">
             {PERSONALIZED_LINK_NOTICE_ITEMS.map((item, index) => {
-              const description = item.description.replace(
-                "{expirationDate}",
-                invitationExpirationLabel,
-              );
+              const description = item.description.includes("{expirationDate}")
+                ? invitationExpirationLabel
+                  ? item.description.replace(
+                      "{expirationDate}",
+                      invitationExpirationLabel,
+                    )
+                  : INVITATION_LINK_WITHOUT_EXPIRY_DESCRIPTION
+                : item.description;
 
               return (
                 <li key={item.title}>
@@ -131,7 +138,7 @@ export function ApplyInviteNoticeDialog({
       >
         {isOpen ? (
           <ApplyInviteNoticeBody
-            key={invitationExpirationLabel}
+            key={invitationExpirationLabel ?? "no-expiry"}
             invitationExpirationLabel={invitationExpirationLabel}
             onDismiss={onDismiss}
           />

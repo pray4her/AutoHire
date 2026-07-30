@@ -19,7 +19,6 @@ import { ApplyEntryFooterNav } from "@/features/application/components/apply-ent
 import {
   APPLICATION_DEADLINE_PILL,
   APPLY_ENTRY_ACCORDION_SECTION_CLASS,
-  FIXED_INVITATION_LINK_EXPIRATION_LABEL,
   INTRO_DESCRIPTION,
   type IntroSectionId,
 } from "@/features/application/components/apply-entry-intro-content";
@@ -124,7 +123,9 @@ export function ReferralLanding({
   return (
     <PageFrame>
       <ApplyInviteNoticeDialog
-        invitationExpirationLabel={FIXED_INVITATION_LINK_EXPIRATION_LABEL}
+        // The public referral payload carries no expiry date, so the notice
+        // falls back to the invitation-email wording.
+        invitationExpirationLabel={null}
         isOpen={isInviteNoticeOpen}
         onOpenChange={setIsInviteNoticeOpen}
         onDismiss={handleInviteNoticeDismiss}

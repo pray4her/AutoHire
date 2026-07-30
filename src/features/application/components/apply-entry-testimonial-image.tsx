@@ -25,8 +25,6 @@ export function ApplyEntryTestimonialImage({
       width={testimonial.width}
       height={testimonial.height}
       sizes={TESTIMONIAL_IMAGE_SIZES}
-      quality={100}
-      unoptimized
       className="h-auto w-full"
       data-testid={imageTestId}
       priority={priority}

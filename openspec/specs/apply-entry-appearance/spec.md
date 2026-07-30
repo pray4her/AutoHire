@@ -8,21 +8,21 @@ Defines visual requirements for the public `/apply` application introduction ent
 
 ### Requirement: Entry route background image
 
-The system SHALL render a full-area static PNG background on the public application introduction route whose path is exactly `/apply` (the entry page), using the asset served at `/apply/entry-background.png` from the project `public` directory.
+The system SHALL render a full-area static WebP background on the public application introduction route whose path is exactly `/apply` (the entry page), using the asset served at `/apply/entry-background.webp` from the project `public` directory.
 
 #### Scenario: Visitor opens the apply introduction
 
 - **WHEN** a client requests the `/apply` page successfully
-- **THEN** the rendered view SHALL include a non-interactive background layer that displays the PNG referenced above with `background-size` covering the background layer and `background-position` centered
+- **THEN** the rendered view SHALL include a non-interactive background layer that displays the image referenced above with `background-size` covering the background layer and `background-position` centered
 
 ### Requirement: Sub-routes excluded
 
-The system SHALL NOT apply that PNG background layer to other segments under the `/apply` path prefix (including but not limited to `/apply/resume`, `/apply/materials`, and `/apply/result`).
+The system SHALL NOT apply that background layer to other segments under the `/apply` path prefix (including but not limited to `/apply/resume`, `/apply/materials`, and `/apply/result`).
 
 #### Scenario: Applicant continues past the introduction
 
 - **WHEN** a client navigates to `/apply/resume` or any other `/apply/*` route other than the exact `/apply` entry
-- **THEN** the PNG background layer defined in this capability SHALL NOT be present on that page
+- **THEN** the background layer defined in this capability SHALL NOT be present on that page
 
 ### Requirement: Foreground readability
 
@@ -30,7 +30,7 @@ The system SHALL preserve legible contrast for primary text, the flow stepper, s
 
 #### Scenario: Default introduction content is visible
 
-- **WHEN** the `/apply` page is rendered with typical introduction content and the configured PNG is present
+- **WHEN** the `/apply` page is rendered with typical introduction content and the configured image is present
 - **THEN** foreground typography and controls SHALL remain visually distinguishable from the background without requiring user zoom
 
 ### Requirement: Stacking with global page chrome

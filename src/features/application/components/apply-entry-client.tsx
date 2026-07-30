@@ -13,7 +13,7 @@ import {
 import { ApplyEntryProgramIntroduction } from "@/features/application/components/apply-entry-program-introduction";
 import {
   APPLICATION_DEADLINE_PILL,
-  FIXED_INVITATION_LINK_EXPIRATION_LABEL,
+  formatInvitationLinkExpirationLabel,
   INTRO_DESCRIPTION,
   APPLY_ENTRY_ACCORDION_SECTION_CLASS,
   type IntroSectionId,
@@ -25,6 +25,7 @@ import {
 } from "@/features/application/components/apply-entry-client-storage";
 import { ApplyEntryFooterNav } from "@/features/application/components/apply-entry-footer-nav";
 import { ApplyInviteNoticeDialog } from "@/features/application/components/apply-invite-notice-dialog";
+import { PrivacyStatementDialog } from "@/features/application/components/privacy-statement-dialog";
 import { postIntroConfirm } from "@/features/application/client";
 import { APPLICATION_FLOW_STEPS_WITH_INTRO } from "@/features/application/constants";
 import {
@@ -166,7 +167,9 @@ export function ApplyEntryClient({
   const isReadOnlyReview = snapshot
     ? isFlowStepReadOnly(snapshot.applicationStatus, 0)
     : false;
-  const invitationExpirationLabel = FIXED_INVITATION_LINK_EXPIRATION_LABEL;
+  const invitationExpirationLabel = formatInvitationLinkExpirationLabel(
+    snapshot?.invitationLinkExpiresAt ?? null,
+  );
 
   function handleInviteNoticeOpenChange(nextOpen: boolean) {
     setIsInviteNoticeOpen(nextOpen);
@@ -221,12 +224,14 @@ export function ApplyEntryClient({
               title="Unable to open the application entry"
             >
               <p className="text-sm leading-6">{error}</p>
-              <p className="text-xs text-[color:var(--foreground-soft)]">
-                For local testing, you can use the sample token:
-                <code className="ml-2 rounded-md bg-white px-2 py-1 text-[0.72rem] text-[color:var(--primary)]">
-                  sample-init-token
-                </code>
-              </p>
+              {process.env.NODE_ENV === "development" ? (
+                <p className="text-xs text-[color:var(--foreground-soft)]">
+                  For local testing, you can use the sample token:
+                  <code className="ml-2 rounded-md bg-white px-2 py-1 text-[0.72rem] text-[color:var(--primary)]">
+                    sample-init-token
+                  </code>
+                </p>
+              ) : null}
             </StatusBanner>
           ) : null}
 
@@ -254,6 +259,10 @@ export function ApplyEntryClient({
               </span>
               <ChevronRight className="h-4 w-4" aria-hidden />
             </ActionButton>
+          </div>
+
+          <div className="flex justify-center pb-2">
+            <PrivacyStatementDialog triggerVariant="link" />
           </div>
         </div>
       </PageShell>

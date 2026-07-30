@@ -5,6 +5,7 @@ import "@testing-library/jest-dom/vitest";
 import type { ButtonHTMLAttributes, ReactNode } from "react";
 import type { ImgHTMLAttributes } from "react";
 import { cleanup, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { ApplyEntryClient } from "@/features/application/components/apply-entry-client";
@@ -198,7 +199,10 @@ describe("ApplyEntryClient footer navigation", () => {
     expect(sections).toHaveLength(4);
     for (const section of sections) {
       expect(section).toHaveClass("flex-1", "flex-col");
-      expect(section).not.toHaveClass("border-t", "lg:grid-cols-[16rem_minmax(0,1fr)]");
+      expect(section).not.toHaveClass(
+        "border-t",
+        "lg:grid-cols-[16rem_minmax(0,1fr)]",
+      );
     }
     expect(
       screen.queryByTestId("apply-footer-section-correspondence-record"),
@@ -259,7 +263,7 @@ describe("ApplyEntryClient footer navigation", () => {
     ).toBeInTheDocument();
     expect(screen.getByTestId("active-testimonial-image")).toHaveAttribute(
       "src",
-      "/apply/testimonials/appreciation-letter-1.png",
+      "/apply/testimonials/appreciation-letter-1.webp",
     );
     expect(
       within(testimonialsRegion).queryAllByTestId("testimonial-thumbnail"),
@@ -267,7 +271,28 @@ describe("ApplyEntryClient footer navigation", () => {
     expect(TESTIMONIAL_HIGHLIGHTS).toHaveLength(6);
     expect(TESTIMONIAL_HIGHLIGHTS.at(-1)).toMatchObject({
       alt: "Correspondence record with a selected candidate",
-      src: "/apply/testimonials/appreciation-letter-6.png",
+      src: "/apply/testimonials/appreciation-letter-6.webp",
     });
+  });
+
+  it("offers a privacy statement entry below the main call to action", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <ApplyEntryClient
+        initialSnapshot={snapshot}
+        openedFromInviteLink={false}
+      />,
+    );
+
+    const privacyTrigger = screen.getByRole("button", {
+      name: "Privacy Statement",
+    });
+
+    await user.click(privacyTrigger);
+
+    expect(
+      await screen.findByRole("heading", { name: "Privacy Statement" }),
+    ).toBeInTheDocument();
   });
 });
