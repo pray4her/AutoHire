@@ -9,6 +9,7 @@ const trackEventSchema = z.object({
   event_time: z.string().datetime({ offset: true }).optional(),
   page_name: z
     .enum([
+      "public_landing",
       "apply_entry",
       "apply_resume",
       "apply_result",

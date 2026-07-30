@@ -8,6 +8,7 @@ import type { TrackingPageName, TrackingStepName } from "@/lib/tracking/types";
 const MIN_DURATION_MS = 1000;
 
 const DURATION_EVENT_BY_PAGE: Record<TrackingPageName, string> = {
+  public_landing: "landing_page_duration_recorded",
   apply_entry: "intro_page_duration_recorded",
   apply_resume: "resume_page_duration_recorded",
   apply_result: "analysis_result_duration_recorded",

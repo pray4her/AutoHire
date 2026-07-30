@@ -199,11 +199,12 @@ export function trackPageDuration(input: {
 
 export async function trackPageView(input: {
   pageName: TrackingPageName;
-  stepName: TrackingStepName;
+  stepName?: TrackingStepName;
   applicationId?: string | null;
   token?: string | null;
 }) {
   const eventTypeByPage: Record<TrackingPageName, string> = {
+    public_landing: "landing_page_viewed",
     apply_entry: "intro_page_viewed",
     apply_resume: "resume_page_viewed",
     apply_result: "analysis_result_viewed",
@@ -227,7 +228,7 @@ export async function trackPageView(input: {
 export async function trackClick(input: {
   eventType: string;
   pageName: TrackingPageName;
-  stepName: TrackingStepName;
+  stepName?: TrackingStepName;
   eventStatus?: "SUCCESS" | "FAIL";
   applicationId?: string | null;
   errorCode?: string | null;

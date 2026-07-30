@@ -1,6 +1,7 @@
 import type { MaterialCategory } from "@/features/application/types";
 
 export type TrackingPageName =
+  | "public_landing"
   | "apply_entry"
   | "apply_resume"
   | "apply_result"

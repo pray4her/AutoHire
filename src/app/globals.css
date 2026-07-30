@@ -212,6 +212,29 @@ html:has([data-slot="sheet-content"][data-open])
 /*---break---
  */
 
+/*---break---
+ */
+
+/*
+ * Public landing page (`/`) — editorial direction.
+ * Navy keeps brand continuity with the application flow; gold is the accent.
+ * Scoped with the `--landing-*` prefix so the application tokens stay untouched.
+ */
+:root {
+  --landing-paper: #f7f2e8;
+  --landing-paper-raised: #fffdf7;
+  --landing-ink: #0e1a2b;
+  --landing-ink-soft: #4a5a70;
+  --landing-navy: #0a192f;
+  --landing-navy-deep: #071120;
+  --landing-gold: #b08a2e;
+  --landing-gold-strong: #8a6a1f;
+  --landing-gold-soft: rgba(176, 138, 46, 0.16);
+  --landing-hairline: rgba(10, 25, 47, 0.16);
+  --landing-hairline-light: rgba(247, 242, 232, 0.2);
+  --landing-shadow: 0 24px 60px rgba(10, 25, 47, 0.14);
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
