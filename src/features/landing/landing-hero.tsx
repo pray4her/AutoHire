@@ -1,11 +1,13 @@
+import Image from "next/image";
 import Link from "next/link";
 
 import { LANDING_HERO } from "./landing-content";
 import { LandingReveal } from "./landing-reveal";
 
 /**
- * Hero band: navy gradient, gold accent glow (pure CSS, no image requests),
- * staggered first-screen reveal via LandingReveal.
+ * Hero band: navy gradient base + globe network photograph (decorative,
+ * right-anchored) with a left scrim that keeps the headline at AA contrast.
+ * Staggered first-screen reveal via LandingReveal.
  */
 export function LandingHero() {
   return (
@@ -14,9 +16,17 @@ export function LandingHero() {
       aria-labelledby="landing-hero-title"
       className="relative overflow-hidden bg-[linear-gradient(180deg,var(--landing-navy),var(--landing-navy-deep))]"
     >
+      <Image
+        src="/Home/hero-background.webp"
+        alt=""
+        fill
+        priority
+        sizes="100vw"
+        className="object-cover object-right"
+      />
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0 bg-[radial-gradient(55%_45%_at_72%_8%,rgba(176,138,46,0.2),transparent_70%)]"
+        className="pointer-events-none absolute inset-0 bg-[linear-gradient(90deg,var(--landing-navy-deep)_0%,rgba(7,17,32,0.88)_38%,rgba(7,17,32,0.3)_68%,rgba(7,17,32,0.05)_100%)]"
       />
       <div
         aria-hidden

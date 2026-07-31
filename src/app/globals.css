@@ -235,6 +235,30 @@ html:has([data-slot="sheet-content"][data-open])
   --landing-shadow: 0 24px 60px rgba(10, 25, 47, 0.14);
 }
 
+/* Fade/slide reveal used by LandingReveal. Delay is staggered per element via
+   the --landing-reveal-delay custom property; transform/opacity only. */
+@keyframes landing-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.landing-reveal {
+  animation: landing-reveal 0.35s ease-out both;
+  animation-delay: var(--landing-reveal-delay, 0s);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-reveal {
+    animation: none;
+  }
+}
+
 .dark {
   --background: oklch(0.145 0 0);
   --foreground: oklch(0.985 0 0);
