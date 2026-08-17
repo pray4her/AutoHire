@@ -14,11 +14,24 @@ next-env.d.ts
 
 # misc
 .DS_Store
+Thumbs.db
+Desktop.ini
 *.pem
 
-# agent skills & config
+# agent skills & config (local; not for frontend handover)
 .claude
 .agents
+.codex
+.codex-artifacts/
+.cursor/settings.json
+
+# local scratch / WIP / screenshots (not for frontend handover)
+.scratch/
+.data/
+.debug-journal.md
+.tmp-query-test.ts
+AGENTS.md.bak
+access-https.txt
 
 # logs
 npm-debug.log*
@@ -26,8 +39,11 @@ yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 bun-debug.log*
+*.log
+autohire-dev.log
+autohire-dev.err.log
 
-# env
+# env / secrets (never send)
 .env
 .env.local
 .env.development.local
@@ -51,8 +67,8 @@ bun-debug.log*
 # coverage
 /coverage
 
-
-GESF Recruitment Website
+# obsolete Vite prototype — real app is Next.js in this repo
+GESF Recruitment Website/
 
 # Sentry Config File
 .env.sentry-build-plugin
@@ -66,3 +82,8 @@ docs/13_UAT_Test_Plan_And_Manual_Checklist.md
 docs/测试文档.docx
 scripts/generate-uat-docx.mjs
 skills-lock.json
+
+# landing hero source / upscayl intermediates (runtime uses public/Home/hero-background.webp)
+public/Home/2bab4974-e312-4c1a-ab9b-62c5bd4e5544.png
+public/Home/2bab4974-e312-4c1a-ab9b-62c5bd4e5544_upscayl_2x_upscayl-standard-4x.png
+public/Home/2bab4974-e312-4c1a-ab9b-62c5bd4e5544_upscayl_4x_upscayl-standard-4x.png
