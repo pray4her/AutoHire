@@ -19,11 +19,11 @@ Desktop.ini
 *.pem
 
 # agent skills & config (local; not for frontend handover)
-.claude
-.agents
-.codex
+.claude/
+.agents/
+.codex/
 .codex-artifacts/
-.cursor/settings.json
+.cursor/
 
 # local scratch / WIP / screenshots (not for frontend handover)
 .scratch/
